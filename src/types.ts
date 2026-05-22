@@ -1,0 +1,67 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export interface Scholarship {
+  id: string;
+  title: string;
+  type: 'internal' | 'pemerintah' | 'swasta';
+  provider: string;
+  description: string;
+  fundingAmount: string;
+  registrationDeadline: string;
+  requirements: string[];
+  bannerImage: string;
+  benefits: string[];
+}
+
+export interface UKM {
+  id: string;
+  name: string;
+  category: 'Seni & Budaya' | 'Olahraga' | 'Akademik' | 'Sosial' | 'Kerohanian' | 'Minat Khusus';
+  description: string;
+  shortDescription: string;
+  coverImage: string;
+  logoImage: string;
+  vision: string;
+  mission: string[];
+  schedule: { day: string; time: string; activity: string }[];
+  gallery: string[];
+  contacts: { role: string; name: string; contact: string }[];
+  requirements: string[];
+  activeMembers: number;
+}
+
+export interface Achievement {
+  id: string;
+  title: string;
+  studentName: string;
+  major: string;
+  level: 'Nasional' | 'Internasional' | 'Regional';
+  rank: string;
+  category: 'Akademik' | 'Seni & Budaya' | 'Olahraga' | 'Sosial & Kemanusiaan';
+  year: number;
+  description: string;
+  image: string;
+}
+
+export interface AlumniRecord {
+  id: string;
+  name: string;
+  graduationYear: number;
+  major: string;
+  status: 'Bekerja' | 'Wirausaha' | 'Lanjut Studi' | 'Mencari Kerja';
+  company: string;
+  position: string;
+}
+
+export interface StudentNews {
+  id: string;
+  title: string;
+  summary: string;
+  description: string;
+  image: string;
+  date: string;
+  category: 'Berita' | 'Agenda' | 'Pengumuman';
+}

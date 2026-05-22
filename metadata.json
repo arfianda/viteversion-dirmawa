@@ -1,0 +1,6 @@
+{
+  "name": "Direktorat Kemahasiswaan & Alumni UPB",
+  "description": "Portal kemahasiswaan terpadu Universitas Pelita Bangsa untuk layanan beasiswa, direktori UKM, panggung prestasi, dan pelacakan karir alumni.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

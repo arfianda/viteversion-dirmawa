@@ -1,0 +1,98 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.5
+ */
+
+import React from 'react';
+import { ShieldAlert, BookOpen, Users, Award, Landmark, Search, Key, LogIn, ChevronDown } from 'lucide-react';
+
+interface NavbarProps {
+  currentTab: string;
+  setCurrentTab: (tab: string) => void;
+  setSelectedUkmId: (id: string | null) => void;
+}
+
+export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: NavbarProps) {
+  const [searchFocused, setSearchFocused] = React.useState(false);
+
+  const navItems = [
+    { id: 'home', label: 'Homepage' },
+    { id: 'alumni', label: 'Alumni' },
+    { id: 'achievements', label: 'Achievements' },
+    { id: 'scholarships', label: 'Scholarships' },
+    { id: 'ukms', label: 'UKM Directory' },
+  ];
+
+  const handleNavClick = (tabId: string) => {
+    setCurrentTab(tabId);
+    setSelectedUkmId(null);
+  };
+
+  return (
+    <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16 items-center">
+          
+          {/* Brand Logo - Match the exact clean layout */}
+          <div className="flex items-center space-x-2.5 cursor-pointer select-none" onClick={() => handleNavClick('home')}>
+            <div className="w-8 h-8 rounded-lg bg-[#001e40] flex items-center justify-center text-[#feb234] font-extrabold text-sm shadow-sm">
+              UPB
+            </div>
+            <span className="font-sans font-black text-lg text-[#001e40] tracking-tight hover:text-[#feb234] transition-colors">
+              Universitas Pelita Bangsa
+            </span>
+          </div>
+          
+          {/* Center Navigation Links - Pure white style matching stitch */}
+          <div className="hidden md:flex items-center space-x-1">
+            {navItems.map((item) => {
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavClick(item.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-sans font-semibold tracking-wide transition-all duration-200 ${
+                    isActive
+                      ? 'text-[#001e40] bg-slate-100 font-extrabold'
+                      : 'text-slate-500 hover:text-[#001e40] hover:bg-slate-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Controls: Search & Login */}
+          <div className="flex items-center space-x-3">
+            {/* Inline Search Bar */}
+            <div className={`relative hidden sm:block transition-all duration-300 ${searchFocused ? 'w-56' : 'w-44'}`}>
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <input
+                type="text"
+                placeholder="Search..."
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-full pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#001e40] transition-all"
+              />
+            </div>
+
+            {/* Student Login Button */}
+            <button
+              onClick={() => handleNavClick('admin')}
+              className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-sans font-bold uppercase tracking-wider transition-all duration-300 ${
+                currentTab === 'admin'
+                  ? 'bg-[#feb234] text-[#001e40] shadow-md'
+                  : 'bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm'
+              }`}
+            >
+              <LogIn size={13} className="text-[#feb234]" />
+              <span>Student Login</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </nav>
+  );
+}
