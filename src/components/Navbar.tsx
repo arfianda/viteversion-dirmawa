@@ -22,6 +22,7 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
     { id: 'achievements', label: 'Achievements' },
     { id: 'scholarships', label: 'Scholarships' },
     { id: 'ukms', label: 'UKM Directory' },
+    { id: 'news', label: 'Berita' },
   ];
 
   const handleNavClick = (tabId: string) => {

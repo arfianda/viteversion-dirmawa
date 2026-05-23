@@ -61,7 +61,7 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
             </h3>
             <ul className="space-y-3 font-sans text-sm">
               <li>
-                <button onClick={() => handleNav('home')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
+                <button onClick={() => handleNav('news')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
                   Portal Berita & Kegiatan
                 </button>
               </li>

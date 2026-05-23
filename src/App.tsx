@@ -12,14 +12,15 @@ import UkmView from './components/UkmView';
 import AchievementView from './components/AchievementView';
 import AlumniView from './components/AlumniView';
 import AdminView from './components/AdminView';
+import NewsView from './components/NewsView';
 
 // Import initial mock data
-import { 
-  SCHOLARSHIPS as initialScholarships, 
-  UKMS as initialUkms, 
-  ACHIEVEMENTS as initialAchievements, 
-  NEWS as initialNews, 
-  INITIAL_ALUMNI as initialAlumni 
+import {
+  SCHOLARSHIPS as initialScholarships,
+  UKMS as initialUkms,
+  ACHIEVEMENTS as initialAchievements,
+  NEWS as initialNews,
+  INITIAL_ALUMNI as initialAlumni
 } from './data';
 
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from './types';
@@ -81,14 +82,21 @@ export default function App() {
           )}
 
           {currentTab === 'alumni' && (
-            <AlumniView 
-              alumniList={alumni} 
-              setAlumniList={setAlumni} 
+            <AlumniView
+              alumniList={alumni}
+              setAlumniList={setAlumni}
+            />
+          )}
+
+          {currentTab === 'news' && (
+            <NewsView
+              news={news}
+              setCurrentTab={setCurrentTab}
             />
           )}
 
           {currentTab === 'admin' && (
-            <AdminView 
+            <AdminView
               scholarships={scholarships}
               setScholarships={setScholarships}
               ukms={ukms}

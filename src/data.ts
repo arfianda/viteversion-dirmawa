@@ -13,7 +13,7 @@ export const SCHOLARSHIPS: Scholarship[] = [
     provider: 'Kemendikbudristek Republik Indonesia',
     description: 'Bantuan biaya pendidikan dari Pemerintah RI bagi lulusan SMA/sederajat yang memiliki potensi akademik baik tetapi memiliki keterbatasan ekonomi untuk melanjutkan kuliah di Perguruan Tinggi.',
     fundingAmount: 'Dana UKT Penuh + Uang Saku up to Rp 1.400.000 / Bulan',
-    registrationDeadline: '20 Agustus 2024',
+    registrationDeadline: '20 Agustus 2026',
     requirements: [
       'Memiliki Kartu KIP-Kuliah atau terdaftar di DTKS Kementerian Sosial.',
       'Lulusan SMA/SMK/MA sederajat tahun berjalan atau maksimal 2 tahun sebelumnya.',
@@ -34,7 +34,7 @@ export const SCHOLARSHIPS: Scholarship[] = [
     provider: 'Universitas Pelita Bangsa',
     description: 'Beasiswa bergengsi bersumber dari yayasan internal UPB untuk mengapresiasi dan memfasilitasi mahasiswa aktif semester berjalan yang memperlihatkan prestasi prestasi akademik luar biasa.',
     fundingAmount: 'Diskon SPP Semester sebesar 50% - 100%',
-    registrationDeadline: '15 September 2024',
+    registrationDeadline: '15 September 2026',
     requirements: [
       'Terdaftar aktif sebagai mahasiswa Universitas Pelita Bangsa (min Semester 2).',
       'Memiliki IPK minimal 3.75 pada dua semester berturut-turut.',

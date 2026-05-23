@@ -206,8 +206,8 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center border-b border-slate-200 pb-3">
             <h2 className="font-sans font-extrabold text-xl text-[#001e40]">Berita & Pengumuman</h2>
-            <button 
-              onClick={() => setCurrentTab('home')} 
+            <button
+              onClick={() => setCurrentTab('news')}
               className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1"
             >
               <span>Lihat Semua</span>
