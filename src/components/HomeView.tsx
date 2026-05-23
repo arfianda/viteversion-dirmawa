@@ -35,9 +35,8 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{ 
-            backgroundImage: `url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=1200&auto=format&fit=crop')`,
-            referrerPolicy: 'no-referrer'
-          } as React.CSSProperties}
+            backgroundImage: `url('/gedung-upb.jpg')`
+          }}
         />
         {/* Navy overlay to replicate the dark gradient color schema in visual mockups */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#001e40] via-[#001e40]/90 to-[#001e40]/35" />
@@ -50,11 +49,11 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           </div>
           
           <h1 className="font-sans font-black text-3xl sm:text-4xl lg:text-[45px] tracking-tight text-white leading-[1.1]">
-            Membentuk Generasi Unggul<br />& Berkarakter
+            Lorem ipsum.<br /> dolor sit amet.
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-xl">
-            Direktorat Kemahasiswaan Universitas Pelita Bangsa hadir untuk mendampingi, memfasilitasi, dan mengembangkan potensi mahasiswa menuju masa depan yang gemilang.
+            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quae quod voluptatem nesciunt!
           </p>
 
           <div className="flex flex-wrap gap-3.5 pt-2">
@@ -104,7 +103,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
         <div className="space-y-1">
           <div className="flex items-center space-x-2 text-[#feb234]">
             <div className="w-6 h-0.5 bg-[#feb234]" />
-            <span className="font-mono text-[11px] font-bold uppercase tracking-wider">SIPMA & Ormawa</span>
+            <span className="font-mono text-[11px] font-bold uppercase tracking-wider">Informasi & Ormawa</span>
           </div>
           <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Layanan Utama</h2>
         </div>
@@ -125,7 +124,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
             
             <div className="absolute inset-0 p-6 flex flex-col justify-between text-white z-10">
               <span className="bg-[#feb234] text-[#001e40] px-2.5 py-0.5 text-[9px] font-mono font-black uppercase rounded w-fit">
-                SIPMA Beasiswa
+                Beasiswa
               </span>
               <div className="space-y-2">
                 <h3 className="font-sans font-black text-xl text-white">Beasiswa</h3>
@@ -253,7 +252,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
                   Akademik
                 </span>
                 <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
-                  Pendaftaran Beasiswa Internal Semester Ganjil 2024 Dibuka
+                  Pendaftaran Beasiswa Internal Semester Ganjil 2026 Dibuka
                 </h3>
                 <p className="text-xs text-slate-505 font-sans line-clamp-1 leading-normal">
                   Segera persiapkan berkas Anda, pendaftaran beasiswa prestasi dan bantuan studi telah resmi dibuka.
@@ -282,10 +281,10 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
             <div className="space-y-3">
               <h3 className="font-sans font-black text-lg text-white leading-tight">
-                Job Fair & Career Expo 2024
+                Job Fair & Career Expo 2026
               </h3>
               <p className="text-xs text-slate-400">
-                Gedung Auditorium Utama, Kampus A.
+                Aula Gedung B, Kampus Cikarang.
               </p>
               <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
                 <p>⌚ 09.00 - 16.00 WIB</p>

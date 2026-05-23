@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { ShieldAlert, BookOpen, Users, Award, Landmark, Search, Key, LogIn, ChevronDown } from 'lucide-react';
+import upbLogo from '../assets/images/logo-upb.png';
 
 interface NavbarProps {
   currentTab: string;
@@ -34,13 +35,20 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
         <div className="flex justify-between h-16 items-center">
           
           {/* Brand Logo - Match the exact clean layout */}
-          <div className="flex items-center space-x-2.5 cursor-pointer select-none" onClick={() => handleNavClick('home')}>
-            <div className="w-8 h-8 rounded-lg bg-[#001e40] flex items-center justify-center text-[#feb234] font-extrabold text-sm shadow-sm">
-              UPB
+          <div className="flex items-center space-x-3 cursor-pointer select-none group" onClick={() => handleNavClick('home')}>
+            <img 
+              src={upbLogo} 
+              alt="UPB Logo" 
+              className="w-10 h-10 object-contain transition-transform duration-300 group-hover:scale-105"
+            />
+            <div className="flex flex-col text-left leading-[1.15]">
+              <span className="font-sans font-black text-[13px] sm:text-[14px] text-[#001e40] tracking-tight group-hover:text-[#feb234] transition-colors duration-200">
+                Direktorat
+              </span>
+              <span className="font-sans font-black text-[13px] sm:text-[14px] text-[#001e40] tracking-tight group-hover:text-[#feb234] transition-colors duration-200">
+                Kemahasiswaan dan Alumni
+              </span>
             </div>
-            <span className="font-sans font-black text-lg text-[#001e40] tracking-tight hover:text-[#feb234] transition-colors">
-              Universitas Pelita Bangsa
-            </span>
           </div>
           
           {/* Center Navigation Links - Pure white style matching stitch */}

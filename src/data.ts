@@ -95,9 +95,9 @@ export const SCHOLARSHIPS: Scholarship[] = [
 export const UKMS: UKM[] = [
   {
     id: '1',
-    name: 'UKM SENI UPB',
+    name: 'UKM SENI',
     category: 'Seni & Budaya',
-    description: 'Unit Kegiatan Mahasiswa Seni UPB adalah payung besar dari kreativitas mahasiswa di bidang musik, tari tradisional/modern, kriya rupa, teater, hingga paduan suara. Kami berkomitmen melestarikan nilai-nilai kebudayaan lokal sekaligus mengeksplorasi ekspresi modern secara selaras.',
+    description: 'Unit Kegiatan Mahasiswa Seni Universitas Pelita Bangsa adalah payung besar dari kreativitas mahasiswa di bidang musik, tari tradisional/modern, seni rupa, teater, hingga standup comedy. Kami berkomitmen melestarikan nilai-nilai kebudayaan lokal sekaligus mengeksplorasi ekspresi modern secara selaras.',
     shortDescription: 'Pusat eksplorasi kreativitas tari, musik, seni peran, rupa, dan vokal mahasiswa UPB.',
     coverImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB9djpF7T_W2a2nzD_pc1SW2EDvT4juTNUwcX-5ZgOGqrmW2ZIG-O1pgnX9GGMMzWTUudfTp8WGBXmoqGgCYwu1IjlLciAIy8UvH16ao0lKwBdd8kSadg3OLei9caW8UW8iYXAJoGxlu4uCA68J_Wv-FMww2ilmYTWA_tL1MDh2TI-7NPHxrbW8BSiGyboVVa_srQ37lUiKVFXWZ5MztXfE71mFqP_gtUE-cVy7Cl3jgwjtxwoi3ZJ2rUUSnCpXGLiHLrZJ83PfzVg',
     logoImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuApt2ZbfS5X7iZXy8q-4C6bJEmf0TLfJSDCFP2eUstasvtpYz-2_qVb0Zr4E2FBI9ijeOcM1DvCDNXHqFc9gtBkkDzVcu1QUwTO5oocOIngIpI8YH9pKSrHz1uDtehmjm9edUdS7OlArR3wilvqhhv-aVFjNoZKce2AnRAXpx4ayZBiELc7vizQ_I4Qc-pOkMgIrxl_KxbTasm3UCgR-7RIIIYBfhPrBK6Z-SKL-8mWZsC2tNKJjEFrlGj14l7VZDniPgtqrTgGXKg',

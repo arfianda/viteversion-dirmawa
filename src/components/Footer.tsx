@@ -34,12 +34,12 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
                   UNIVERSITAS PELITA BANGSA
                 </span>
                 <span className="text-[10px] sm:text-xs font-mono tracking-widest text-[#feb234] font-bold block">
-                  DIREKTORAT KEMAHASISWAAN
+                  DIREKTORAT KEMAHASISWAAN DAN ALUMNI
                 </span>
               </div>
             </div>
             <p className="text-sm text-slate-400 font-sans leading-relaxed">
-              Membentuk intelektual muda berakhlak mulia, berkarakter luhur, berbudaya ilmiah, serta berorientasi prestasi tinggi yang adaptif terhadap tantangan zaman.
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Deserunt labore sit rerum eos consectetur itaque blanditiis quis qui quos nesciunt?
             </p>
             <div className="flex space-x-3 pt-2">
               <a href="#" className="p-2.5 bg-[#002d61] hover:bg-[#feb234] hover:text-[#001e40] rounded-xl text-slate-300 transition-all duration-300">
@@ -67,7 +67,7 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
               </li>
               <li>
                 <button onClick={() => handleNav('scholarships')} className="hover:text-[#feb234] text-slate-300 transition-colors block text-left font-semibold">
-                  Informasi Beasiswa (SIPMA)
+                  Informasi Beasiswa
                 </button>
               </li>
               <li>
@@ -97,13 +97,13 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
               <li className="flex items-start space-x-3">
                 <MapPin className="text-[#feb234] flex-shrink-0 mt-1" size={18} />
                 <span className="text-slate-400 leading-relaxed text-xs">
-                  Gedung Rektorat Lt. 2, Kampus Universitas Pelita Bangsa.<br />
+                  Gedung B Lt. 2, Kampus Universitas Pelita Bangsa.<br />
                   Jl. Inspeksi Kalimalang Tegal Danas, Cikarang Pusat, Kab. Bekasi - 17530
                 </span>
               </li>
               <li className="flex items-center space-x-3">
                 <Mail className="text-[#feb234] flex-shrink-0" size={18} />
-                <span className="text-slate-400 text-xs">kemahasiswaan@upb.ac.id</span>
+                <span className="text-slate-400 text-xs">kemahasiswaan@pelitabangsa.ac.id</span>
               </li>
               <li className="flex items-center space-x-3">
                 <Phone className="text-[#feb234] flex-shrink-0" size={18} />
@@ -126,7 +126,7 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
               </div>
               <div className="absolute bottom-2 right-2 z-10">
                 <a
-                  href="https://maps.google.com"
+                  href="https://maps.app.goo.gl/HhNnKfLmxn4g6Gin7"
                   target="_blank"
                   rel="noreferrer"
                   className="bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] font-mono font-bold text-[9px] px-2 py-1 rounded shadow uppercase"
