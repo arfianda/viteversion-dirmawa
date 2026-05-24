@@ -40,7 +40,7 @@ export default function AchievementView({ achievements }: AchievementViewProps) 
       {/* Header Title with pristine clean typography */}
       <div className="text-center space-y-3">
         <span className="font-mono text-xs font-black uppercase tracking-widest text-[#feb234] block">PRESTASI MAHASISWA</span>
-        <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Panggung Apresiasi & Prestasi</h1>
+        <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Panggung Apresiasi &amp; Prestasi</h1>
         <p className="text-sm sm:text-base text-slate-505 max-w-2xl mx-auto font-sans leading-relaxed">
           Mendokumentasikan karya agung, raihan podium, dan kontribusi pemecahan rekor mahasiswa Universitas Pelita Bangsa di pentas kejuaraan dunia.
         </p>

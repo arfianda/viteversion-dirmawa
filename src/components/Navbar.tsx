@@ -17,11 +17,11 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
   const [searchFocused, setSearchFocused] = React.useState(false);
 
   const navItems = [
-    { id: 'home', label: 'Homepage' },
+    { id: 'home', label: 'Beranda' },
     { id: 'alumni', label: 'Alumni' },
-    { id: 'achievements', label: 'Achievements' },
-    { id: 'scholarships', label: 'Scholarships' },
-    { id: 'ukms', label: 'UKM Directory' },
+    { id: 'achievements', label: 'Prestasi' },
+    { id: 'scholarships', label: 'Beasiswa' },
+    { id: 'ukms', label: 'Direktori UKM' },
     { id: 'news', label: 'Berita' },
   ];
 
@@ -79,7 +79,7 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Cari..."
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-full pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#001e40] transition-all"
@@ -96,7 +96,7 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
               }`}
             >
               <LogIn size={13} className="text-[#feb234]" />
-              <span>Student Login</span>
+              <span>Login Mahasiswa</span>
             </button>
           </div>
 

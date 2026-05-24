@@ -62,7 +62,7 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
             <ul className="space-y-3 font-sans text-sm">
               <li>
                 <button onClick={() => handleNav('news')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
-                  Portal Berita & Kegiatan
+                  Portal Berita &amp; Kegiatan
                 </button>
               </li>
               <li>
@@ -72,7 +72,7 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
               </li>
               <li>
                 <button onClick={() => handleNav('ukms')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
-                  Direktori UKM & Organisasi
+                  Direktori UKM &amp; Organisasi
                 </button>
               </li>
               <li>
@@ -82,7 +82,7 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
               </li>
               <li>
                 <button onClick={() => handleNav('alumni')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
-                  Sebaran Alumni & Pelacakan Karir
+                  Sebaran Alumni &amp; Pelacakan Karir
                 </button>
               </li>
             </ul>
@@ -141,8 +141,8 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
 
         {/* Brand Copyright */}
         <div className="border-t border-[#002d61] mt-12 pt-8 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-400 font-mono">
-          <p>© 2026 Direktorat Kemahasiswaan & Hubungan Alumni UPB. All Rights Reserved.</p>
-          <p className="mt-2 sm:mt-0 text-[#feb234]">Pristine Academic Integrity — Tridharma Perguruan Tinggi</p>
+          <p>© 2026 Direktorat Kemahasiswaan &amp; Hubungan Alumni UPB. Hak Cipta Dilindungi Undang-Undang.</p>
+          <p className="mt-2 sm:mt-0 text-[#feb234]">Integritas Akademik Pristine — Tridharma Perguruan Tinggi</p>
         </div>
       </div>
     </footer>

@@ -25,7 +25,7 @@ export default function NewsView({ news, setCurrentTab }: NewsViewProps) {
           onClick={() => setCurrentTab('home')}
           className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1"
         >
-          <span>Kembali ke Homepage</span>
+          <span>Kembali ke Beranda</span>
           <ArrowRight size={12} />
         </button>
       </div>

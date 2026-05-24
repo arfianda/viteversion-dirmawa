@@ -87,7 +87,11 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                   : 'bg-slate-50 text-slate-500 border border-slate-200 hover:text-[#001e40] hover:bg-slate-100'
               }`}
             >
-              {type === 'semua' ? 'Semua Beasiswa' : `${type}`}
+              {type === 'semua' ? 'Semua Beasiswa' :
+            type === 'internal' ? 'Beasiswa Internal' :
+            type === 'pemerintah' ? 'Beasiswa Pemerintah' :
+            type === 'swasta' ? 'Beasiswa Swasta' : type
+          }
             </button>
           ))}
         </div>
@@ -171,7 +175,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
         <div className="lg:col-span-3 space-y-6">
           <div className="space-y-1">
             <span className="font-mono text-xs font-black uppercase text-[#feb234]">Pusat Bantuan Informasi</span>
-            <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Frequently Asked Questions</h2>
+            <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Pertanyaan yang Sering Diajukan (FAQ)</h2>
           </div>
 
           <div className="space-y-3 font-sans">
@@ -327,7 +331,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
               </div>
 
               <div className="space-y-3 font-sans">
-                <span className="text-sm font-bold text-[#001e40] block uppercase border-b border-slate-100 pb-1.5">Kelengkapan Manfaat & Subsidi</span>
+                <span className="text-sm font-bold text-[#001e40] block uppercase border-b border-slate-100 pb-1.5">Kelengkapan Manfaat &amp; Subsidi</span>
                 <ul className="space-y-2.5 text-xs text-slate-650">
                   {selectedScholarship.benefits.map((benefit, index) => (
                     <li key={index} className="flex items-start space-x-2">

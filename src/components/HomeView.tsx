@@ -49,11 +49,11 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           </div>
           
           <h1 className="font-sans font-black text-3xl sm:text-4xl lg:text-[45px] tracking-tight text-white leading-[1.1]">
-            Lorem ipsum.<br /> dolor sit amet.
+            Selamat Datang di<br /> Universitas Pelita Bangsa
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-xl">
-            Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quae quod voluptatem nesciunt!
+            Portal resmi informasi dan layanan kemahasiswaan Universitas Pelita Bangsa.
           </p>
 
           <div className="flex flex-wrap gap-3.5 pt-2">
@@ -61,14 +61,14 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
               onClick={() => setCurrentTab('scholarships')}
               className="px-6 py-3 bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow transition-all active:scale-95 duration-300 flex items-center space-x-2"
             >
-              <span>Pelajari Lebih Lanjut</span>
+              <span>Selengkapnya</span>
               <ArrowRight size={14} className="stroke-[2.5]" />
             </button>
             <button 
               onClick={() => setCurrentTab('ukms')}
               className="px-6 py-3 bg-[#001e40] hover:bg-[#002d61] border border-[#002d61] text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all active:scale-95 duration-300"
             >
-              Program Unggulan
+              Lihat Program Unggulan
             </button>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
               <div className="space-y-1">
                 <h4 className="font-sans font-bold text-sm text-[#001e40]">UKM</h4>
                 <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
-                  Temukan minat dan bakat Anda melalui puluhan Unit...
+                  Temukan minat dan bakat Anda melalui puluhan Unit Kegiatan Mahasiswa yang aktif di kampus.
                 </p>
               </div>
             </div>
@@ -170,7 +170,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
               <div className="space-y-1">
                 <h4 className="font-sans font-bold text-sm text-[#001e40]">Alumni</h4>
                 <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
-                  Terhubung dengan jaringan alumni yang sukses di...
+                  Terhubung dengan jaringan alumni yang sukses di berbagai bidang profesional.
                 </p>
               </div>
             </div>
@@ -281,7 +281,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
             <div className="space-y-3">
               <h3 className="font-sans font-black text-lg text-white leading-tight">
-                Job Fair & Career Expo 2026
+                Job Fair &amp; Career Expo 2026
               </h3>
               <p className="text-xs text-slate-400">
                 Aula Gedung B, Kampus Cikarang.
@@ -306,8 +306,8 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
       {/* 5. MINAT BAKAT (Olahraga, Seni, Akademik) */}
       <section className="bg-white border border-slate-200/80 rounded-2xl p-8 text-center space-y-6">
         <div className="space-y-2 max-w-xl mx-auto">
-          <span className="font-mono text-[10px] uppercase font-bold text-[#feb234] tracking-wider block">University Activity</span>
-          <h2 className="font-sans font-black text-2xl text-[#001e40]">Eksplorasi Minat & Bakat di UKM</h2>
+          <span className="font-mono text-[10px] uppercase font-bold text-[#feb234] tracking-wider block">Kegiatan Kampus</span>
+          <h2 className="font-sans font-black text-2xl text-[#001e40]">Eksplorasi Minat &amp; Bakat di UKM</h2>
           <p className="text-xs text-slate-500 font-sans">
             Temukan komunitas yang tepat untuk mengembangkan potensi diri, hobi, dan kepemimpinan Anda di Universitas Pelita Bangsa.
           </p>

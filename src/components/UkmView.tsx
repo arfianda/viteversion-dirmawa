@@ -51,7 +51,7 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
       {/* Header section with pristine typography */}
       <div className="text-center space-y-3">
         <span className="font-mono text-xs font-black uppercase tracking-widest text-[#feb234] block">EKSPELORASI ORMAWA</span>
-        <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Direktori UKM & Organisasi</h1>
+        <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Direktori UKM &amp; Organisasi</h1>
         <p className="text-sm sm:text-base text-slate-505 max-w-2xl mx-auto font-sans leading-relaxed">
           Temukan wadah kreativitas, pengembangan kepribadian, kepemimpinan, dan bakat di berbagai Unit Kegiatan Mahasiswa Universitas Pelita Bangsa.
         </p>
@@ -166,7 +166,7 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
             <Sparkles size={11} />
             <span>Pendanaan Ormawa</span>
           </div>
-          <h3 className="font-sans font-extrabold text-xl sm:text-2xl text-white tracking-tight">Kompensasi & Hibah Kreativitas UPB</h3>
+          <h3 className="font-sans font-extrabold text-xl sm:text-2xl text-white tracking-tight">Kompensasi &amp; Hibah Kreativitas UPB</h3>
           <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
             Setiap UKM terdaftar berhak mengajukan pendanaan proposal operasional, insentif prestasi delegasi lomba, perlengkapan inventaris, dan fasilitas bimbingan dosen dari Direktorat Kemahasiswaan.
           </p>
@@ -211,7 +211,7 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
               
               {/* Description history */}
               <div className="space-y-2 font-sans">
-                <span className="text-xs font-bold text-[#feb234] uppercase tracking-wider block">Sejarah & Gambaran Umum</span>
+                <span className="text-xs font-bold text-[#feb234] uppercase tracking-wider block">Sejarah &amp; Gambaran Umum</span>
                 <p className="text-sm text-slate-650 leading-relaxed font-sans">{activeUkm.description}</p>
               </div>
 
@@ -238,7 +238,7 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 font-sans">
                 {/* Schedule plans list */}
                 <div className="space-y-3">
-                  <span className="text-xs font-bold text-[#feb234] uppercase tracking-wider block">Agenda & Jadwal Kegiatan</span>
+                  <span className="text-xs font-bold text-[#feb234] uppercase tracking-wider block">Agenda &amp; Jadwal Kegiatan</span>
                   <div className="space-y-2.5">
                     {activeUkm.schedule.map((sch, i) => (
                       <div key={i} className="bg-slate-50 border border-slate-200 p-3.5 rounded-xl flex items-start space-x-2.5">

@@ -189,7 +189,7 @@ export default function AdminView({
             <Shield size={13} />
             <span>Hak Akses Biro Kemahasiswaan</span>
           </div>
-          <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Console Admin Portal</h1>
+          <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Portal Admin</h1>
         </div>
         
         {!isAdding && !editingId && (
@@ -222,7 +222,7 @@ export default function AdminView({
             { id: 'ukms', label: 'Profil UKM', icon: Users },
             { id: 'achievements', label: 'Prestasi', icon: Award },
             { id: 'news', label: 'Berita', icon: FileText },
-            { id: 'alumni', label: 'Database Alumni', icon: Landmark }
+            { id: 'alumni', label: 'Data Alumni', icon: Landmark }
           ].map(tab => {
             const Icon = tab.icon;
             const isTabActive = activeTab === tab.id;
@@ -315,7 +315,7 @@ export default function AdminView({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-700 font-bold block">Link Banner Cover Photo Referrer</label>
+                  <label className="text-slate-700 font-bold block">Link Foto Sampul Banner</label>
                   <input
                     type="text" value={scholarshipForm.bannerImage} onChange={e => setScholarshipForm({ ...scholarshipForm, bannerImage: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 font-sans text-xs"
@@ -493,7 +493,7 @@ export default function AdminView({
                   </select>
                 </div>
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-slate-700 font-bold block">Keterangan Singkat / Summary</label>
+                  <label className="text-slate-700 font-bold block">Keterangan Singkat</label>
                   <input
                     type="text" required value={newsForm.summary} onChange={e => setNewsForm({ ...newsForm, summary: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 font-sans text-xs"
@@ -501,7 +501,7 @@ export default function AdminView({
                   />
                 </div>
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="text-slate-700 font-bold block">Konten Deskripsi Berita Lengkap</label>
+                  <label className="text-slate-700 font-bold block">Konten Berita Lengkap</label>
                   <textarea
                     rows={4} required value={newsForm.description} onChange={e => setNewsForm({ ...newsForm, description: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 font-sans text-xs"
@@ -521,7 +521,7 @@ export default function AdminView({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-slate-700 font-bold block">Tahun Kelulusan / Angkatan Wisuda</label>
+                  <label className="text-slate-700 font-bold block">Tahun Kelulusan / Angkatan</label>
                   <input
                     type="number" required value={alumniForm.graduationYear} onChange={e => setAlumniForm({ ...alumniForm, graduationYear: Number(e.target.value) })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 font-sans text-xs"
@@ -549,7 +549,7 @@ export default function AdminView({
                 {alumniForm.status !== 'Mencari Kerja' && (
                   <>
                     <div className="space-y-1">
-                      <label className="text-slate-700 font-bold block">Perusahaan / Kampus / Bidang Usaha</label>
+                      <label className="text-slate-700 font-bold block">Perusahaan / Kampus / Usaha</label>
                       <input
                         type="text" required value={alumniForm.company} onChange={e => setAlumniForm({ ...alumniForm, company: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 font-sans text-xs"
@@ -599,8 +599,8 @@ export default function AdminView({
               <thead>
                 <tr className="bg-slate-50 text-slate-500 font-sans text-[10px] border-b border-slate-200 uppercase">
                   <th className="px-5 py-4 font-black">Data ID</th>
-                  <th className="px-5 py-4 font-black">Informasi Rincian Utama</th>
-                  <th className="px-5 py-4 font-black">Metadata Penyaring</th>
+                  <th className="px-5 py-4 font-black">Informasi Detail</th>
+                  <th className="px-5 py-4 font-black">Data Filter</th>
                   <th className="px-5 py-4 font-black text-right">Aksi Biro</th>
                 </tr>
               </thead>
