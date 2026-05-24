@@ -15,31 +15,51 @@ interface NavbarProps {
 
 export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: NavbarProps) {
   const [searchFocused, setSearchFocused] = React.useState(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
 
   const navItems = [
     { id: 'home', label: 'Beranda' },
-    { id: 'alumni', label: 'Alumni' },
-    { id: 'achievements', label: 'Prestasi' },
     { id: 'scholarships', label: 'Beasiswa' },
     { id: 'ukms', label: 'Direktori UKM' },
     { id: 'news', label: 'Berita' },
   ];
 
+  const dropdownItems = [
+    { id: 'alumni', label: 'Alumni' },
+    { id: 'achievements', label: 'Prestasi' },
+    { id: 'about', label: 'Tentang' },
+  ];
+
   const handleNavClick = (tabId: string) => {
     setCurrentTab(tabId);
     setSelectedUkmId(null);
+    // Close dropdown when navigating
+    setDropdownOpen(false);
   };
+
+  // Close dropdown when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownOpen) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen]);
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          
+
           {/* Brand Logo - Match the exact clean layout */}
           <div className="flex items-center space-x-3 cursor-pointer select-none group" onClick={() => handleNavClick('home')}>
-            <img 
-              src={upbLogo} 
-              alt="UPB Logo" 
+            <img
+              src={upbLogo}
+              alt="UPB Logo"
               className="w-10 h-10 object-contain transition-transform duration-300 group-hover:scale-105"
             />
             <div className="flex flex-col text-left leading-[1.15]">
@@ -51,7 +71,7 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
               </span>
             </div>
           </div>
-          
+
           {/* Center Navigation Links - Pure white style matching stitch */}
           <div className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
@@ -70,6 +90,39 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
                 </button>
               );
             })}
+
+            {/* Dropdown Button */}
+            <div className="relative">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="px-4 py-2 rounded-lg text-sm font-sans font-semibold tracking-wide transition-all duration-200 text-slate-500 hover:text-[#001e40] hover:bg-slate-50"
+              >
+                Lainnya
+                <ChevronDown className="ml-2 h-4 w-4" />
+              </button>
+
+              {/* Dropdown Menu */}
+              {dropdownOpen && (
+                <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                  <div className="py-1">
+                    {dropdownItems.map((item) => {
+                      const isActive = currentTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleNavClick(item.id)}
+                          className={`block px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-[#001e40] ${
+                            isActive ? 'bg-slate-100 text-[#001e40]' : ''
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Controls: Search & Login */}

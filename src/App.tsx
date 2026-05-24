@@ -12,6 +12,7 @@ import UkmView from './components/UkmView';
 import AchievementView from './components/AchievementView';
 import AlumniView from './components/AlumniView';
 import AdminView from './components/AdminView';
+import AboutView from './components/AboutView';
 import NewsView from './components/NewsView';
 
 // Import initial mock data
@@ -107,6 +108,13 @@ export default function App() {
               setNews={setNews}
               alumni={alumni}
               setAlumni={setAlumni}
+            />
+          )}
+
+          {currentTab === 'about' && (
+            <AboutView
+              setCurrentTab={setCurrentTab}
+              setSelectedUkmId={setSelectedUkmId}
             />
           )}
         </div>

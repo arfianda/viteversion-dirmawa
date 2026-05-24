@@ -29,25 +29,25 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
   return (
     <div className="space-y-16">
-      
+
       {/* 1. HERO BANNER - Exact layout styling of Universitas Pelita Bangsa */}
       <section className="relative h-[480px] lg:h-[520px] overflow-hidden rounded-3xl shadow-xl">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ 
+          style={{
             backgroundImage: `url('/gedung-upb.jpg')`
           }}
         />
         {/* Navy overlay to replicate the dark gradient color schema in visual mockups */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#001e40] via-[#001e40]/90 to-[#001e40]/35" />
-        
+
         {/* Content Box */}
         <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-12 lg:px-20 max-w-2xl space-y-5 z-10 text-white">
           <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 text-[#feb234] px-3.5 py-1 rounded-full text-[11px] font-sans font-bold uppercase tracking-wider w-fit">
             <Sparkles size={11} className="text-[#feb234]" />
             <span>Universitas Pelita Bangsa</span>
           </div>
-          
+
           <h1 className="font-sans font-black text-3xl sm:text-4xl lg:text-[45px] tracking-tight text-white leading-[1.1]">
             Portal resmi <br /> Kemahasiswaan dan Alumni Universitas Pelita Bangsa
           </h1>
@@ -57,14 +57,14 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           </p>
 
           <div className="flex flex-wrap gap-3.5 pt-2">
-            <button 
-              onClick={() => setCurrentTab('scholarships')}
+            <button
+              onClick={() => { setCurrentTab('about'); setSelectedUkmId(null); }}
               className="px-6 py-3 bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl shadow transition-all active:scale-95 duration-300 flex items-center space-x-2"
             >
               <span>Selengkapnya</span>
               <ArrowRight size={14} className="stroke-[2.5]" />
             </button>
-            <button 
+            <button
               onClick={() => setCurrentTab('ukms')}
               className="px-6 py-3 bg-[#001e40] hover:bg-[#002d61] border border-[#002d61] text-white font-sans font-bold text-xs sm:text-sm uppercase tracking-wider rounded-xl transition-all active:scale-95 duration-300"
             >
@@ -109,19 +109,19 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          
+
           {/* BEASISWA (Tall card spanning 2 cols on desktop) */}
-          <div 
+          <div
             onClick={() => handleServiceClick('scholarships')}
             className="md:col-span-2 relative h-[320px] rounded-2xl overflow-hidden cursor-pointer group shadow-sm border border-slate-200"
           >
-            <div 
+            <div
               className="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-105"
               style={{ backgroundImage: `url('https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop')` } as React.CSSProperties}
             />
             {/* Blue tint overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/60 to-slate-900/30" />
-            
+
             <div className="absolute inset-0 p-6 flex flex-col justify-between text-white z-10">
               <span className="bg-[#feb234] text-[#001e40] px-2.5 py-0.5 text-[9px] font-mono font-black uppercase rounded w-fit">
                 Beasiswa
@@ -138,7 +138,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           {/* UKM & ALUMNI cards */}
           <div className="flex flex-col justify-between gap-6 lg:col-span-2">
             {/* UKM Card */}
-            <div 
+            <div
               onClick={() => handleServiceClick('ukms')}
               className="bg-white hover:bg-slate-50 border border-slate-100 p-5 rounded-2xl shadow-sm cursor-pointer group flex flex-col justify-between h-[148px] transition-all"
             >
@@ -157,7 +157,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
             </div>
 
             {/* ALUMNI Card */}
-            <div 
+            <div
               onClick={() => handleServiceClick('alumni')}
               className="bg-white hover:bg-slate-50 border border-slate-100 p-5 rounded-2xl shadow-sm cursor-pointer group flex flex-col justify-between h-[148px] transition-all"
             >
@@ -177,14 +177,14 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           </div>
 
           {/* PUSAT KARIR (Solid navy/blue card) */}
-          <div 
+          <div
             onClick={() => handleServiceClick('alumni')}
             className="bg-gradient-to-br from-[#001e40] to-[#002d61] hover:to-[#0a3366] border border-slate-800 p-6 rounded-2xl shadow-sm cursor-pointer group flex flex-col justify-between h-[320px] text-white transition-all"
           >
             <div className="w-10 h-10 rounded-xl bg-[#feb234]/15 text-[#feb234] flex items-center justify-center">
               <Briefcase size={18} />
             </div>
-            
+
             <div className="space-y-3">
               <h4 className="font-sans font-black text-base text-white">Pusat Karir</h4>
               <p className="text-xs text-slate-300 font-sans leading-relaxed">
@@ -201,7 +201,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
       {/* 4. BERITA & PENGUMUMAN & AGENDA MENDATANG */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
+
         {/* Berita List (Spans 2 cols) */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center border-b border-slate-200 pb-3">
@@ -217,10 +217,10 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
           {/* News listing matching stitch */}
           <div className="space-y-4">
-            
+
             {/* News 1 */}
             <div className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
-              <div 
+              <div
                 className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
                 style={{ backgroundImage: `url('https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop')` } as React.CSSProperties}
               />
@@ -243,7 +243,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
             {/* News 2 */}
             <div className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
-              <div 
+              <div
                 className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
                 style={{ backgroundImage: `url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop')` } as React.CSSProperties}
               />
@@ -292,7 +292,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => handleServiceClick('alumni')}
               className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition"
             >
@@ -324,7 +324,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           ))}
         </div>
 
-        <button 
+        <button
           onClick={() => setCurrentTab('ukms')}
           className="px-6 py-3 bg-[#001e40] hover:bg-[#002d61] text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow transition active:scale-95"
         >
