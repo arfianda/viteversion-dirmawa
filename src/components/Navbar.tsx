@@ -95,10 +95,15 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="px-4 py-2 rounded-lg text-sm font-sans font-semibold tracking-wide transition-all duration-200 text-slate-500 hover:text-[#001e40] hover:bg-slate-50"
+                className={`
+                  px-4 py-2 rounded-lg text-sm font-sans font-semibold tracking-wide transition-all duration-200
+                  ${dropdownItems.some(item => currentTab === item.id)
+                    ? 'text-[#001e40] bg-slate-100 font-extrabold'
+                    : 'text-slate-500 hover:text-[#001e40] hover:bg-slate-50'}
+                `}
               >
                 Lainnya
-                <ChevronDown className="ml-2 h-4 w-4" />
+                <ChevronDown className="ml-2 h-3.5 w-3.5" />
               </button>
 
               {/* Dropdown Menu */}
