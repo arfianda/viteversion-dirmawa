@@ -49,7 +49,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           </div>
           
           <h1 className="font-sans font-black text-3xl sm:text-4xl lg:text-[45px] tracking-tight text-white leading-[1.1]">
-            Selamat Datang di<br /> Universitas Pelita Bangsa
+            Portal resmi <br /> Kemahasiswaan dan Alumni Universitas Pelita Bangsa
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-xl">
