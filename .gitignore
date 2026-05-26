@@ -6,3 +6,7 @@ coverage/
 *.log
 .env*
 !.env.example
+!.env.production
+/src/generated/prisma
+SUPABASE_SETUP_GUIDE.md
+supabaseconnect.md 

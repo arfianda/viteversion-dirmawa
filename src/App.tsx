@@ -25,8 +25,16 @@ import {
 } from './data';
 
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from './types';
+import AdminPortal from './admin/AdminPortal';
+import { SupabaseService } from './services/supabaseService';
 
 export default function App() {
+  const isAdminPortal = window.location.search.includes('portal=admin') || window.location.hash === '#/admin';
+
+  if (isAdminPortal) {
+    return <AdminPortal />;
+  }
+
   const [currentTab, setCurrentTab] = React.useState<string>('home');
   const [selectedUkmId, setSelectedUkmId] = React.useState<string | null>(null);
 
@@ -36,6 +44,29 @@ export default function App() {
   const [achievements, setAchievements] = React.useState<Achievement[]>(initialAchievements);
   const [news, setNews] = React.useState<StudentNews[]>(initialNews);
   const [alumni, setAlumni] = React.useState<AlumniRecord[]>(initialAlumni);
+
+  // Load from Supabase
+  React.useEffect(() => {
+    async function loadData() {
+      try {
+        const [dbScholarships, dbUkms, dbAchievements, dbNews, dbAlumni] = await Promise.all([
+          SupabaseService.getScholarships(),
+          SupabaseService.getUkms(),
+          SupabaseService.getAchievements(),
+          SupabaseService.getNews(),
+          SupabaseService.getAlumni(),
+        ]);
+        setScholarships(dbScholarships);
+        setUkms(dbUkms);
+        setAchievements(dbAchievements);
+        setNews(dbNews);
+        setAlumni(dbAlumni);
+      } catch (err) {
+        console.error("Failed to load data from Supabase, using mock fallback:", err);
+      }
+    }
+    loadData();
+  }, []);
 
   // Scroll to top on tab transitions
   React.useEffect(() => {

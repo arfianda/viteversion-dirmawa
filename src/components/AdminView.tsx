@@ -6,6 +6,7 @@
 import React from 'react';
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from '../types';
 import { Shield, Plus, Edit2, Trash2, BookOpen, Users, Award, FileText, Landmark, CheckCircle, Save } from 'lucide-react';
+import { SupabaseService } from '../services/supabaseService';
 
 interface AdminViewProps {
   scholarships: Scholarship[];
@@ -75,7 +76,7 @@ export default function AdminView({
     setScholarshipForm({ title: '', type: 'pemerintah', provider: '', description: '', fundingAmount: '', registrationDeadline: '', requirements: [''], benefits: [''], bannerImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop' });
     setUkmForm({ name: '', category: 'Seni & Budaya', description: '', shortDescription: '', vision: '', mission: [''], schedule: [{ day: 'Senin', time: '16.00', activity: 'Latihan' }], requirements: [''], activeMembers: 10, coverImage: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop', logoImage: '', contacts: [{ role: 'Ketua', name: '', contact: '' }] });
     setAchievementForm({ title: '', studentName: '', major: 'Teknik Informatika', level: 'Nasional', rank: '', category: 'Akademik', year: 2024, description: '', image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop' });
-    setNewsForm({ title: '', summary: '', description: '', category: 'Berita', date: '22 Mei 2024', image: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop' });
+    setNewsForm({ title: '', summary: '', description: '', category: 'Berita', date: '2024-05-22', image: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop' });
     setAlumniForm({ name: '', graduationYear: 2024, major: 'Teknik Informatika', status: 'Bekerja', company: '', position: '' });
   };
 
@@ -89,94 +90,124 @@ export default function AdminView({
     if (activeTab === 'alumni') setAlumniForm(item);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus data ini?')) return;
     
-    if (activeTab === 'scholarships') {
-      setScholarships(scholarships.filter(s => s.id !== id));
-      triggerMessage('Beasiswa berhasil dihapus!');
-    } else if (activeTab === 'ukms') {
-      setUkms(ukms.filter(u => u.id !== id));
-      triggerMessage('UKM berhasil dihapus!');
-    } else if (activeTab === 'achievements') {
-      setAchievements(achievements.filter(a => a.id !== id));
-      triggerMessage('Apresiasi Prestasi berhasil dihapus!');
-    } else if (activeTab === 'news') {
-      setNews(news.filter(n => n.id !== id));
-      triggerMessage('Kanal berita berhasil dihapus!');
-    } else if (activeTab === 'alumni') {
-      setAlumni(alumni.filter(a => a.id !== id));
-      triggerMessage('Data Rekaman alumni berhasil dihapus!');
+    try {
+      if (activeTab === 'scholarships') {
+        await SupabaseService.deleteScholarship(id);
+        setScholarships(scholarships.filter(s => s.id !== id));
+        triggerMessage('Beasiswa berhasil dihapus!');
+      } else if (activeTab === 'ukms') {
+        await SupabaseService.deleteUkm(id);
+        setUkms(ukms.filter(u => u.id !== id));
+        triggerMessage('UKM berhasil dihapus!');
+      } else if (activeTab === 'achievements') {
+        await SupabaseService.deleteAchievement(id);
+        setAchievements(achievements.filter(a => a.id !== id));
+        triggerMessage('Apresiasi Prestasi berhasil dihapus!');
+      } else if (activeTab === 'news') {
+        await SupabaseService.deleteNewsArticle(id);
+        setNews(news.filter(n => n.id !== id));
+        triggerMessage('Kanal berita berhasil dihapus!');
+      } else if (activeTab === 'alumni') {
+        await SupabaseService.deleteAlumni(id);
+        setAlumni(alumni.filter(a => a.id !== id));
+        triggerMessage('Data Rekaman alumni berhasil dihapus!');
+      }
+    } catch (err) {
+      console.error(err);
+      triggerMessage('Gagal menghapus data dari database', 'error');
     }
   };
 
-  const handleSaveSubmit = (e: React.FormEvent) => {
+  const handleSaveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (activeTab === 'scholarships') {
-      if (isAdding) {
-        const item: Scholarship = {
-          ...(scholarshipForm as Scholarship),
-          id: (scholarships.length + 1).toString()
-        };
-        setScholarships([item, ...scholarships]);
-        triggerMessage('Beasiswa baru berhasil ditambahkan!');
-      } else {
-        setScholarships(scholarships.map(s => s.id === editingId ? { ...s, ...scholarshipForm } as Scholarship : s));
-        triggerMessage('Beasiswa berhasil diperbarui!');
+    try {
+      if (activeTab === 'scholarships') {
+        if (isAdding) {
+          const item: Scholarship = {
+            ...(scholarshipForm as Scholarship),
+            id: crypto.randomUUID()
+          };
+          await SupabaseService.saveScholarship(item, true);
+          setScholarships([item, ...scholarships]);
+          triggerMessage('Beasiswa baru berhasil ditambahkan!');
+        } else {
+          const item = { ...scholarshipForm } as Scholarship;
+          await SupabaseService.saveScholarship(item, false);
+          setScholarships(scholarships.map(s => s.id === editingId ? item : s));
+          triggerMessage('Beasiswa berhasil diperbarui!');
+        }
+      } else if (activeTab === 'ukms') {
+        if (isAdding) {
+          const item: UKM = {
+            ...(ukmForm as UKM),
+            id: crypto.randomUUID()
+          };
+          await SupabaseService.saveUkm(item, true);
+          setUkms([item, ...ukms]);
+          triggerMessage('UKM Baru berhasil ditambahkan!');
+        } else {
+          const item = { ...ukmForm } as UKM;
+          await SupabaseService.saveUkm(item, false);
+          setUkms(ukms.map(u => u.id === editingId ? item : u));
+          triggerMessage('Profil UKM berhasil disimpan!');
+        }
+      } else if (activeTab === 'achievements') {
+        if (isAdding) {
+          const item: Achievement = {
+            ...(achievementForm as Achievement),
+            id: crypto.randomUUID()
+          };
+          await SupabaseService.saveAchievement(item, true);
+          setAchievements([item, ...achievements]);
+          triggerMessage('Prestasi baru berhasil dilaporkan!');
+        } else {
+          const item = { ...achievementForm } as Achievement;
+          await SupabaseService.saveAchievement(item, false);
+          setAchievements(achievements.map(a => a.id === editingId ? item : a));
+          triggerMessage('Data Prestasi diperbarui!');
+        }
+      } else if (activeTab === 'news') {
+        if (isAdding) {
+          const item: StudentNews = {
+            ...(newsForm as StudentNews),
+            id: crypto.randomUUID()
+          };
+          await SupabaseService.addStudentNews(item);
+          setNews([item, ...news]);
+          triggerMessage('Kanal Berita baru berhasil diunggah!');
+        } else {
+          const item = { ...newsForm } as StudentNews;
+          await SupabaseService.updateStudentNews(editingId!, item);
+          setNews(news.map(n => n.id === editingId ? { ...n, ...item } as StudentNews : n));
+          triggerMessage('Konten Berita berhasil disimpan!');
+        }
+      } else if (activeTab === 'alumni') {
+        if (isAdding) {
+          const item: AlumniRecord = {
+            ...(alumniForm as AlumniRecord),
+            id: crypto.randomUUID()
+          };
+          await SupabaseService.saveAlumni(item, true);
+          setAlumni([item, ...alumni]);
+          triggerMessage('Tracer alumni manual berhasil ditambahkan!');
+        } else {
+          const item = { ...alumniForm } as AlumniRecord;
+          await SupabaseService.saveAlumni(item, false);
+          setAlumni(alumni.map(a => a.id === editingId ? item : a));
+          triggerMessage('Tracer alumni berhasil diperbarui!');
+        }
       }
-    } else if (activeTab === 'ukms') {
-      if (isAdding) {
-        const item: UKM = {
-          ...(ukmForm as UKM),
-          id: (ukms.length + 1).toString()
-        };
-        setUkms([item, ...ukms]);
-        triggerMessage('UKM Baru berhasil ditambahkan!');
-      } else {
-        setUkms(ukms.map(u => u.id === editingId ? { ...u, ...ukmForm } as UKM : u));
-        triggerMessage('Profil UKM berhasil disimpan!');
-      }
-    } else if (activeTab === 'achievements') {
-      if (isAdding) {
-        const item: Achievement = {
-          ...(achievementForm as Achievement),
-          id: (achievements.length + 1).toString()
-        };
-        setAchievements([item, ...achievements]);
-        triggerMessage('Prestasi baru berhasil dilaporkan!');
-      } else {
-        setAchievements(achievements.map(a => a.id === editingId ? { ...a, ...achievementForm } as Achievement : a));
-        triggerMessage('Data Prestasi diperbarui!');
-      }
-    } else if (activeTab === 'news') {
-      if (isAdding) {
-        const item: StudentNews = {
-          ...(newsForm as StudentNews),
-          id: (news.length + 1).toString()
-        };
-        setNews([item, ...news]);
-        triggerMessage('Kanal Berita baru berhasil diunggah!');
-      } else {
-        setNews(news.map(n => n.id === editingId ? { ...n, ...newsForm } as StudentNews : n));
-        triggerMessage('Konten Berita berhasil disimpan!');
-      }
-    } else if (activeTab === 'alumni') {
-      if (isAdding) {
-        const item: AlumniRecord = {
-          ...(alumniForm as AlumniRecord),
-          id: (alumni.length + 1).toString()
-        };
-        setAlumni([item, ...alumni]);
-        triggerMessage('Tracer alumni manual berhasil ditambahkan!');
-      } else {
-        setAlumni(alumni.map(a => a.id === editingId ? { ...a, ...alumniForm } as AlumniRecord : a));
-        triggerMessage('Tracer alumni berhasil diperbarui!');
-      }
-    }
 
-    setIsAdding(false);
-    setEditingId(null);
+      setIsAdding(false);
+      setEditingId(null);
+    } catch (err) {
+      console.error(err);
+      triggerMessage('Gagal menyimpan data ke database', 'error');
+    }
   };
 
   return (
@@ -477,7 +508,7 @@ export default function AdminView({
                 <div className="space-y-1">
                   <label className="text-slate-700 font-bold block">Tanggal Terbit</label>
                   <input
-                    type="text" required value={newsForm.date || '22 Mei 2024'} onChange={e => setNewsForm({ ...newsForm, date: e.target.value })}
+                    type="date" required value={newsForm.date} onChange={e => setNewsForm({ ...newsForm, date: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 font-sans text-xs"
                   />
                 </div>
