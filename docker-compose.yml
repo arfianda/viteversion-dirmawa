@@ -1,0 +1,11 @@
+services:
+  web-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dirmawa_app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    restart: always
