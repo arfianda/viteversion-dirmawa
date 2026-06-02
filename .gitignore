@@ -1,12 +1,44 @@
+# Dependencies
 node_modules/
-build/
+/.pnp
+.pnp.js
+
+# Production / Builds
 dist/
+build/
+.next/
+out/
+
+# Testing & Coverage
 coverage/
-.DS_Store
+*.lcov
+
+# Logs
 *.log
-.env*
+logs/
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+npm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Environment Variables & Secrets (CRITICAL SECURITY)
+.env
+.env.local
+.env.development
+.env.staging
+.env.production
+.env.*.local
+
+# Allow example environment file for documentation
 !.env.example
-!.env.production
+
+# Prisma Generated Client
 /src/generated/prisma
+
+# Documentation & Personal Guides
 SUPABASE_SETUP_GUIDE.md
-supabaseconnect.md 
+supabaseconnect.md
