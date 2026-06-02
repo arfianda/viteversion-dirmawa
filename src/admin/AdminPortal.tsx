@@ -54,11 +54,11 @@ export default function AdminPortal() {
   ]);
 
   // Main interactive state tables
-  const [alumni, setAlumni] = useState<AlumniRecord[]>(INITIAL_ALUMNI);
-  const [ukms, setUkms] = useState<UkmRecord[]>(INITIAL_UKMS);
-  const [scholarships, setScholarships] = useState<ScholarshipRecord[]>(INITIAL_SCHOLARSHIPS);
-  const [news, setNews] = useState<NewsArticle[]>(INITIAL_NEWS);
-  const [admins, setAdmins] = useState<AdminRecord[]>(INITIAL_ADMINS);
+  const [alumni, setAlumni] = useState<AlumniRecord[]>([]);
+  const [ukms, setUkms] = useState<UkmRecord[]>([]);
+  const [scholarships, setScholarships] = useState<ScholarshipRecord[]>([]);
+  const [news, setNews] = useState<NewsArticle[]>([]);
+  const [admins, setAdmins] = useState<AdminRecord[]>([]);
   
   // News Editor helper
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);

@@ -1,0 +1,1 @@
+export interface UserSession { id: string, nim_or_nip: string, name: string, role: 'mahasiswa' | 'admin', avatar_url?: string }

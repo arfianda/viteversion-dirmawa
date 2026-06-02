@@ -49,27 +49,6 @@ export const SCHOLARSHIPS: Scholarship[] = [
     ]
   },
   {
-    id: '3',
-    title: 'Djarum Beasiswa Plus',
-    type: 'swasta',
-    provider: 'Djarum Foundation',
-    description: 'Konsisten sejak 1984, Djarum Foundation memberikan dorongan materiil dan non-materiil dalam bentuk pelatihan soft-skills komprehensif untuk melahirkan generasi calon pemimpin bangsa.',
-    fundingAmount: 'Dana beasiswa Rp 1.000.000 / Bulan (Selama 1 Tahun)',
-    registrationDeadline: '30 Mei 2024',
-    requirements: [
-      'Sedang menempuh pendidikan program S1 semester 4.',
-      'IPK minimum 3.20 pada semester 3 dan mampu mempertahankannya.',
-      'Aktif mengikuti organisasi dalam/luar kampus dibuktikan dengan SK/sertifikat.',
-      'Lulus tahapan seleksi administrasi, tes potensi akademik, dan wawancara.'
-    ],
-    bannerImage: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBne0B_7IsUjMi3lb2tquFjlGVQMaJ9VZZaJrr5qwxW7sPTuedUbVR_2Vy9Ap2BgBtcU5YFrVq6E46_ff-IOpJE7pgbaUMURhSTw608SGCHE6dQZ3Cd7KMHZayL3XSYQ8e9uOzV2d9eK_x_vTZ4vNPv34HG8c-MfYYcW_hXO89l23mgaRXjfT76u9dAkdNeqIHz1rj-XZ52TTv_xs6pbOdK62q9r0i7F4HQ9DqSSyh0RPrhuosMWOqD_PRrOt3CfecUaW4AG03AiJo',
-    benefits: [
-      'Mendapatkan beasiswa uang saku langsung bulanan selama satu tahun penuh.',
-      'Pelatihan Soft Skills: Character Building, Leadership Development, Nation Building.',
-      'Jaringan Community Beswan Djarum dari 90+ perguruan tinggi se-Indonesia.'
-    ]
-  },
-  {
     id: '4',
     title: 'Beasiswa Unggulan Kemendikbud',
     type: 'pemerintah',

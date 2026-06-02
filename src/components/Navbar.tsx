@@ -152,12 +152,10 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
 
             {/* Student Login Button */}
             <button
-              onClick={() => handleNavClick('admin')}
-              className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-sans font-bold uppercase tracking-wider transition-all duration-300 ${
-                currentTab === 'admin'
-                  ? 'bg-[#feb234] text-[#001e40] shadow-md'
-                  : 'bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm'
-              }`}
+              onClick={() => {
+                window.location.hash = '#/mahasiswa';
+              }}
+              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-sans font-bold uppercase tracking-wider transition-all duration-300 bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm"
             >
               <LogIn size={13} className="text-[#feb234]" />
               <span>Login Mahasiswa</span>

@@ -26,13 +26,19 @@ import {
 
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from './types';
 import AdminPortal from './admin/AdminPortal';
+import MahasiswaPortal from './mahasiswa-dashboard/MahasiswaPortal';
 import { SupabaseService } from './services/supabaseService';
 
 export default function App() {
   const isAdminPortal = window.location.search.includes('portal=admin') || window.location.hash === '#/admin';
+  const isMahasiswaPortal = window.location.search.includes('portal=mahasiswa') || window.location.hash === '#/mahasiswa';
 
   if (isAdminPortal) {
     return <AdminPortal />;
+  }
+
+  if (isMahasiswaPortal) {
+    return <MahasiswaPortal />;
   }
 
   const [currentTab, setCurrentTab] = React.useState<string>('home');
