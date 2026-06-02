@@ -4,6 +4,7 @@ export interface UserSession {
   name: string;
   nimOrNip?: string;
   avatarUrl?: string;
+  email?: string;  // Add this
 }
 
 export interface UKM {

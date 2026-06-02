@@ -30,26 +30,44 @@ import MahasiswaPortal from './mahasiswa-dashboard/MahasiswaPortal';
 import { SupabaseService } from './services/supabaseService';
 
 export default function App() {
-  const isAdminPortal = window.location.search.includes('portal=admin') || window.location.hash === '#/admin';
-  const isMahasiswaPortal = window.location.search.includes('portal=mahasiswa') || window.location.hash === '#/mahasiswa';
-
-  if (isAdminPortal) {
-    return <AdminPortal />;
-  }
-
-  if (isMahasiswaPortal) {
-    return <MahasiswaPortal />;
-  }
-
+  //  ALL useState hooks FIRST (before any conditional returns)
+  const [isAdminPortal, setIsAdminPortal] = React.useState<boolean>(false);
+  const [isMahasiswaPortal, setIsMahasiswaPortal] = React.useState<boolean>(false);
   const [currentTab, setCurrentTab] = React.useState<string>('home');
   const [selectedUkmId, setSelectedUkmId] = React.useState<string | null>(null);
-
+  
   // Core reactive data states
   const [scholarships, setScholarships] = React.useState<Scholarship[]>(initialScholarships);
   const [ukms, setUkms] = React.useState<UKM[]>(initialUkms);
   const [achievements, setAchievements] = React.useState<Achievement[]>(initialAchievements);
   const [news, setNews] = React.useState<StudentNews[]>(initialNews);
   const [alumni, setAlumni] = React.useState<AlumniRecord[]>(initialAlumni);
+
+  //  ALL useEffect hooks SECOND
+  React.useEffect(() => {
+    const updatePortalState = () => {
+      setIsAdminPortal(
+        window.location.search.includes('portal=admin') || window.location.hash === '#/admin'
+      );
+      setIsMahasiswaPortal(
+        window.location.search.includes('portal=mahasiswa') || window.location.hash === '#/mahasiswa'
+      );
+    };
+
+    // Initialize on mount
+    updatePortalState();
+
+    // Listen for hash changes
+    const handleHashChange = () => {
+      updatePortalState();
+    };
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
 
   // Load from Supabase
   React.useEffect(() => {
@@ -79,6 +97,16 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
   }, [currentTab]);
 
+  //  Conditional returns AFTER all hooks
+  if (isAdminPortal) {
+    return <AdminPortal />;
+  }
+
+  if (isMahasiswaPortal) {
+    return <MahasiswaPortal />;
+  }
+
+  //  Main return
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-[#191c1e] flex flex-col justify-between selection:bg-[#feb234]/30 selection:text-[#001e40]">
       
