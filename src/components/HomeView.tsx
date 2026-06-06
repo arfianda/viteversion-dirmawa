@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles } from 'lucide-react';
+import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface HomeViewProps {
   setCurrentTab: (tab: string) => void;
@@ -14,6 +14,41 @@ interface HomeViewProps {
 
 export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewProps) {
   const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
+  const [currentSlide, setCurrentSlide] = React.useState(0);
+  const [isPaused, setIsPaused] = React.useState(false);
+
+  // Hero carousel slides with placeholder images
+  const heroSlides = [
+    {
+      image: '/gedung-upb.jpg',
+      subtitle: 'Portal resmi informasi dan layanan kemahasiswaan Universitas Pelita Bangsa.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Mewujudkan prestasi mahasiswa berkualitas di tingkat nasional dan internasional.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Jejak alumni sukses yang menginspirasi di berbagai industri profesional.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Mengembangkan potensi akademik dan karakter untuk masa depan gemilang.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1576267423048-15c0040fec78?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Wadah kreativitas mahasiswa melalui Unit Kegiatan Mahasiswa yang aktif dan berprestasi.'
+    }
+  ];
+
+  // Auto-rotation logic
+  React.useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isPaused, heroSlides.length]);
 
   // Stats matching the exact values of your stitch mockups: 50+ Unit Kegiatan Mahasiswa, 15k+ Jaringan Alumni, 500+ Prestasi Gemilang
   const stats = [
@@ -30,18 +65,35 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
   return (
     <div className="space-y-16">
 
-      {/* 1. HERO BANNER - Exact layout styling of Universitas Pelita Bangsa */}
-      <section className="relative h-[480px] lg:h-[520px] overflow-hidden rounded-3xl shadow-xl">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('/gedung-upb.jpg')`
-          }}
-        />
-        {/* Navy overlay to replicate the dark gradient color schema in visual mockups */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#001e40] via-[#001e40]/90 to-[#001e40]/35" />
+      {/* 1. HERO CAROUSEL - Auto-sliding horizontal carousel */}
+      <section className="relative h-[480px] lg:h-[520px] overflow-hidden rounded-3xl shadow-xl"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {/* Slides container */}
+        <div className="absolute inset-0">
+          {heroSlides.map((slide, index) => (
+            <motion.div
+              key={index}
+              className="absolute inset-0"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{
+                opacity: index === currentSlide ? 1 : 0,
+                x: index === currentSlide ? 0 : index < currentSlide ? -100 : 100
+              }}
+              transition={{ duration: 0.7, ease: "easeInOut" }}
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url('${slide.image}')` }}
+              />
+              {/* Navy overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#001e40] via-[#001e40]/90 to-[#001e40]/35" />
+            </motion.div>
+          ))}
+        </div>
 
-        {/* Content Box */}
+        {/* Content Box - Fixed position with changing subtitle */}
         <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-12 lg:px-20 max-w-2xl space-y-5 z-10 text-white">
           <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 text-[#feb234] px-3.5 py-1 rounded-full text-[11px] font-sans font-bold uppercase tracking-wider w-fit">
             <Sparkles size={11} className="text-[#feb234]" />
@@ -52,9 +104,15 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
             Portal resmi <br /> Kemahasiswaan dan Alumni Universitas Pelita Bangsa
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-xl">
-            Portal resmi informasi dan layanan kemahasiswaan Universitas Pelita Bangsa.
-          </p>
+          <motion.p
+            key={currentSlide}
+            className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-xl"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {heroSlides[currentSlide].subtitle}
+          </motion.p>
 
           <div className="flex flex-wrap gap-3.5 pt-2">
             <button
@@ -71,6 +129,38 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
               Lihat Program Unggulan
             </button>
           </div>
+        </div>
+
+        {/* Navigation Arrows */}
+        <button
+          onClick={() => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          onClick={() => setCurrentSlide((prev) => (prev + 1) % heroSlides.length)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100"
+          aria-label="Next slide"
+        >
+          <ChevronRight size={20} />
+        </button>
+
+        {/* Slide Indicators */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+          {heroSlides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`transition-all duration-300 rounded-full ${
+                index === currentSlide
+                  ? 'w-8 h-2 bg-[#feb234]'
+                  : 'w-2 h-2 bg-white/40 hover:bg-white/60'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
       </section>
 

@@ -164,7 +164,7 @@ export default function App() {
 
           {currentTab === 'alumni-ikalisa' && (
             <ComingSoonView
-              title="Ikalisa"
+              title="IKALISA"
               setCurrentTab={setCurrentTab}
             />
           )}
