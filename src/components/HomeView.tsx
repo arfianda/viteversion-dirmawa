@@ -158,7 +158,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
             {/* ALUMNI Card */}
             <div
-              onClick={() => handleServiceClick('alumni')}
+              onClick={() => handleServiceClick('alumni-data')}
               className="bg-white hover:bg-slate-50 border border-slate-100 p-5 rounded-2xl shadow-sm cursor-pointer group flex flex-col justify-between h-[148px] transition-all"
             >
               <div className="flex justify-between items-start">
@@ -178,7 +178,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
           {/* PUSAT KARIR (Solid navy/blue card) */}
           <div
-            onClick={() => handleServiceClick('alumni')}
+            onClick={() => handleServiceClick('alumni-data')}
             className="bg-gradient-to-br from-[#001e40] to-[#002d61] hover:to-[#0a3366] border border-slate-800 p-6 rounded-2xl shadow-sm cursor-pointer group flex flex-col justify-between h-[320px] text-white transition-all"
           >
             <div className="w-10 h-10 rounded-xl bg-[#feb234]/15 text-[#feb234] flex items-center justify-center">
@@ -293,7 +293,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
             </div>
 
             <button
-              onClick={() => handleServiceClick('alumni')}
+              onClick={() => handleServiceClick('alumni-data')}
               className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition"
             >
               Lihat Detail

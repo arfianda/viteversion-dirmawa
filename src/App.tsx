@@ -14,6 +14,7 @@ import AlumniView from './components/AlumniView';
 import AdminView from './components/AdminView';
 import AboutView from './components/AboutView';
 import NewsView from './components/NewsView';
+import ComingSoonView from './components/ComingSoonView';
 
 // Import initial mock data
 import {
@@ -147,10 +148,24 @@ export default function App() {
             />
           )}
 
-          {currentTab === 'alumni' && (
+          {currentTab === 'alumni-data' && (
             <AlumniView
               alumniList={alumni}
               setAlumniList={setAlumni}
+            />
+          )}
+
+          {currentTab === 'alumni-lowongan' && (
+            <ComingSoonView
+              title="Lowongan Kerja"
+              setCurrentTab={setCurrentTab}
+            />
+          )}
+
+          {currentTab === 'alumni-ikalisa' && (
+            <ComingSoonView
+              title="Ikalisa"
+              setCurrentTab={setCurrentTab}
             />
           )}
 

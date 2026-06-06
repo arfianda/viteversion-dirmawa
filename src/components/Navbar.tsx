@@ -17,6 +17,8 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
   const [searchFocused, setSearchFocused] = React.useState(false);
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const [alumniDropdownOpen, setAlumniDropdownOpen] = React.useState(false);
+  const alumniDropdownRef = React.useRef<HTMLDivElement>(null);
 
   const navItems = [
     { id: 'home', label: 'Beranda' },
@@ -25,8 +27,13 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
     { id: 'news', label: 'Berita' },
   ];
 
+  const alumniDropdownItems = [
+    { id: 'alumni-data', label: 'Data Alumni' },
+    { id: 'alumni-lowongan', label: 'Lowongan Kerja' },
+    { id: 'alumni-ikalisa', label: 'Ikalisa' },
+  ];
+
   const dropdownItems = [
-    { id: 'alumni', label: 'Alumni' },
     { id: 'achievements', label: 'Prestasi' },
     { id: 'about', label: 'Tentang' },
   ];
@@ -38,11 +45,14 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
     setDropdownOpen(false);
   };
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (alumniDropdownRef.current && !alumniDropdownRef.current.contains(event.target as Node)) {
+        setAlumniDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -92,8 +102,51 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
               );
             })}
 
+            {/* Alumni Dropdown Button */}
+            <div
+              ref={alumniDropdownRef}
+              className="relative"
+              onMouseEnter={() => setAlumniDropdownOpen(true)}
+              onMouseLeave={() => setAlumniDropdownOpen(false)}
+            >
+              <button
+                onClick={() => setAlumniDropdownOpen(!alumniDropdownOpen)}
+                className={`
+                  inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-sans font-semibold tracking-wide transition-all duration-200
+                  ${alumniDropdownItems.some(item => currentTab === item.id)
+                    ? 'text-[#001e40] bg-slate-100 font-extrabold'
+                    : 'text-slate-500 hover:text-[#001e40] hover:bg-slate-50'}
+                `}
+              >
+                <span>Alumni</span>
+                <ChevronDown className={`ml-1.5 h-3.5 w-3.5 transition-transform duration-200 ${alumniDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Alumni Dropdown Menu */}
+              {alumniDropdownOpen && (
+                <div className="absolute left-0 top-full pt-1.5 w-48 z-50">
+                  <div className="py-1 bg-white rounded-lg shadow-lg border border-slate-100 ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in">
+                    {alumniDropdownItems.map((item) => {
+                      const isActive = currentTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleNavClick(item.id)}
+                          className={`block w-full text-left px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-[#001e40] transition-colors duration-150 ${
+                            isActive ? 'bg-slate-100 text-[#001e40]' : ''
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Dropdown Button */}
-            <div 
+            <div
               ref={dropdownRef}
               className="relative"
               onMouseEnter={() => setDropdownOpen(true)}
