@@ -71,6 +71,11 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
                 </button>
               </li>
               <li>
+                <button onClick={() => handleNav('facilities')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
+                  Fasilitas &amp; Layanan Mahasiswa
+                </button>
+              </li>
+              <li>
                 <button onClick={() => handleNav('ukms')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
                   Direktori UKM &amp; Organisasi
                 </button>

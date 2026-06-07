@@ -15,6 +15,7 @@ import AdminView from './components/AdminView';
 import AboutView from './components/AboutView';
 import NewsView from './components/NewsView';
 import ComingSoonView from './components/ComingSoonView';
+import FacilitiesView from './components/FacilitiesView';
 
 // Import initial mock data
 import {
@@ -195,6 +196,12 @@ export default function App() {
             <AboutView
               setCurrentTab={setCurrentTab}
               setSelectedUkmId={setSelectedUkmId}
+            />
+          )}
+
+          {currentTab === 'facilities' && (
+            <FacilitiesView
+              setCurrentTab={setCurrentTab}
             />
           )}
         </div>
