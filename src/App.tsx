@@ -16,6 +16,9 @@ import AboutView from './components/AboutView';
 import NewsView from './components/NewsView';
 import ComingSoonView from './components/ComingSoonView';
 import FacilitiesView from './components/FacilitiesView';
+import KodeEtikMahasiswaView from './components/panduan/KodeEtikMahasiswaView';
+import POKUPBView from './components/panduan/POKUPB';
+import PanduanMahasiswaView from './components/panduan/PanduanMahasiswaView';
 
 // Import initial mock data
 import {
@@ -35,7 +38,24 @@ export default function App() {
   //  ALL useState hooks FIRST (before any conditional returns)
   const [isAdminPortal, setIsAdminPortal] = React.useState<boolean>(false);
   const [isMahasiswaPortal, setIsMahasiswaPortal] = React.useState<boolean>(false);
-  const [currentTab, setCurrentTab] = React.useState<string>('home');
+  const getInitialTab = () => {
+    const hash = window.location.hash;
+    if (hash === '#/panduan/kode-etik') return 'panduan-kode-etik';
+    if (hash === '#/panduan/pok') return 'panduan-pok';
+    if (hash === '#/panduan/mahasiswa') return 'panduan-mahasiswa';
+    if (hash === '#/about') return 'about';
+    if (hash === '#/facilities') return 'facilities';
+    if (hash === '#/achievements') return 'achievements';
+    if (hash === '#/alumni/data') return 'alumni-data';
+    if (hash === '#/alumni/lowongan') return 'alumni-lowongan';
+    if (hash === '#/alumni/ikalisa') return 'alumni-ikalisa';
+    if (hash === '#/scholarships') return 'scholarships';
+    if (hash === '#/ukms') return 'ukms';
+    if (hash === '#/news') return 'news';
+    return 'home';
+  };
+
+  const [currentTab, setCurrentTab] = React.useState<string>(getInitialTab());
   const [selectedUkmId, setSelectedUkmId] = React.useState<string | null>(null);
   
   // Core reactive data states
@@ -48,12 +68,42 @@ export default function App() {
   //  ALL useEffect hooks SECOND
   React.useEffect(() => {
     const updatePortalState = () => {
+      const hash = window.location.hash;
       setIsAdminPortal(
-        window.location.search.includes('portal=admin') || window.location.hash === '#/admin'
+        window.location.search.includes('portal=admin') || hash === '#/admin'
       );
       setIsMahasiswaPortal(
-        window.location.search.includes('portal=mahasiswa') || window.location.hash === '#/mahasiswa'
+        window.location.search.includes('portal=mahasiswa') || hash === '#/mahasiswa'
       );
+
+      // Sync hash to currentTab
+      if (hash === '#/panduan/kode-etik') {
+        setCurrentTab('panduan-kode-etik');
+      } else if (hash === '#/panduan/pok') {
+        setCurrentTab('panduan-pok');
+      } else if (hash === '#/panduan/mahasiswa') {
+        setCurrentTab('panduan-mahasiswa');
+      } else if (hash === '#/about') {
+        setCurrentTab('about');
+      } else if (hash === '#/facilities') {
+        setCurrentTab('facilities');
+      } else if (hash === '#/achievements') {
+        setCurrentTab('achievements');
+      } else if (hash === '#/alumni/data') {
+        setCurrentTab('alumni-data');
+      } else if (hash === '#/alumni/lowongan') {
+        setCurrentTab('alumni-lowongan');
+      } else if (hash === '#/alumni/ikalisa') {
+        setCurrentTab('alumni-ikalisa');
+      } else if (hash === '#/scholarships') {
+        setCurrentTab('scholarships');
+      } else if (hash === '#/ukms') {
+        setCurrentTab('ukms');
+      } else if (hash === '#/news') {
+        setCurrentTab('news');
+      } else if (hash === '#/home' || hash === '') {
+        setCurrentTab('home');
+      }
     };
 
     // Initialize on mount
@@ -70,6 +120,31 @@ export default function App() {
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
+
+  // Sync tab state to URL hash
+  React.useEffect(() => {
+    let expectedHash = '';
+    switch (currentTab) {
+      case 'home': expectedHash = '#/home'; break;
+      case 'scholarships': expectedHash = '#/scholarships'; break;
+      case 'ukms': expectedHash = '#/ukms'; break;
+      case 'alumni-data': expectedHash = '#/alumni/data'; break;
+      case 'alumni-lowongan': expectedHash = '#/alumni/lowongan'; break;
+      case 'alumni-ikalisa': expectedHash = '#/alumni/ikalisa'; break;
+      case 'achievements': expectedHash = '#/achievements'; break;
+      case 'facilities': expectedHash = '#/facilities'; break;
+      case 'about': expectedHash = '#/about'; break;
+      case 'panduan-kode-etik': expectedHash = '#/panduan/kode-etik'; break;
+      case 'panduan-pok': expectedHash = '#/panduan/pok'; break;
+      case 'panduan-mahasiswa': expectedHash = '#/panduan/mahasiswa'; break;
+      case 'news': expectedHash = '#/news'; break;
+      case 'admin': expectedHash = '#/admin'; break;
+      default: expectedHash = '';
+    }
+    if (expectedHash && window.location.hash !== expectedHash) {
+      window.location.hash = expectedHash;
+    }
+  }, [currentTab]);
 
   // Load from Supabase
   React.useEffect(() => {
@@ -203,6 +278,18 @@ export default function App() {
             <FacilitiesView
               setCurrentTab={setCurrentTab}
             />
+          )}
+
+          {currentTab === 'panduan-kode-etik' && (
+            <KodeEtikMahasiswaView />
+          )}
+
+          {currentTab === 'panduan-pok' && (
+            <POKUPBView />
+          )}
+
+          {currentTab === 'panduan-mahasiswa' && (
+            <PanduanMahasiswaView />
           )}
         </div>
       </main>

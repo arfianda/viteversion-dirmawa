@@ -28,7 +28,7 @@ export default function AboutView({ setCurrentTab, setSelectedUkmId }: AboutView
           </span>
         </div>
         <h3 className="font-sans font-bold text-xl text-[#001e40]">
-          Deskripsi Singkat Organisasi
+          Deskripsi Singkat 
         </h3>
         <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet.

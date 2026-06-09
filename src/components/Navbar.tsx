@@ -19,12 +19,19 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const [alumniDropdownOpen, setAlumniDropdownOpen] = React.useState(false);
   const alumniDropdownRef = React.useRef<HTMLDivElement>(null);
+  const [panduanSubmenuOpen, setPanduanSubmenuOpen] = React.useState(false);
+  const panduanRef = React.useRef<HTMLDivElement>(null);
 
   const navItems = [
     { id: 'home', label: 'Beranda' },
     { id: 'scholarships', label: 'Beasiswa' },
     { id: 'ukms', label: 'Direktori UKM' },
-    { id: 'news', label: 'Berita' },
+  ];
+
+  const panduanItems = [
+    { id: 'panduan-kode-etik', label: 'Kode Etik Mahasiswa' },
+    { id: 'panduan-pok', label: 'POK UPB' },
+    { id: 'panduan-mahasiswa', label: 'Panduan Mahasiswa' },
   ];
 
   const alumniDropdownItems = [
@@ -54,6 +61,9 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
       }
       if (alumniDropdownRef.current && !alumniDropdownRef.current.contains(event.target as Node)) {
         setAlumniDropdownOpen(false);
+      }
+      if (panduanRef.current && !panduanRef.current.contains(event.target as Node)) {
+        setPanduanSubmenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -174,15 +184,15 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
 
               {/* Dropdown Menu */}
               {dropdownOpen && (
-                <div className="absolute left-0 top-full pt-1.5 w-48 z-50">
-                  <div className="py-1 bg-white rounded-lg shadow-lg border border-slate-100 ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in">
+                <div className="absolute left-0 top-full pt-1.5 w-56 z-50">
+                  <div className="py-1 bg-white rounded-lg shadow-lg border border-slate-100 ring-1 ring-black ring-opacity-5 animate-fade-in">
                     {dropdownItems.map((item) => {
                       const isActive = currentTab === item.id;
                       return (
                         <button
                           key={item.id}
                           onClick={() => handleNavClick(item.id)}
-                          className={`block w-full text-left px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-[#001e40] transition-colors duration-150 ${
+                          className={`block w-full text-left px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-[#001e40] transition-colors duration-150 first:rounded-t-md ${
                             isActive ? 'bg-slate-100 text-[#001e40]' : ''
                           }`}
                         >
@@ -190,6 +200,47 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
                         </button>
                       );
                     })}
+
+                    {/* Divider */}
+                    <div className="border-t border-slate-100 my-1" />
+
+                    {/* Panduan Submenu */}
+                    <div 
+                      className="relative" 
+                      ref={panduanRef}
+                      onMouseEnter={() => setPanduanSubmenuOpen(true)}
+                      onMouseLeave={() => setPanduanSubmenuOpen(false)}
+                    >
+                      <button
+                        className="block w-full text-left px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-[#001e40] transition-colors duration-150 flex items-center justify-between rounded-b-md"
+                        onClick={() => setPanduanSubmenuOpen(!panduanSubmenuOpen)}
+                      >
+                        <span>Panduan</span>
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 -rotate-90 ${panduanSubmenuOpen ? 'rotate-0' : ''}`} />
+                      </button>
+
+                      {/* Panduan Submenu Items - muncul ke kanan */}
+                      {panduanSubmenuOpen && (
+                        <div className="absolute left-full top-0 pl-1 w-48 z-50">
+                          <div className="py-1 bg-white rounded-lg shadow-lg border border-slate-100 ring-1 ring-black ring-opacity-5 overflow-hidden animate-fade-in">
+                            {panduanItems.map((item) => {
+                              const isActive = currentTab === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  onClick={() => handleNavClick(item.id)}
+                                  className={`block w-full text-left px-4 py-2 text-sm text-slate-500 hover:bg-slate-100 hover:text-[#001e40] transition-colors duration-150 ${
+                                    isActive ? 'bg-slate-100 text-[#001e40]' : ''
+                                  }`}
+                                >
+                                  {item.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
