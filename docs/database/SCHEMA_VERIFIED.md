@@ -1,8 +1,9 @@
 # Database Schema - Verified State
 
 **Last verified:** 2026-06-12  
-**Project:** hqyvbarhhhvjtmmzntvq (Dirmawa)
-**RLS Status:** ✅ ENABLED with policies
+**Project:** hqyvbarhhhvjtmmzntvq (Dirmawa)  
+**RLS Status:** ✅ ENABLED with policies  
+**Auth Status:** ⚠️ Users exist in `public.users` but not in `auth.users` - see docs/AUTH_SETUP.md
 
 ## Table Status
 

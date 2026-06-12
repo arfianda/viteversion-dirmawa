@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { UserSession } from '../types';
+import { AuthService } from '../../services/authService';
 
 interface LoginViewProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -12,46 +13,54 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
-    // Auto-validate for ease of use and match specific mockups
-    if (email.length > 0 && password.length > 0) {
-      let name = 'Arfianda Firsta';
-      const emailToUse = email;
+    try {
+      const { user, error: authError } = await AuthService.signIn(email, password);
 
-      if (email.toLowerCase().includes('abcd')) {
-        name = 'Dr. ABCD';
-      } else if (email.toLowerCase().includes('efgh')) {
-        name = 'EFGH, M.Kom';
-      } else if (email.toLowerCase().includes('asdf')) {
-        name = 'ASDF';
+      if (authError || !user) {
+        setError(authError || 'Login failed. Please check your credentials.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Only allow administrators
+      if (user.role !== 'administrator') {
+        setError('Access denied. Admin privileges required.');
+        setIsLoading(false);
+        return;
       }
 
       onLoginSuccess({
-        username: emailToUse,
+        username: user.email,
         role: 'admin',
-        name: name,
-        nimOrNip: '11223344'
+        name: user.name,
+        nimOrNip: 'ADMIN-' + user.id.slice(0, 8),
+        avatarUrl: user.avatarUrl,
       });
-    } else {
-      setError('Please fill in both email and password.');
+      setIsLoading(false);
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
+      setIsLoading(false);
     }
   };
 
   // Pre-fill demo credentials
   const fillDemo = (demoType: 'admin' | 'super' | 'editor') => {
     if (demoType === 'admin') {
-      setEmail('admin@pelitabangsa.ac.id');
-      setPassword('admin123');
+      setEmail('abcd@upb.ac.id');
+      setPassword('password123');
     } else if (demoType === 'super') {
-      setEmail('superadmin@pelitabangsa.ac.id');
-      setPassword('super123');
+      setEmail('efgh@upb.ac.id');
+      setPassword('password123');
     } else if (demoType === 'editor') {
-      setEmail('editor@pelitabangsa.ac.id');
-      setPassword('editor123');
+      setEmail('asdf@upb.ac.id');
+      setPassword('password123');
     }
     setError(null);
   };
@@ -163,39 +172,43 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
             {/* Submit Button */}
             <button
-              className="w-full mt-2 bg-[#001e40] hover:bg-[#1f477b] text-white font-semibold text-sm rounded-xl py-3.5 transition-colors shadow-lg shadow-[#001e40]/10 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full mt-2 bg-[#001e40] hover:bg-[#1f477b] text-white font-semibold text-sm rounded-xl py-3.5 transition-colors shadow-lg shadow-[#001e40]/10 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
               id="sign-in-button"
+              disabled={isLoading}
             >
-              Sign In
-              <ArrowRight size={16} />
+              {isLoading ? 'Signing in...' : 'Sign In'}
+              {!isLoading && <ArrowRight size={16} />}
             </button>
           </form>
 
           {/* Quick Demo Credentials */}
           <div className="mt-1 pt-4 border-t border-[#c3c6d1]/20 flex flex-col gap-2">
-            <p className="text-xs text-[#737780] font-medium text-center">Quick Demo Accounts (Click to Auto-fill):</p>
+            <p className="text-xs text-[#737780] font-medium text-center">Demo Accounts (use password: <code className="bg-slate-100 px-1 rounded">password123</code>):</p>
             <div className="flex flex-wrap gap-2 justify-center">
               <button
                 type="button"
                 onClick={() => fillDemo('super')}
                 className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
+                disabled={isLoading}
               >
-                Super Admin
+                Dr. ABCD
               </button>
               <button
                 type="button"
                 onClick={() => fillDemo('admin')}
                 className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
+                disabled={isLoading}
               >
-                Admin (EFGH)
+                EFGH, M.Kom
               </button>
               <button
                 type="button"
                 onClick={() => fillDemo('editor')}
                 className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
+                disabled={isLoading}
               >
-                Editor (ASDF)
+                ASDF
               </button>
             </div>
           </div>
