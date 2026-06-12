@@ -77,7 +77,7 @@ export default function AboutView({ setCurrentTab, setSelectedUkmId }: AboutView
           </span>
         </div>
         <h3 className="font-sans font-bold text-xl text-[#001e40]">
-          Struktur Organisasi Dirmawa
+          Struktur Dirmawa
         </h3>
         
       </section>
