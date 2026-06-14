@@ -31,7 +31,10 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           email,
           password,
           options: {
-            data: { name: email.split('@')[0] },
+            data: {
+              name: email.split('@')[0],
+              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
+            },
           },
         });
 
@@ -42,18 +45,21 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         }
 
         if (data?.user) {
-          // Create profile in public.users
+          // Create profile in public.users with superadmin role for arfiandafirsta@gmail.com
           const { error: profileError } = await supabase
             .from('users')
             .insert({
               id: data.user.id,
               email,
               name: email.split('@')[0],
-              role: 'operator',
+              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
             });
 
           if (profileError) {
             console.error('Profile creation error:', profileError);
+            setError('Failed to create user profile: ' + profileError.message);
+            setIsLoading(false);
+            return;
           }
 
           setSignupMessage('Account created! You can now sign in.');
@@ -65,6 +71,8 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         // Sign in existing user
         const { user, error: authError } = await AuthService.signIn(email, password);
 
+        console.log('Login attempt - user:', user);
+
         if (authError || !user) {
           setError(authError || 'Login failed. Please check your credentials.');
           setIsLoading(false);
@@ -72,6 +80,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         }
 
         // Only allow administrators and superadmins
+        console.log('Checking role:', user.role);
         if (user.role !== 'administrator' && user.role !== 'superadmin') {
           setError('Access denied. Admin privileges required.');
           setIsLoading(false);

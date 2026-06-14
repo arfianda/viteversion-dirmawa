@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, GraduationCap } from 'lucide-react';
 import { UserSession } from '../../admin/types';
 import { AuthService } from '../../services/authService';
+import { supabase } from '../../services/supabaseClient';
 
 interface MahasiswaLoginProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -23,15 +24,11 @@ export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) 
     try {
       // For student login, we need to find user by NIM
       // First try to find in mahasiswa_profiles by NIM
-      const { data: profileData } = await import('../../services/authService').then(m =>
-        m.supabase.from('mahasiswa_profiles').select('user_id, major, semester').eq('nim', nim).single()
-      );
+      const { data: profileData } = await supabase.from('mahasiswa_profiles').select('user_id, major, semester').eq('nim', nim).single();
 
       if (profileData?.user_id) {
         // Found user by NIM, now sign in with their email
-        const { data: userData } = await import('../../services/authService').then(m =>
-          m.supabase.from('users').select('email').eq('id', profileData.user_id).single()
-        );
+        const { data: userData } = await supabase.from('users').select('email').eq('id', profileData.user_id).single();
 
         if (userData?.email) {
           const { user, error: authError } = await AuthService.signIn(userData.email, password);

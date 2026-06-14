@@ -5,7 +5,7 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: 'administrator' | 'mahasiswa' | 'alumni';
+  role: 'administrator' | 'superadmin' | 'admin' | 'mahasiswa' | 'alumni';
   nim?: string;
   avatarUrl?: string;
 }

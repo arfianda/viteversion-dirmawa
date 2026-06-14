@@ -1,6 +1,6 @@
 export interface UserSession {
   username: string;
-  role: 'mahasiswa' | 'admin';
+  role: 'mahasiswa' | 'admin' | 'superadmin';
   name: string;
   nimOrNip?: string;
   avatarUrl?: string;
