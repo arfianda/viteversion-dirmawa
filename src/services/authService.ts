@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { UserRole, User } from '../types';
 
 export interface AuthUser {
   id: string;
@@ -197,5 +198,97 @@ export const AuthService = {
       company: data.company || undefined,
       position: data.position || undefined,
     };
+  },
+
+  /**
+   * Get current user's role from database
+   */
+  async getUserRole(userId: string): Promise<UserRole | null> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return data.role as UserRole;
+  },
+
+  /**
+   * Check if user is admin or superadmin
+   */
+  async isAdmin(userId: string): Promise<boolean> {
+    const role = await this.getUserRole(userId);
+    return role === 'admin' || role === 'superadmin';
+  },
+
+  /**
+   * Check if user is superadmin
+   */
+  async isSuperadmin(userId: string): Promise<boolean> {
+    const role = await this.getUserRole(userId);
+    return role === 'superadmin';
+  },
+
+  /**
+   * Check if user can access action based on role
+   */
+  async canAccess(userId: string, requiredRole: UserRole): Promise<boolean> {
+    const role = await this.getUserRole(userId);
+    if (!role) return false;
+
+    const roleHierarchy: Record<UserRole, number> = {
+      operator: 1,
+      admin: 2,
+      superadmin: 3,
+    };
+
+    return roleHierarchy[role] >= roleHierarchy[requiredRole];
+  },
+
+  /**
+   * Update user role (superadmin only)
+   */
+  async updateUserRole(targetUserId: string, newRole: UserRole, currentUserId: string): Promise<{ success: boolean; error?: string }> {
+    // Verify current user is superadmin
+    const isSuper = await this.isSuperadmin(currentUserId);
+    if (!isSuper) {
+      return { success: false, error: 'Only superadmin can change roles' };
+    }
+
+    const { error } = await supabase
+      .from('users')
+      .update({ role: newRole, updated_at: new Date().toISOString() })
+      .eq('id', targetUserId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  },
+
+  /**
+   * Get all users (superadmin only)
+   */
+  async getAllUsers(currentUserId: string): Promise<User[] | null> {
+    const isSuper = await this.isSuperadmin(currentUserId);
+    if (!isSuper) {
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, email, name, role, created_at, updated_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return null;
+    }
+
+    return data as unknown as User[];
   },
 };
