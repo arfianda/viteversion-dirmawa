@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { UserSession } from '../types';
 import { AuthService } from '../../services/authService';
+import { supabase } from '../../services/supabaseClient';
 
 interface LoginViewProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -14,55 +15,83 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
+  const [signupMessage, setSignupMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSignupMessage(null);
     setIsLoading(true);
 
     try {
-      const { user, error: authError } = await AuthService.signIn(email, password);
+      if (isSignup) {
+        // Sign up new user
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: email.split('@')[0] },
+          },
+        });
 
-      if (authError || !user) {
-        setError(authError || 'Login failed. Please check your credentials.');
+        if (signUpError) {
+          setError(signUpError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data?.user) {
+          // Create profile in public.users
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email,
+              name: email.split('@')[0],
+              role: 'operator',
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+          }
+
+          setSignupMessage('Account created! You can now sign in.');
+          setIsSignup(false);
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Sign in existing user
+        const { user, error: authError } = await AuthService.signIn(email, password);
+
+        if (authError || !user) {
+          setError(authError || 'Login failed. Please check your credentials.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Only allow administrators and superadmins
+        if (user.role !== 'administrator' && user.role !== 'superadmin') {
+          setError('Access denied. Admin privileges required.');
+          setIsLoading(false);
+          return;
+        }
+
+        onLoginSuccess({
+          username: user.email,
+          role: user.role === 'superadmin' ? 'superadmin' : 'admin',
+          name: user.name,
+          nimOrNip: 'ADMIN-' + user.id.slice(0, 8),
+          avatarUrl: user.avatarUrl,
+        });
         setIsLoading(false);
         return;
       }
-
-      // Only allow administrators
-      if (user.role !== 'administrator') {
-        setError('Access denied. Admin privileges required.');
-        setIsLoading(false);
-        return;
-      }
-
-      onLoginSuccess({
-        username: user.email,
-        role: 'admin',
-        name: user.name,
-        nimOrNip: 'ADMIN-' + user.id.slice(0, 8),
-        avatarUrl: user.avatarUrl,
-      });
-      setIsLoading(false);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred');
-      setIsLoading(false);
     }
-  };
-
-  // Pre-fill demo credentials
-  const fillDemo = (demoType: 'admin' | 'super' | 'editor') => {
-    if (demoType === 'admin') {
-      setEmail('abcd@upb.ac.id');
-      setPassword('password123');
-    } else if (demoType === 'super') {
-      setEmail('efgh@upb.ac.id');
-      setPassword('password123');
-    } else if (demoType === 'editor') {
-      setEmail('asdf@upb.ac.id');
-      setPassword('password123');
-    }
-    setError(null);
+    setIsLoading(false);
   };
 
   return (
@@ -98,6 +127,12 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           {error && (
             <div className="bg-[#ffdad6] text-[#93000a] text-sm p-3 rounded-lg border border-[#ffdad6] text-center font-medium">
               {error}
+            </div>
+          )}
+
+          {signupMessage && (
+            <div className="bg-[#dcfce7] text-[#166534] text-sm p-3 rounded-lg border border-[#dcfce7] text-center font-medium">
+              {signupMessage}
             </div>
           )}
 
@@ -177,40 +212,27 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
               id="sign-in-button"
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? (isSignup ? 'Creating account...' : 'Signing in...') : (isSignup ? 'Create Account' : 'Sign In')}
               {!isLoading && <ArrowRight size={16} />}
             </button>
           </form>
 
-          {/* Quick Demo Credentials */}
-          <div className="mt-1 pt-4 border-t border-[#c3c6d1]/20 flex flex-col gap-2">
-            <p className="text-xs text-[#737780] font-medium text-center">Demo Accounts (use password: <code className="bg-slate-100 px-1 rounded">password123</code>):</p>
-            <div className="flex flex-wrap gap-2 justify-center">
+          {/* Toggle Sign Up / Sign In */}
+          <div className="mt-1 pt-4 border-t border-[#c3c6d1]/20 text-center">
+            <p className="text-xs text-[#737780] font-medium">
+              {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
               <button
                 type="button"
-                onClick={() => fillDemo('super')}
-                className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
-                disabled={isLoading}
+                onClick={() => {
+                  setIsSignup(!isSignup);
+                  setError(null);
+                  setSignupMessage(null);
+                }}
+                className="text-[#001e40] font-bold hover:underline"
               >
-                Dr. ABCD
+                {isSignup ? 'Sign In' : 'Sign Up Here'}
               </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('admin')}
-                className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
-                disabled={isLoading}
-              >
-                EFGH, M.Kom
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('editor')}
-                className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
-                disabled={isLoading}
-              >
-                ASDF
-              </button>
-            </div>
+            </p>
           </div>
 
           {/* Security Indicator */}
