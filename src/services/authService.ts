@@ -291,4 +291,89 @@ export const AuthService = {
 
     return data as unknown as User[];
   },
+
+  /**
+   * Add new user (superadmin only)
+   */
+  async addUser(
+    currentUserId: string,
+    userData: { email: string; name: string; role: UserRole }
+  ): Promise<{ success: boolean; user?: User; error?: string }> {
+    const isSuper = await this.isSuperadmin(currentUserId);
+    if (!isSuper) {
+      return { success: false, error: 'Only superadmin can add users' };
+    }
+
+    // Note: This requires Supabase Admin API for creating auth users
+    // For now, we'll use an Edge Function approach or RPC
+    const { data, error } = await supabase.rpc('create_user_with_role', {
+      p_email: userData.email,
+      p_name: userData.name,
+      p_role: userData.role,
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      user: data as unknown as User,
+    };
+  },
+
+  /**
+   * Delete user (superadmin only)
+   */
+  async deleteUser(
+    targetUserId: string,
+    currentUserId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const isSuper = await this.isSuperadmin(currentUserId);
+    if (!isSuper) {
+      return { success: false, error: 'Only superadmin can delete users' };
+    }
+
+    // Protect against self-deletion
+    if (targetUserId === currentUserId) {
+      return { success: false, error: 'Cannot delete your own account' };
+    }
+
+    // Delete from users table (auth user should be handled separately via Admin API or trigger)
+    const { error } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', targetUserId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  },
+
+  /**
+   * Update user role (superadmin only) - extended version
+   */
+  async updateUserRoleWithEmail(
+    targetUserId: string,
+    newRole: UserRole,
+    currentUserId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    const isSuper = await this.isSuperadmin(currentUserId);
+    if (!isSuper) {
+      return { success: false, error: 'Only superadmin can change roles' };
+    }
+
+    const { error } = await supabase
+      .from('users')
+      .update({ role: newRole, updated_at: new Date().toISOString() })
+      .eq('id', targetUserId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  },
 };

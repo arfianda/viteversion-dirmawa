@@ -65,3 +65,14 @@ export interface StudentNews {
   date: string;
   category: 'Berita' | 'Agenda' | 'Pengumuman';
 }
+
+export type UserRole = 'superadmin' | 'admin' | 'operator';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
