@@ -19,6 +19,7 @@ import FacilitiesView from './components/FacilitiesView';
 import KodeEtikMahasiswaView from './components/panduan/KodeEtikMahasiswaView';
 import POKUPBView from './components/panduan/POKUPB';
 import PanduanMahasiswaView from './components/panduan/PanduanMahasiswaView';
+import UserManagementView from './components/UserManagementView';
 
 // Import initial mock data
 import {
@@ -52,6 +53,7 @@ export default function App() {
     if (hash === '#/scholarships') return 'scholarships';
     if (hash === '#/ukms') return 'ukms';
     if (hash === '#/news') return 'news';
+    if (hash === '#/user-management') return 'user-management';
     return 'home';
   };
 
@@ -101,6 +103,8 @@ export default function App() {
         setCurrentTab('ukms');
       } else if (hash === '#/news') {
         setCurrentTab('news');
+      } else if (hash === '#/user-management') {
+        setCurrentTab('user-management');
       } else if (hash === '#/home' || hash === '') {
         setCurrentTab('home');
       }
@@ -138,6 +142,7 @@ export default function App() {
       case 'panduan-pok': expectedHash = '#/panduan/pok'; break;
       case 'panduan-mahasiswa': expectedHash = '#/panduan/mahasiswa'; break;
       case 'news': expectedHash = '#/news'; break;
+      case 'user-management': expectedHash = '#/user-management'; break;
       case 'admin': expectedHash = '#/admin'; break;
       default: expectedHash = '';
     }
@@ -265,6 +270,10 @@ export default function App() {
               alumni={alumni}
               setAlumni={setAlumni}
             />
+          )}
+
+          {currentTab === 'user-management' && (
+            <UserManagementView currentUser={null} />
           )}
 
           {currentTab === 'about' && (
