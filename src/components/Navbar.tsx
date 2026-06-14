@@ -4,8 +4,10 @@
  */
 
 import React from 'react';
-import { ShieldAlert, BookOpen, Users, Award, Landmark, Search, Key, LogIn, ChevronDown } from 'lucide-react';
+import { ShieldAlert, BookOpen, Users, Award, Landmark, Search, Key, LogIn, ChevronDown, Shield, User as UserIcon } from 'lucide-react';
 import upbLogo from '../assets/images/logo-upb.png';
+import { AuthService } from '../services/authService';
+import { AuthUser } from '../services/authService';
 
 interface NavbarProps {
   currentTab: string;
@@ -21,6 +23,33 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
   const alumniDropdownRef = React.useRef<HTMLDivElement>(null);
   const [panduanSubmenuOpen, setPanduanSubmenuOpen] = React.useState(false);
   const panduanRef = React.useRef<HTMLDivElement>(null);
+  const [currentUser, setCurrentUser] = React.useState<AuthUser | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const userMenuRef = React.useRef<HTMLDivElement>(null);
+
+  // Load current user on mount
+  React.useEffect(() => {
+    const loadUser = async () => {
+      const user = await AuthService.getSession();
+      if (user) {
+        setCurrentUser(user);
+      }
+    };
+    loadUser();
+  }, []);
+
+  // Close user menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const navItems = [
     { id: 'home', label: 'Beranda' },
@@ -64,6 +93,9 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
       }
       if (panduanRef.current && !panduanRef.current.contains(event.target as Node)) {
         setPanduanSubmenuOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -260,6 +292,71 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
                 className="w-full bg-slate-50 border border-slate-200 rounded-full pl-9 pr-4 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#001e40] transition-all"
               />
             </div>
+
+            {/* User Menu (if logged in) */}
+            {currentUser && (
+              <div ref={userMenuRef} className="relative">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 transition-all"
+                >
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#001e40] to-[#feb234] flex items-center justify-center text-white font-bold text-xs">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="hidden sm:flex flex-col items-start">
+                    <span className="text-xs font-bold text-[#001e40] leading-none">{currentUser.name}</span>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider leading-none mt-1 ${
+                      currentUser.role === 'superadmin' ? 'text-red-600' :
+                      currentUser.role === 'admin' ? 'text-blue-600' : 'text-slate-500'
+                    }`}>
+                      {currentUser.role}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* User Menu Dropdown */}
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 animate-fade-in">
+                    {/* User Info Header */}
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <p className="text-sm font-bold text-[#001e40]">{currentUser.name}</p>
+                      <p className="text-xs text-slate-500 truncate">{currentUser.email}</p>
+                      <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-700">
+                        {currentUser.role}
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="py-1">
+                      {currentUser.role === 'superadmin' && (
+                        <button
+                          onClick={() => {
+                            setCurrentTab('user-management');
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-[#001e40] flex items-center gap-2"
+                        >
+                          <Shield size={14} />
+                          User Management
+                        </button>
+                      )}
+                      <button
+                        onClick={async () => {
+                          await AuthService.signOut();
+                          setCurrentUser(null);
+                          setUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      >
+                        <LogIn size={14} />
+                        Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Student Login Button */}
             <button
