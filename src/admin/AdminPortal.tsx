@@ -14,12 +14,18 @@ import {
   HelpCircle,
   Menu,
   CheckCircle,
-  MessageSquare
+  MessageSquare,
+  User,
+  Camera,
+  Upload,
+  UserPlus,
+  ExternalLink
 } from 'lucide-react';
 
 import { UserSession, AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle, AdminRecord } from './types';
 import { INITIAL_ALUMNI, INITIAL_UKMS, INITIAL_SCHOLARSHIPS, INITIAL_NEWS, INITIAL_ADMINS } from './data';
 import { SupabaseService } from '../services/supabaseService';
+import { supabase } from '../services/supabaseClient';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -38,6 +44,7 @@ import UkmDirectory from './components/UkmDirectory';
 import ScholarshipsManagement from './components/ScholarshipsManagement';
 import NewsEditor from './components/NewsEditor';
 import AdminManagement from './components/AdminManagement';
+import RegistrationQueue from './components/RegistrationQueue';
 
 export default function AdminPortal() {
   const [session, setSession] = useState<UserSession | null>(null);
@@ -47,6 +54,16 @@ export default function AdminPortal() {
 
   // Notifications dropdown
   const [showNotifications, setShowNotifications] = useState(false);
+  // Profile dropdown
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  
+  // Profile editing states
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+
   const [notifications, setNotifications] = useState([
     { id: '1', text: 'New Alumni upload spreadsheet parsed successfully.', unread: true },
     { id: '2', text: 'Critical scholarship "Beasiswa Prestasi Akademik" closes soon!', unread: true },
@@ -105,6 +122,76 @@ export default function AdminPortal() {
   const handleSignOut = () => {
     setSession(null);
     localStorage.removeItem('upb_affairs_session');
+  };
+
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileError('File size is too large (maximum 2MB)');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        setEditAvatarUrl(reader.result);
+      }
+    };
+    reader.onerror = () => {
+      setProfileError('Failed to read file');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session) return;
+    
+    setIsSavingProfile(true);
+    setProfileError(null);
+    
+    try {
+      const { error: dbError } = await supabase
+        .from('users')
+        .update({
+          name: editName,
+          avatar_url: editAvatarUrl || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', session.id);
+        
+      if (dbError) {
+        throw new Error(`Database Error: ${dbError.message}`);
+      }
+      
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          name: editName,
+          avatar_url: editAvatarUrl || null
+        }
+      });
+      
+      if (authError) {
+        throw new Error(`Auth Error: ${authError.message}`);
+      }
+      
+      const updatedSession: UserSession = {
+        ...session,
+        name: editName,
+        avatarUrl: editAvatarUrl || undefined
+      };
+      
+      setSession(updatedSession);
+      localStorage.setItem('upb_affairs_session', JSON.stringify(updatedSession));
+      setShowEditProfileModal(false);
+    } catch (err: any) {
+      console.error('Error saving profile:', err);
+      setProfileError(err.message || 'An unexpected error occurred');
+    } finally {
+      setIsSavingProfile(false);
+    }
   };
 
   // State modification mutations
@@ -289,6 +376,7 @@ export default function AdminPortal() {
     { id: 'ukm', label: 'UKM & Ormawa', icon: Users },
     { id: 'scholarships', label: 'Scholarships Portal', icon: BookOpen },
     { id: 'settings', label: 'Access Control', icon: Shield },
+    { id: 'registrations', label: 'Registrations', icon: UserPlus },
   ];
 
   if (!session) {
@@ -419,6 +507,8 @@ export default function AdminPortal() {
             onUpdateAdminRole={handleUpdateAdminRole}
           />
         );
+      case 'registrations':
+        return <RegistrationQueue />;
       default:
         return <div className="p-12 text-center text-[#737780] font-bold">In development...</div>;
     }
@@ -495,6 +585,13 @@ export default function AdminPortal() {
           >
             <SettingsIcon size={16} />
             System Control
+          </button>
+          <button
+            onClick={() => { window.location.hash = ''; }}
+            className="text-white/70 hover:text-white flex items-center gap-3 px-4 py-2 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <ExternalLink size={16} />
+            Kembali ke Beranda
           </button>
           <button
             onClick={handleSignOut}
@@ -586,20 +683,80 @@ export default function AdminPortal() {
             </button>
 
             {/* Profile trigger block */}
-            <div className="pl-4 border-l border-[#c3c6d1]/40 flex items-center gap-3">
-              <div className="hidden lg:block text-right">
-                <p className="text-xs font-bold text-[#191c1e]">{session.name}</p>
-                <p className="text-[10px] text-[#737780] uppercase tracking-wider font-semibold">
-                  {session.role === 'admin' ? 'Super Admin' : 'Student'}
-                </p>
-              </div>
-              <img
-                alt="Administrator Headshot"
-                onClick={handleSignOut}
-                title="Click to Logout"
-                className="w-8 h-8 rounded-full border border-[#c3c6d1] cursor-pointer object-cover hover:opacity-80 transition-opacity"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDk50HzYys7OGAA-TewCZjPixQ6ZVicRUtWnJs_hQdagpxmcbEBVUy7V5q3X0MDjPCA3qkhDRfYPbSbJz6lnP_DFPgyF0UfuaRNlhU7zlyJpwDqLifJ5a1q4sFUzl33KuAg6_iI98SJc7HPMcCA0bs7pGyTcsrSsHE8KF1xEG6Z8cLuHFiYBuhhRCU_s_wmTv4yBftmEWExjh63mPAx_7ixdOe5OshrJ_omvjYZp1hCYSugL1CdsnmAgqu7uCNcSweCyBwY_IY-zWg"
-              />
+            <div className="pl-4 border-l border-[#c3c6d1]/40 flex items-center gap-3 relative">
+              <button 
+                onClick={() => {
+                  setShowProfileMenu(!showProfileMenu);
+                  setShowNotifications(false); // Close notifications if open
+                }}
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none cursor-pointer text-left"
+              >
+                <div className="hidden lg:block text-right">
+                  <p className="text-xs font-bold text-[#191c1e]">{session.name}</p>
+                  <p className="text-[10px] text-[#737780] uppercase tracking-wider font-semibold">
+                    {session.role === 'superadmin' ? 'Super Admin' : session.role === 'admin' ? 'Admin' : 'Student'}
+                  </p>
+                </div>
+                <img
+                  alt="Administrator Headshot"
+                  className="w-8 h-8 rounded-full border border-[#c3c6d1] object-cover"
+                  src={session.avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuDk50HzYys7OGAA-TewCZjPixQ6ZVicRUtWnJs_hQdagpxmcbEBVUy7V5q3X0MDjPCA3qkhDRfYPbSbJz6lnP_DFPgyF0UfuaRNlhU7zlyJpwDqLifJ5a1q4sFUzl33KuAg6_iI98SJc7HPMcCA0bs7pGyTcsrSsHE8KF1xEG6Z8cLuHFiYBuhhRCU_s_wmTv4yBftmEWExjh63mPAx_7ixdOe5OshrJ_omvjYZp1hCYSugL1CdsnmAgqu7uCNcSweCyBwY_IY-zWg"}
+                />
+              </button>
+
+              {/* Profile Dropdown Menu */}
+              {showProfileMenu && (
+                <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-2xl border border-[#c3c6d1]/50 p-4 z-50 animate-fade-in text-left">
+                  <div className="border-b border-[#eceef1] pb-2 mb-2">
+                    <p className="text-xs font-bold text-[#001e40] truncate">{session.name}</p>
+                    <p className="text-[10px] text-[#737780] truncate font-medium">{session.username}</p>
+                    <span className={`inline-block mt-1.5 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                      session.role === 'superadmin' 
+                        ? 'bg-red-100 text-red-800 border border-red-200/50' 
+                        : session.role === 'admin' 
+                          ? 'bg-blue-100 text-blue-800 border border-blue-200/50' 
+                          : 'bg-gray-100 text-gray-800 border border-gray-200/50'
+                    }`}>
+                      {session.role === 'superadmin' ? 'Super Admin' : session.role === 'admin' ? 'Admin' : 'Student'}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setEditName(session.name);
+                        setEditAvatarUrl(session.avatarUrl || '');
+                        setProfileError(null);
+                        setShowEditProfileModal(true);
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full text-left flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-[#43474f] hover:bg-[#f2f4f7] rounded-lg transition-colors cursor-pointer"
+                    >
+                      <User size={14} />
+                      Edit Profile
+                    </button>
+                    <button
+                      onClick={() => {
+                        setActiveTab('settings');
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full text-left flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-[#43474f] hover:bg-[#f2f4f7] rounded-lg transition-colors cursor-pointer"
+                    >
+                      <SettingsIcon size={14} />
+                      Access Control
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        handleSignOut();
+                      }}
+                      className="w-full text-left flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <LogOut size={14} />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
           </div>
@@ -646,6 +803,13 @@ export default function AdminPortal() {
               </div>
 
               <div className="mt-auto border-t border-white/10 pt-4 flex flex-col gap-2">
+                <button
+                  onClick={() => { window.location.hash = ''; }}
+                  className="text-white/70 hover:text-white flex items-center gap-3 py-2 text-xs font-bold text-left cursor-pointer"
+                >
+                  <ExternalLink size={16} />
+                  Kembali ke Beranda
+                </button>
                 <button onClick={handleSignOut} className="text-white/70 hover:text-red-300 flex items-center gap-3 py-2 text-xs font-bold text-left cursor-pointer">
                   <LogOut size={16} />
                   Sign Out

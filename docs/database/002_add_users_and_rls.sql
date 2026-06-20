@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
-  role TEXT CHECK (role IN ('superadmin', 'admin', 'operator')) NOT NULL DEFAULT 'operator',
+  role TEXT CHECK (role IN ('superadmin', 'admin', 'operator', 'mahasiswa', 'alumni')) NOT NULL DEFAULT 'operator',
+  phone TEXT,
+  avatar_url TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -36,20 +38,22 @@ CREATE POLICY "Users can read own profile" ON public.users
 -- Allow superadmin to read all user profiles
 CREATE POLICY "Superadmin can read all users" ON public.users
   FOR SELECT USING (
-    EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = auth.uid() AND u.role = 'superadmin'
-    )
+    (coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '')) = 'superadmin'
   );
 
 -- Allow superadmin to manage all users (INSERT, UPDATE, DELETE)
 CREATE POLICY "Superadmin manages all users" ON public.users
   FOR ALL USING (
-    EXISTS (
-      SELECT 1 FROM public.users u
-      WHERE u.id = auth.uid() AND u.role = 'superadmin'
-    )
+    (coalesce(auth.jwt() -> 'user_metadata' ->> 'role', '')) = 'superadmin'
   );
+
+-- Allow users to insert their own profile row during signup
+CREATE POLICY "Users can insert own profile" ON public.users
+  FOR INSERT WITH CHECK (auth.uid() = id);
+
+-- Allow users to update their own profile row
+CREATE POLICY "Users can update own profile" ON public.users
+  FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 -- ==========================================
 -- 5. Seed initial superadmin user

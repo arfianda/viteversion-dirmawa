@@ -329,13 +329,35 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
 
                     {/* Menu Items */}
                     <div className="py-1">
+                      {/* Dashboard Option */}
+                      <button
+                        onClick={() => {
+                          if (currentUser.role === 'mahasiswa') {
+                            window.location.hash = '#/mahasiswa';
+                          } else if (
+                            currentUser.role === 'superadmin' ||
+                            currentUser.role === 'admin' ||
+                            currentUser.role === 'administrator'
+                          ) {
+                            window.location.hash = '#/admin';
+                          } else {
+                            window.location.hash = '#/home';
+                          }
+                          setUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-[#001e40] flex items-center gap-2"
+                      >
+                        <BookOpen size={14} />
+                        Dashboard
+                      </button>
+
                       {currentUser.role === 'superadmin' && (
                         <button
                           onClick={() => {
                             setCurrentTab('user-management');
                             setUserMenuOpen(false);
                           }}
-                          className="w-full text-left px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-[#001e40] flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-sm text-slate-650 hover:bg-slate-50 hover:text-[#001e40] flex items-center gap-2"
                         >
                           <Shield size={14} />
                           User Management
@@ -346,8 +368,11 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
                           await AuthService.signOut();
                           setCurrentUser(null);
                           setUserMenuOpen(false);
+                          localStorage.removeItem('upb_mahasiswa_session');
+                          localStorage.removeItem('upb_affairs_session');
+                          window.location.hash = '';
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-sm text-red-650 hover:bg-red-50 flex items-center gap-2"
                       >
                         <LogIn size={14} />
                         Logout
@@ -359,15 +384,17 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
             )}
 
             {/* Student Login Button */}
-            <button
-              onClick={() => {
-                window.location.hash = '#/mahasiswa';
-              }}
-              className="flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-sans font-bold uppercase tracking-wider transition-all duration-300 bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm"
-            >
-              <LogIn size={13} className="text-[#feb234]" />
-              <span>Login Mahasiswa</span>
-            </button>
+            {!currentUser && (
+              <button
+                onClick={() => {
+                  window.location.hash = '#/mahasiswa';
+                }}
+                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-sans font-bold uppercase tracking-wider transition-all duration-300 bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm"
+              >
+                <LogIn size={13} className="text-[#feb234]" />
+                <span>Login Mahasiswa</span>
+              </button>
+            )}
           </div>
 
         </div>

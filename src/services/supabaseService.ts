@@ -2,6 +2,29 @@ import { supabase } from './supabaseClient';
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from '../types';
 import { NewsArticle, UkmRecord, ScholarshipRecord, AlumniRecord as AdminAlumniRecord } from '../admin/types';
 
+// Registration request types
+interface RegistrationRequest {
+  id: string;
+  nim: string;
+  name: string;
+  email: string;
+  password?: string;
+  major: string;
+  faculty: string;
+  semester: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
+  created_at: string;
+}
+
+interface RegistrationStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
+
 // Helper to map DB news category/types
 function mapAdminCategoryToDb(category: string): 'Berita' | 'Agenda' | 'Pengumuman' {
   const c = category.toLowerCase();
@@ -658,5 +681,83 @@ export const SupabaseService = {
       .delete()
       .eq('id', id);
     if (error) throw error;
-  }
+  },
+
+  // ==========================================
+  // 6. REGISTRATION REQUESTS / registration_requests
+  // ==========================================
+  async getRegistrationRequests(status?: 'pending' | 'approved' | 'rejected', limit?: number, offset?: number): Promise<RegistrationRequest[]> {
+    let query = supabase
+      .from('registration_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (status) {
+      query = query.eq('status', status);
+    }
+    if (limit) {
+      query = query.limit(limit);
+    }
+    if (offset) {
+      query = query.range(offset, offset + (limit || 0) - 1);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []) as RegistrationRequest[];
+  },
+
+  async approveRegistrationRequest(id: string, adminId: string): Promise<void> {
+    const { data: supabaseData } = await supabase.auth.getSession();
+    if (!supabaseData.session) {
+      throw new Error("Admin session required for approval");
+    }
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Supabase URL or anon key not configured");
+    }
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/approve-registration`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id, admin_id: adminId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to approve registration");
+    }
+    return;
+  },
+
+  async rejectRegistrationRequest(id: string, reason?: string): Promise<void> {
+    const { error } = await supabase
+      .from('registration_requests')
+      .update({
+        status: 'rejected',
+        rejection_reason: reason || null,
+        reviewed_by: (await supabase.auth.getUser()).data.user?.id || null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async getRegistrationRequestStats(): Promise<RegistrationStats> {
+    const { data, error } = await supabase
+      .from('registration_requests')
+      .select('status, count');
+    if (error) throw error;
+
+    const stats: RegistrationStats = { pending: 0, approved: 0, rejected: 0 };
+    (data || []).forEach((row: any) => {
+      if (row.status in stats) {
+        stats[row.status as 'pending' | 'approved' | 'rejected'] = parseInt(row.count, 10);
+      }
+    });
+    return stats;
+  },
 };

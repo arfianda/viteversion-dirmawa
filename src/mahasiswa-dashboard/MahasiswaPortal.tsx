@@ -17,11 +17,13 @@ import {
 import { UserSession, UKM, Beasiswa } from '../types/mahasiswa';
 
 import MahasiswaLogin from './components/MahasiswaLogin';
+import MahasiswaRegister from './components/MahasiswaRegister';
 import MahasiswaDashboardOverview from './components/MahasiswaDashboardOverview';
 import MahasiswaUkmSaya from './components/MahasiswaUkmSaya';
 import MahasiswaBeasiswaSaya from './components/MahasiswaBeasiswaSaya';
 import MahasiswaPengajuanPrestasi from './components/MahasiswaPengajuanPrestasi';
 import MahasiswaSettings from './components/MahasiswaSettings';
+import { AuthService } from '../services/authService';
 
 export default function MahasiswaPortal() {
   const [session, setSession] = useState<UserSession | null>(null);
@@ -29,6 +31,7 @@ export default function MahasiswaPortal() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showRegister, setShowRegister] = useState(false);
 
   const [notifications, setNotifications] = useState([
     { id: '1', text: 'Batas akhir Laporan IPK Beasiswa adalah 15 Maret 2024.', unread: true },
@@ -41,11 +44,30 @@ export default function MahasiswaPortal() {
     const saved = localStorage.getItem('upb_mahasiswa_session');
     if (saved) {
       try {
-        setSession(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed.role !== 'mahasiswa') {
+          localStorage.removeItem('upb_mahasiswa_session');
+          setSession(null);
+        } else {
+          setSession(parsed);
+        }
       } catch (e) {
         localStorage.removeItem('upb_mahasiswa_session');
       }
     }
+
+    const checkActiveAuth = async () => {
+      try {
+        const activeUser = await AuthService.getSession();
+        if (activeUser && activeUser.role !== 'mahasiswa') {
+          localStorage.removeItem('upb_mahasiswa_session');
+          setSession(null);
+        }
+      } catch (e) {
+        console.error('Failed to verify active session:', e);
+      }
+    };
+    checkActiveAuth();
   }, []);
 
   const handleLoginSuccess = (userSession: UserSession) => {
@@ -71,7 +93,10 @@ export default function MahasiswaPortal() {
   const unreadNotificationsCount = notifications.filter(n => n.unread).length;
 
   if (!session) {
-    return <MahasiswaLogin onLoginSuccess={handleLoginSuccess} />;
+    if (showRegister) {
+      return <MahasiswaRegister onRegistered={() => setShowRegister(false)} onBackToLogin={() => setShowRegister(false)} />;
+    }
+    return <MahasiswaLogin onLoginSuccess={handleLoginSuccess} onRegister={() => setShowRegister(true)} />;
   }
 
   const navItems = [

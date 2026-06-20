@@ -88,6 +88,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         }
 
         onLoginSuccess({
+          id: user.id,
           username: user.email,
           role: user.role === 'superadmin' ? 'superadmin' : 'admin',
           name: user.name,

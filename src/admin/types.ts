@@ -1,4 +1,5 @@
 export interface UserSession {
+  id: string;
   username: string;
   role: 'mahasiswa' | 'admin' | 'superadmin';
   name: string;
@@ -60,4 +61,19 @@ export interface AdminRecord {
   role: 'Super Admin' | 'Admin' | 'Editor';
   lastActive: string;
   avatarInitials: string;
+}
+
+export interface RegistrationRequest {
+  id: string;
+  nim: string;
+  name: string;
+  email: string;
+  major: string;
+  faculty: string;
+  semester: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
+  created_at: string;
 }

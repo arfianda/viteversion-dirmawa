@@ -13,7 +13,7 @@ import {
   Save,
   CheckCircle2
 } from 'lucide-react';
-import { UserSession } from '../../admin/types';
+import { UserSession } from '../../types/mahasiswa';
 
 interface SettingsProps {
   session: UserSession;
@@ -26,10 +26,10 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   
-  // Profile state
+  // Profile state seeded from real session data
   const [profileForm, setProfileForm] = useState({
-    name: session.name,
-    email: `${session.name.toLowerCase().replace(/\s+/g, '.')}@mhs.pelitabangsa.ac.id`,
+    name: session.name || '',
+    email: session.email || '',
     phone: '+62 812 3456 7890'
   });
 
