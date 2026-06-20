@@ -26,7 +26,22 @@ import MahasiswaSettings from './components/MahasiswaSettings';
 import { AuthService } from '../services/authService';
 
 export default function MahasiswaPortal() {
-  const [session, setSession] = useState<UserSession | null>(null);
+  const [session, setSession] = useState<UserSession | null>(() => {
+    const saved = localStorage.getItem('upb_mahasiswa_session');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.role === 'mahasiswa') {
+          return parsed;
+        } else {
+          localStorage.removeItem('upb_mahasiswa_session');
+        }
+      } catch (e) {
+        localStorage.removeItem('upb_mahasiswa_session');
+      }
+    }
+    return null;
+  });
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -39,23 +54,8 @@ export default function MahasiswaPortal() {
     { id: '3', text: 'Pengajuan prestasi Gemastik XVII terkirim untuk verifikasi.', unread: false }
   ]);
 
-  // Load session from localStorage on mount
+  // Verify session validity with active auth in the background on mount
   useEffect(() => {
-    const saved = localStorage.getItem('upb_mahasiswa_session');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.role !== 'mahasiswa') {
-          localStorage.removeItem('upb_mahasiswa_session');
-          setSession(null);
-        } else {
-          setSession(parsed);
-        }
-      } catch (e) {
-        localStorage.removeItem('upb_mahasiswa_session');
-      }
-    }
-
     const checkActiveAuth = async () => {
       try {
         const activeUser = await AuthService.getSession();

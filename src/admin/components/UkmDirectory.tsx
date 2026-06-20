@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, PlusCircle, Eye, Edit2, Ban, RefreshCw, CheckCircle, Users } from 'lucide-react';
+import { Search, PlusCircle, Eye, Edit2, Ban, RefreshCw, CheckCircle, Users, Trash2 } from 'lucide-react';
 import { UkmRecord } from '../types';
 
 interface UkmDirectoryProps {
@@ -7,9 +7,10 @@ interface UkmDirectoryProps {
   onAddUkm: (record: Omit<UkmRecord, 'id' | 'updatedAt'>) => void;
   onUpdateUkmStatus: (id: string, status: 'Active' | 'Inactive') => void;
   onEditUkm: (record: UkmRecord) => void;
+  onDeleteUkm?: (id: string) => void;
 }
 
-export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEditUkm }: UkmDirectoryProps) {
+export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEditUkm, onDeleteUkm }: UkmDirectoryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -211,6 +212,15 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                 >
                   {ukm.status === 'Active' ? <Ban size={14} /> : <CheckCircle size={14} />}
                 </button>
+                {onDeleteUkm && (
+                  <button
+                    onClick={() => onDeleteUkm(ukm.id)}
+                    className="w-8 h-8 rounded-full bg-red-50 hover:bg-red-100 text-[#ba1a1a] flex items-center justify-center transition-colors cursor-pointer"
+                    title="Delete Organization"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           </div>

@@ -1,14 +1,15 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, RefreshCw, Download, Database, Users, Plus, Check } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, RefreshCw, Download, Database, Users, Plus, Check, Trash2 } from 'lucide-react';
 import { AlumniRecord } from '../types';
 
 interface AlumniManagementProps {
   alumni: AlumniRecord[];
   onAddAlumni: (record: Omit<AlumniRecord, 'id'>) => void;
   onBulkAddAlumni: (records: Omit<AlumniRecord, 'id'>[]) => void;
+  onDeleteAlumni?: (id: string) => void;
 }
 
-export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni }: AlumniManagementProps) {
+export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni, onDeleteAlumni }: AlumniManagementProps) {
   const [dragActive, setDragActive] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'completed'>('idle');
@@ -280,8 +281,9 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni 
                       <th className="px-6 py-4">Name</th>
                       <th className="px-6 py-4">NIM</th>
                       <th className="px-6 py-4">Prodi (Program)</th>
-                      <th className="px-6 py-4">Graduation Year</th>
-                      <th className="px-6 py-4 text-right pr-6">Status</th>
+                      <th className="px-6 py-4 text-center">Graduation Year</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-right pr-6">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="text-sm font-medium divide-y divide-[#c3c6d1]/20 text-[#191c1e]">
@@ -301,7 +303,7 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni 
                         <td className="px-6 py-4 text-[#43474f] font-mono select-all">{record.nim}</td>
                         <td className="px-6 py-4">{record.prodi}</td>
                         <td className="px-6 py-4 text-center">{record.graduationYear}</td>
-                        <td className="px-6 py-4 text-right pr-6">
+                        <td className="px-6 py-4">
                           <span
                             className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold leading-none ${
                               record.status === 'Valid'
@@ -321,6 +323,17 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni 
                               </>
                             )}
                           </span>
+                        </td>
+                        <td className="px-6 py-4 text-right pr-6">
+                          {onDeleteAlumni && (
+                            <button
+                              onClick={() => onDeleteAlumni(record.id)}
+                              className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-all cursor-pointer inline-flex items-center justify-center"
+                              title="Delete Alumni Record"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}

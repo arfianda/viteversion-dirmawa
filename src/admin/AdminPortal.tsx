@@ -19,7 +19,9 @@ import {
   Camera,
   Upload,
   UserPlus,
-  ExternalLink
+  ExternalLink,
+  X,
+  Trash2
 } from 'lucide-react';
 
 import { UserSession, AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle, AdminRecord } from './types';
@@ -47,7 +49,17 @@ import AdminManagement from './components/AdminManagement';
 import RegistrationQueue from './components/RegistrationQueue';
 
 export default function AdminPortal() {
-  const [session, setSession] = useState<UserSession | null>(null);
+  const [session, setSession] = useState<UserSession | null>(() => {
+    const saved = localStorage.getItem('upb_affairs_session');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        localStorage.removeItem('upb_affairs_session');
+      }
+    }
+    return null;
+  });
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchGlobalQuery, setSearchGlobalQuery] = useState('');
@@ -101,16 +113,51 @@ export default function AdminPortal() {
     loadDbData();
   }, []);
 
-  // Try parsing session from localStorage if desired
+  // Verify Supabase session asynchronously in the background on mount
   useEffect(() => {
-    const saved = localStorage.getItem('upb_affairs_session');
-    if (saved) {
+    async function verifySession() {
       try {
-        setSession(JSON.parse(saved));
-      } catch (e) {
-        localStorage.removeItem('upb_affairs_session');
+        const { data: { session: sbSession } } = await supabase.auth.getSession();
+        if (!sbSession) {
+          handleSignOut();
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', sbSession.user.id)
+          .single();
+
+        if (!profile || (profile.role !== 'administrator' && profile.role !== 'superadmin' && profile.role !== 'admin')) {
+          handleSignOut();
+        }
+      } catch (err) {
+        console.error("Session verification failed:", err);
       }
     }
+    verifySession();
+  }, []);
+
+  // Click outside handler to dismiss dropdown menus and avoid flickering during native confirm dialogs
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      const isNotificationClick = target.closest('#notification-bell') || target.closest('#notification-dropdown');
+      const isProfileClick = target.closest('#profile-menu-button') || target.closest('#profile-menu-dropdown');
+      
+      if (!isNotificationClick) {
+        setShowNotifications(false);
+      }
+      if (!isProfileClick) {
+        setShowProfileMenu(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleLoginSuccess = (userSession: UserSession) => {
@@ -166,11 +213,17 @@ export default function AdminPortal() {
         throw new Error(`Database Error: ${dbError.message}`);
       }
       
+      // If the avatar is a base64 Data URL, clear it from Auth metadata to prevent bloating the JWT.
+      // The full base64 image remains stored and retrieved from the public.users database table.
+      const authMetadata: any = { name: editName };
+      if (editAvatarUrl && !editAvatarUrl.startsWith('data:')) {
+        authMetadata.avatar_url = editAvatarUrl;
+      } else {
+        authMetadata.avatar_url = null;
+      }
+
       const { error: authError } = await supabase.auth.updateUser({
-        data: {
-          name: editName,
-          avatar_url: editAvatarUrl || null
-        }
+        data: authMetadata
       });
       
       if (authError) {
@@ -304,6 +357,50 @@ export default function AdminPortal() {
     }
   };
 
+  const handleDeleteNews = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus berita ini?')) return;
+    try {
+      await SupabaseService.deleteNewsArticle(id);
+      setNews(news.filter(n => n.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus berita dari database: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const handleDeleteUkm = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus UKM ini?')) return;
+    try {
+      await SupabaseService.deleteUkm(id);
+      setUkms(ukms.filter(u => u.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus UKM dari database: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const handleDeleteScholarship = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus beasiswa ini?')) return;
+    try {
+      await SupabaseService.deleteScholarship(id);
+      setScholarships(scholarships.filter(s => s.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus beasiswa dari database: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const handleDeleteAlumni = async (id: string) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus data alumni ini?')) return;
+    try {
+      await SupabaseService.deleteAlumni(id);
+      setAlumni(alumni.filter(a => a.id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Gagal menghapus data alumni dari database: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
   const handleAddAdmin = (newAdmin: Omit<AdminRecord, 'id' | 'avatarInitials' | 'lastActive'>) => {
     const initials = newAdmin.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
     const admin: AdminRecord = {
@@ -333,7 +430,7 @@ export default function AdminPortal() {
       alert("Opening Scholarship publication modal.");
     } else if (activeTab === 'news') {
       setEditingArticle({
-        id: String(Date.now()),
+        id: generateUUID(),
         title: 'New Announcement Title',
         content: '<p>Start drafting news content...</p>',
         status: 'Draft',
@@ -351,7 +448,7 @@ export default function AdminPortal() {
   const handleQuickAction = (actionType: 'news' | 'alumni' | 'scholarship') => {
     if (actionType === 'news') {
       setEditingArticle({
-        id: String(Date.now()),
+        id: generateUUID(),
         title: 'New Announcement Title',
         content: '<p>Write your university announcement content here...</p>',
         status: 'Draft',
@@ -404,6 +501,7 @@ export default function AdminPortal() {
             alumni={alumni}
             onAddAlumni={handleAddAlumni}
             onBulkAddAlumni={handleBulkAddAlumni}
+            onDeleteAlumni={handleDeleteAlumni}
           />
         );
       case 'ukm':
@@ -413,6 +511,7 @@ export default function AdminPortal() {
             onAddUkm={handleAddUkm}
             onUpdateUkmStatus={handleUpdateUkmStatus}
             onEditUkm={handleEditUkm}
+            onDeleteUkm={handleDeleteUkm}
           />
         );
       case 'scholarships':
@@ -421,6 +520,7 @@ export default function AdminPortal() {
             scholarships={scholarships}
             onAddScholarship={handleAddScholarship}
             onEditScholarship={handleEditScholarship}
+            onDeleteScholarship={handleDeleteScholarship}
           />
         );
       case 'news':
@@ -443,7 +543,7 @@ export default function AdminPortal() {
               <button
                 onClick={() =>
                   setEditingArticle({
-                    id: String(Date.now()),
+                    id: generateUUID(),
                     title: '',
                     content: '',
                     status: 'Draft',
@@ -490,6 +590,12 @@ export default function AdminPortal() {
                         className="bg-[#001e40]/5 hover:bg-[#001e40]/10 text-[#001e40] font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
                       >
                         Edit / Publish
+                      </button>
+                      <button
+                        onClick={() => handleDeleteNews(item.id)}
+                        className="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
+                      >
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -640,6 +746,7 @@ export default function AdminPortal() {
             {/* Notification bell and unread badge */}
             <div className="relative">
               <button
+                id="notification-bell"
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="text-[#43474f] hover:bg-[#eceef1] rounded-full p-2 transition-all relative cursor-pointer"
                 title="Notifications"
@@ -652,7 +759,10 @@ export default function AdminPortal() {
 
               {/* Notifications Dropdown Drawer */}
               {showNotifications && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-[#c3c6d1]/50 p-4 z-50 animate-fade-in text-left">
+                <div 
+                  id="notification-dropdown"
+                  className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-[#c3c6d1]/50 p-4 z-50 animate-fade-in text-left"
+                >
                   <div className="flex justify-between items-center border-b border-[#eceef1] pb-2 mb-2">
                     <span className="text-xs font-bold text-[#001e40]">Campus Alerts</span>
                     <button
@@ -664,7 +774,7 @@ export default function AdminPortal() {
                   </div>
                   <div className="space-y-2 max-h-[220px] overflow-y-auto">
                     {notifications.map(n => (
-                      <div key={n.id} className={`p-2 rounded-xl text-xs font-medium leading-normal border ${n.unread ? 'bg-slate-55 border-[#feb234]/15 font-semibold' : 'text-[#737780] border-transparent'}`}>
+                      <div key={n.id} className={`p-2 rounded-xl text-xs font-medium leading-normal border ${n.unread ? 'bg-slate-50 border-[#feb234]/15 font-semibold' : 'text-[#737780] border-transparent'}`}>
                         {n.text}
                       </div>
                     ))}
@@ -685,6 +795,7 @@ export default function AdminPortal() {
             {/* Profile trigger block */}
             <div className="pl-4 border-l border-[#c3c6d1]/40 flex items-center gap-3 relative">
               <button 
+                id="profile-menu-button"
                 onClick={() => {
                   setShowProfileMenu(!showProfileMenu);
                   setShowNotifications(false); // Close notifications if open
@@ -706,7 +817,10 @@ export default function AdminPortal() {
 
               {/* Profile Dropdown Menu */}
               {showProfileMenu && (
-                <div className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-2xl border border-[#c3c6d1]/50 p-4 z-50 animate-fade-in text-left">
+                <div 
+                  id="profile-menu-dropdown"
+                  className="absolute right-0 top-12 w-56 bg-white rounded-2xl shadow-2xl border border-[#c3c6d1]/50 p-4 z-50 animate-fade-in text-left"
+                >
                   <div className="border-b border-[#eceef1] pb-2 mb-2">
                     <p className="text-xs font-bold text-[#001e40] truncate">{session.name}</p>
                     <p className="text-[10px] text-[#737780] truncate font-medium">{session.username}</p>
@@ -824,6 +938,91 @@ export default function AdminPortal() {
           {renderTabContent()}
         </main>
       </div>
+
+      {/* Edit Profile Modal */}
+      {showEditProfileModal && (
+        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40">
+            <div className="flex justify-between items-center border-b border-[#eceef1] pb-3 mb-4">
+              <h3 className="font-headline font-bold text-lg text-[#001e40]">Edit Admin Profile</h3>
+              <button 
+                onClick={() => setShowEditProfileModal(false)}
+                className="text-[#737780] hover:bg-[#f2f4f7] p-1 rounded-full transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            {profileError && (
+              <div className="mb-4 bg-red-50 text-red-650 text-xs p-3 rounded-lg border border-red-200 font-semibold">
+                {profileError}
+              </div>
+            )}
+            
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <div className="flex flex-col items-center gap-3 mb-4">
+                <div className="relative group">
+                  <img
+                    alt="Current Profile Avatar"
+                    className="w-20 h-20 rounded-full border-2 border-[#001e40] object-cover"
+                    src={editAvatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuDk50HzYys7OGAA-TewCZjPixQ6ZVicRUtWnJs_hQdagpxmcbEBVUy7V5q3X0MDjPCA3qkhDRfYPbSbJz6lnP_DFPgyF0UfuaRNlhU7zlyJpwDqLifJ5a1q4sFUzl33KuAg6_iI98SJc7HPMcCA0bs7pGyTcsrSsHE8KF1xEG6Z8cLuHFiYBuhhRCU_s_wmTv4yBftmEWExjh63mPAx_7ixdOe5OshrJ_omvjYZp1hCYSugL1CdsnmAgqu7uCNcSweCyBwY_IY-zWg"}
+                  />
+                  <label className="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold">
+                    <Camera size={14} className="mr-1" />
+                    Upload
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleAvatarFileChange} 
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
+                <span className="text-[10px] text-[#737780] font-semibold">Allowed formats: JPG, PNG. Max 2MB.</span>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Administrator"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Email (Read Only)</label>
+                <input
+                  type="email"
+                  disabled
+                  value={session.username}
+                  className="w-full bg-slate-100 border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm text-[#737780] font-medium cursor-not-allowed"
+                />
+              </div>
+              
+              <div className="flex gap-3 justify-end pt-4 border-t border-[#eceef1] mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditProfileModal(false)}
+                  className="px-4 py-2.5 border border-[#c3c6d1] text-[#43474f] text-sm font-bold rounded-xl hover:bg-[#f2f4f7] transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProfile}
+                  className="px-5 py-2.5 bg-[#001e40] hover:bg-[#1f477b] text-white text-sm font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-75"
+                >
+                  {isSavingProfile ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );

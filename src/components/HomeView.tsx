@@ -6,16 +6,39 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { StudentNews } from '../types';
 
 interface HomeViewProps {
   setCurrentTab: (tab: string) => void;
   setSelectedUkmId: (id: string | null) => void;
+  news: StudentNews[];
+  ukmsCount: number;
+  alumniCount: number;
+  achievementsCount: number;
 }
 
-export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewProps) {
+export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCount, alumniCount, achievementsCount }: HomeViewProps) {
   const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
+
+  // Filter news to exclude agenda items for the main news list
+  const newsAndAnnouncements = React.useMemo(() => {
+    return news.filter(item => {
+      const cat = item.category?.toLowerCase() || '';
+      return !cat.includes('agenda');
+    });
+  }, [news]);
+
+  // Find all agenda items
+  const agendaItems = React.useMemo(() => {
+    return news.filter(item => {
+      const cat = item.category?.toLowerCase() || '';
+      return cat.includes('agenda');
+    });
+  }, [news]);
+
+  const latestAgenda = agendaItems[0];
 
   // Hero carousel slides with placeholder images
   const heroSlides = [
@@ -52,9 +75,9 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
   // Stats matching the exact values of your stitch mockups: 50+ Unit Kegiatan Mahasiswa, 15k+ Jaringan Alumni, 500+ Prestasi Gemilang
   const stats = [
-    { value: '50+', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
-    { value: '15k+', label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
-    { value: '500+', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
+    { value: ukmsCount ? `${ukmsCount}+` : '50+', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
+    { value: alumniCount ? (alumniCount >= 1000 ? `${(alumniCount/1000).toFixed(0)}k+` : `${alumniCount}+`) : '15k+', label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
+    { value: achievementsCount ? `${achievementsCount}+` : '500+', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
   ];
 
   const handleServiceClick = (id: string) => {
@@ -307,53 +330,34 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
           {/* News listing matching stitch */}
           <div className="space-y-4">
-
-            {/* News 1 */}
-            <div className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
-              <div
-                className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
-                style={{ backgroundImage: `url('https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop')` } as React.CSSProperties}
-              />
-              <div className="space-y-2 flex-grow">
-                <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
-                  Prestasi
-                </span>
-                <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
-                  Tim Robotik Universitas Pelita Bangsa Raih Juara 1 Nasional
-                </h3>
-                <p className="text-xs text-slate-505 font-sans line-clamp-1 leading-normal">
-                  Inovasi terbaru dari tim mahasiswa teknik berhasil memenangkan kompetisi bergengsi tingkat nasional.
-                </p>
-                <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
-                  <Calendar size={10} />
-                  <span>12 Oktober 2024</span>
+            {newsAndAnnouncements.slice(0, 3).map((item) => (
+              <div key={item.id} className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
+                <div
+                  className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
+                  style={{ backgroundImage: `url('${item.image || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop'}')` } as React.CSSProperties}
+                />
+                <div className="space-y-2 flex-grow">
+                  <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
+                    {item.category}
+                  </span>
+                  <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
+                    {item.summary}
+                  </p>
+                  <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
+                    <Calendar size={10} />
+                    <span>{item.date}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* News 2 */}
-            <div className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
-              <div
-                className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
-                style={{ backgroundImage: `url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop')` } as React.CSSProperties}
-              />
-              <div className="space-y-2 flex-grow">
-                <span className="inline-block bg-sky-50 text-sky-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
-                  Akademik
-                </span>
-                <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
-                  Pendaftaran Beasiswa Internal Semester Ganjil 2026 Dibuka
-                </h3>
-                <p className="text-xs text-slate-505 font-sans line-clamp-1 leading-normal">
-                  Segera persiapkan berkas Anda, pendaftaran beasiswa prestasi dan bantuan studi telah resmi dibuka.
-                </p>
-                <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
-                  <Calendar size={10} />
-                  <span>10 Oktober 2024</span>
-                </div>
+            ))}
+            {newsAndAnnouncements.length === 0 && (
+              <div className="text-center py-6 text-slate-500 text-sm">
+                Tidak ada berita saat ini.
               </div>
-            </div>
-
+            )}
           </div>
         </div>
 
@@ -366,24 +370,40 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           <div className="bg-[#001e40] p-6 rounded-2xl text-white space-y-5 shadow-md">
             <div className="flex items-center space-x-2 text-[#feb234]">
               <Calendar size={16} />
-              <span className="font-mono text-xs uppercase tracking-wider font-extrabold">Hari Ini</span>
+              <span className="font-mono text-xs uppercase tracking-wider font-extrabold">
+                {latestAgenda ? 'Agenda Terdekat' : 'Hari Ini'}
+              </span>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="font-sans font-black text-lg text-white leading-tight">
-                Job Fair &amp; Career Expo 2026
-              </h3>
-              <p className="text-xs text-slate-400">
-                Aula Gedung B, Kampus Cikarang.
-              </p>
-              <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
-                <p>⌚ 09.00 - 16.00 WIB</p>
-                <p>📍 Auditorium Lt. 3</p>
+            {latestAgenda ? (
+              <div className="space-y-3">
+                <h3 className="font-sans font-black text-lg text-white leading-tight">
+                  {latestAgenda.title}
+                </h3>
+                <p className="text-xs text-slate-350 leading-relaxed font-sans line-clamp-3">
+                  {latestAgenda.summary}
+                </p>
+                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
+                  <p>📅 Tanggal: {latestAgenda.date}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                <h3 className="font-sans font-black text-lg text-white leading-tight">
+                  Job Fair &amp; Career Expo 2026
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Aula Gedung B, Kampus Cikarang.
+                </p>
+                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
+                  <p>⌚ 09.00 - 16.00 WIB</p>
+                  <p>📍 Auditorium Lt. 3</p>
+                </div>
+              </div>
+            )}
 
             <button
-              onClick={() => handleServiceClick('alumni-data')}
+              onClick={() => handleServiceClick(latestAgenda ? 'news' : 'alumni-data')}
               className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition"
             >
               Lihat Detail

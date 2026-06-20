@@ -81,7 +81,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
         // Only allow administrators and superadmins
         console.log('Checking role:', user.role);
-        if (user.role !== 'administrator' && user.role !== 'superadmin') {
+        if (user.role !== 'administrator' && user.role !== 'superadmin' && user.role !== 'admin') {
           setError('Access denied. Admin privileges required.');
           setIsLoading(false);
           return;

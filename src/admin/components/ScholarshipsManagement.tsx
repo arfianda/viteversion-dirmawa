@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Search, HelpCircle, PlusCircle, Sparkles, AlertTriangle, FileText, CheckSquare, Calendar, Edit2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, HelpCircle, PlusCircle, Sparkles, AlertTriangle, FileText, CheckSquare, Calendar, Edit2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { ScholarshipRecord } from '../types';
 
 interface ScholarshipsManagementProps {
   scholarships: ScholarshipRecord[];
   onAddScholarship: (record: Omit<ScholarshipRecord, 'id' | 'applicants'>) => void;
   onEditScholarship: (record: ScholarshipRecord) => void;
+  onDeleteScholarship?: (id: string) => void;
 }
 
-export default function ScholarshipsManagement({ scholarships, onAddScholarship, onEditScholarship }: ScholarshipsManagementProps) {
+export default function ScholarshipsManagement({ scholarships, onAddScholarship, onEditScholarship, onDeleteScholarship }: ScholarshipsManagementProps) {
   const [activeTab, setActiveTab] = useState<'All' | 'Internal' | 'External' | 'Government'>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -183,13 +184,24 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
                         </span>
                       </td>
                       <td className="p-4 pr-6 text-right">
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="text-[#737780] hover:text-[#001e40] p-1.5 rounded-lg hover:bg-[#f2f4f7] transition-all cursor-pointer"
-                          title="Edit scholarship"
-                        >
-                          <Edit2 size={14} />
-                        </button>
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            onClick={() => handleEdit(item)}
+                            className="text-[#737780] hover:text-[#001e40] p-1.5 rounded-lg hover:bg-[#f2f4f7] transition-all cursor-pointer inline-flex items-center justify-center"
+                            title="Edit scholarship"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          {onDeleteScholarship && (
+                            <button
+                              onClick={() => onDeleteScholarship(item.id)}
+                              className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-all cursor-pointer inline-flex items-center justify-center"
+                              title="Delete scholarship"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

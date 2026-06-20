@@ -21,15 +21,6 @@ import POKUPBView from './components/panduan/POKUPB';
 import PanduanMahasiswaView from './components/panduan/PanduanMahasiswaView';
 import UserManagementView from './components/UserManagementView';
 
-// Import initial mock data
-import {
-  SCHOLARSHIPS as initialScholarships,
-  UKMS as initialUkms,
-  ACHIEVEMENTS as initialAchievements,
-  NEWS as initialNews,
-  INITIAL_ALUMNI as initialAlumni
-} from './data';
-
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from './types';
 import AdminPortal from './admin/AdminPortal';
 import MahasiswaPortal from './mahasiswa-dashboard/MahasiswaPortal';
@@ -37,10 +28,20 @@ import { SupabaseService } from './services/supabaseService';
 
 export default function App() {
   //  ALL useState hooks FIRST (before any conditional returns)
-  const [isAdminPortal, setIsAdminPortal] = React.useState<boolean>(false);
-  const [isMahasiswaPortal, setIsMahasiswaPortal] = React.useState<boolean>(false);
+  const checkIsAdminPortal = () => {
+    return window.location.search.includes('portal=admin') || window.location.hash === '#/admin';
+  };
+
+  const checkIsMahasiswaPortal = () => {
+    return window.location.search.includes('portal=mahasiswa') || window.location.hash === '#/mahasiswa';
+  };
+
+  const [isAdminPortal, setIsAdminPortal] = React.useState<boolean>(checkIsAdminPortal);
+  const [isMahasiswaPortal, setIsMahasiswaPortal] = React.useState<boolean>(checkIsMahasiswaPortal);
   const getInitialTab = () => {
     const hash = window.location.hash;
+    if (hash === '#/admin') return 'admin';
+    if (hash === '#/mahasiswa') return 'mahasiswa';
     if (hash === '#/panduan/kode-etik') return 'panduan-kode-etik';
     if (hash === '#/panduan/pok') return 'panduan-pok';
     if (hash === '#/panduan/mahasiswa') return 'panduan-mahasiswa';
@@ -59,13 +60,15 @@ export default function App() {
 
   const [currentTab, setCurrentTab] = React.useState<string>(getInitialTab());
   const [selectedUkmId, setSelectedUkmId] = React.useState<string | null>(null);
-  
-  // Core reactive data states
-  const [scholarships, setScholarships] = React.useState<Scholarship[]>(initialScholarships);
-  const [ukms, setUkms] = React.useState<UKM[]>(initialUkms);
-  const [achievements, setAchievements] = React.useState<Achievement[]>(initialAchievements);
-  const [news, setNews] = React.useState<StudentNews[]>(initialNews);
-  const [alumni, setAlumni] = React.useState<AlumniRecord[]>(initialAlumni);
+
+  // Core reactive data states — start empty, populated from Supabase
+  const [scholarships, setScholarships] = React.useState<Scholarship[]>([]);
+  const [ukms, setUkms] = React.useState<UKM[]>([]);
+  const [achievements, setAchievements] = React.useState<Achievement[]>([]);
+  const [news, setNews] = React.useState<StudentNews[]>([]);
+  const [alumni, setAlumni] = React.useState<AlumniRecord[]>([]);
+  const [isLoading, setIsLoading] = React.useState<boolean>(true);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
 
   //  ALL useEffect hooks SECOND
   React.useEffect(() => {
@@ -151,28 +154,51 @@ export default function App() {
     }
   }, [currentTab]);
 
-  // Load from Supabase
-  React.useEffect(() => {
-    async function loadData() {
-      try {
-        const [dbScholarships, dbUkms, dbAchievements, dbNews, dbAlumni] = await Promise.all([
-          SupabaseService.getScholarships(),
-          SupabaseService.getUkms(),
-          SupabaseService.getAchievements(),
-          SupabaseService.getNews(),
-          SupabaseService.getAlumni(),
-        ]);
-        setScholarships(dbScholarships);
-        setUkms(dbUkms);
-        setAchievements(dbAchievements);
-        setNews(dbNews);
-        setAlumni(dbAlumni);
-      } catch (err) {
-        console.error("Failed to load data from Supabase, using mock fallback:", err);
-      }
+  // Reactive Load data function
+  const loadData = React.useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      console.log('[App] Fetching data from Supabase...');
+      const [dbScholarships, dbUkms, dbAchievements, dbNews, dbAlumni] = await Promise.all([
+        SupabaseService.getScholarships(),
+        SupabaseService.getUkms(),
+        SupabaseService.getAchievements(),
+        SupabaseService.getNews(),
+        SupabaseService.getAlumni(),
+      ]);
+      console.log('[App] Supabase data loaded:', { scholarships: dbScholarships.length, ukms: dbUkms.length, achievements: dbAchievements.length, news: dbNews.length, alumni: dbAlumni.length });
+      setScholarships(dbScholarships);
+      setUkms(dbUkms);
+      setAchievements(dbAchievements);
+      setNews(dbNews);
+      setAlumni(dbAlumni);
+    } catch (err: any) {
+      console.error('[App] Failed to load data from Supabase:', err);
+      setLoadError(err?.message || 'Gagal memuat data dari database.');
+    } finally {
+      setIsLoading(false);
     }
-    loadData();
   }, []);
+
+  // Load from Supabase on mount only
+  React.useEffect(() => {
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch when returning from admin/mahasiswa portals (only when toggling back to public)
+  const prevIsAdmin = React.useRef(isAdminPortal);
+  const prevIsMahasiswa = React.useRef(isMahasiswaPortal);
+  React.useEffect(() => {
+    const wasPortal = prevIsAdmin.current || prevIsMahasiswa.current;
+    const isNowPublic = !isAdminPortal && !isMahasiswaPortal;
+    if (wasPortal && isNowPublic) {
+      loadData();
+    }
+    prevIsAdmin.current = isAdminPortal;
+    prevIsMahasiswa.current = isMahasiswaPortal;
+  }, [isAdminPortal, isMahasiswaPortal, loadData]);
 
   // Scroll to top on tab transitions
   React.useEffect(() => {
@@ -186,6 +212,34 @@ export default function App() {
 
   if (isMahasiswaPortal) {
     return <MahasiswaPortal />;
+  }
+
+  // Loading state — full-screen spinner while fetching from Supabase
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fc] flex flex-col items-center justify-center gap-4">
+        <div className="w-12 h-12 border-4 border-[#001e40]/20 border-t-[#001e40] rounded-full animate-spin" />
+        <p className="text-sm text-slate-500 font-sans font-medium">Memuat data dari database...</p>
+      </div>
+    );
+  }
+
+  // Error state — if Supabase failed
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fc] flex flex-col items-center justify-center gap-4 px-4">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 max-w-md text-center space-y-3">
+          <p className="text-red-700 font-bold text-sm">Gagal Memuat Data</p>
+          <p className="text-red-600 text-xs font-mono break-all">{loadError}</p>
+          <button
+            onClick={loadData}
+            className="px-4 py-2 bg-[#001e40] text-white text-xs font-bold rounded-xl"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      </div>
+    );
   }
 
   //  Main return
@@ -206,6 +260,10 @@ export default function App() {
             <HomeView 
               setCurrentTab={setCurrentTab} 
               setSelectedUkmId={setSelectedUkmId} 
+              news={news}
+              ukmsCount={ukms.length}
+              alumniCount={alumni.length}
+              achievementsCount={achievements.length}
             />
           )}
 

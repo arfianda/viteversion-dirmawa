@@ -141,11 +141,15 @@ export const SupabaseService = {
   },
 
   async deleteNewsArticle(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('student_news')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'student_news' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
   async addStudentNews(item: Omit<StudentNews, 'id'>): Promise<StudentNews> {
@@ -314,11 +318,15 @@ export const SupabaseService = {
   },
 
   async deleteScholarship(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('scholarships')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'scholarships' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
 
@@ -482,11 +490,15 @@ export const SupabaseService = {
   },
 
   async deleteUkm(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('ukms')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'ukms' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
 
@@ -546,11 +558,15 @@ export const SupabaseService = {
   },
 
   async deleteAchievement(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('achievements')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'achievements' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
 
@@ -676,11 +692,15 @@ export const SupabaseService = {
   },
 
   async deleteAlumni(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('alumni_records')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'alumni_records' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
   // ==========================================
