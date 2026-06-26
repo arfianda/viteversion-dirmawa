@@ -4,19 +4,49 @@ import { AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle } from '../type
 
 interface DashboardOverviewProps {
   studentsCount: number;
+  newStudentsCount: number;
   ukmsCount: number;
+  activeUkmsCount: number;
   scholarshipsCount: number;
+  openScholarshipsCount: number;
   alumniCount: number;
+  verifiedAlumniCount: number;
   news: NewsArticle[];
   onNavigate: (tab: string) => void;
   onQuickAction: (actionType: 'news' | 'alumni' | 'scholarship') => void;
 }
 
+function formatRelativeDate(dateStr: string) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
+  
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  
+  if (date.toDateString() === today.toDateString()) {
+    return 'Today';
+  } else if (date.toDateString() === yesterday.toDateString()) {
+    return 'Yesterday';
+  }
+  
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
 export default function DashboardOverview({
   studentsCount,
+  newStudentsCount,
   ukmsCount,
+  activeUkmsCount,
   scholarshipsCount,
+  openScholarshipsCount,
   alumniCount,
+  verifiedAlumniCount,
   news,
   onNavigate,
   onQuickAction
@@ -49,7 +79,7 @@ export default function DashboardOverview({
               <BookOpen size={24} />
             </div>
             <span className="text-[11px] font-bold text-[#6d4700] bg-[#feb234]/15 px-2.5 py-1 rounded-full border border-[#feb234]/20">
-              +12% this month
+              +{newStudentsCount} this month
             </span>
           </div>
           <div className="mt-4">
@@ -67,7 +97,7 @@ export default function DashboardOverview({
               <Users size={24} />
             </div>
             <span className="text-[11px] font-bold text-[#43474f] bg-[#f2f4f7] px-2.5 py-1 rounded-full border border-[#c3c6d1]/35">
-              Active
+              {activeUkmsCount} Active
             </span>
           </div>
           <div className="mt-4">
@@ -85,7 +115,7 @@ export default function DashboardOverview({
               <BookOpen size={24} />
             </div>
             <span className="text-[11px] font-bold text-[#6d4700] bg-[#feb234]/15 px-2.5 py-1 rounded-full border border-[#feb234]/20">
-              5 Pending
+              {openScholarshipsCount} Open
             </span>
           </div>
           <div className="mt-4">
@@ -103,7 +133,7 @@ export default function DashboardOverview({
               <Award size={24} />
             </div>
             <span className="text-[11px] font-bold text-[#001b3c] bg-[#d5e3ff] px-2.5 py-1 rounded-full border border-[#a7c8ff]/30">
-              Verified
+              {verifiedAlumniCount} Verified
             </span>
           </div>
           <div className="mt-4">
@@ -221,11 +251,7 @@ export default function DashboardOverview({
                         </span>
                       </td>
                       <td className="p-4 pr-5 text-[#737780] text-xs">
-                        {item.publishDate === '2026-05-26'
-                          ? 'Today, 10:24 AM'
-                          : item.publishDate === '2026-05-25'
-                          ? 'Yesterday'
-                          : item.publishDate}
+                        {formatRelativeDate(item.publishDate)}
                       </td>
                     </tr>
                   ))}

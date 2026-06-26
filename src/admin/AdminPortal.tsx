@@ -73,6 +73,8 @@ export default function AdminPortal() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editName, setEditName] = useState('');
   const [editAvatarUrl, setEditAvatarUrl] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
@@ -88,28 +90,52 @@ export default function AdminPortal() {
   const [scholarships, setScholarships] = useState<ScholarshipRecord[]>([]);
   const [news, setNews] = useState<NewsArticle[]>([]);
   const [admins, setAdmins] = useState<AdminRecord[]>([]);
+  const [studentsCount, setStudentsCount] = useState<number>(0);
+  const [newStudentsCount, setNewStudentsCount] = useState<number>(0);
+  const [pendingRegistrationsCount, setPendingRegistrationsCount] = useState<number>(0);
+  const [alumniCount, setAlumniCount] = useState<number>(0);
+  const [verifiedAlumniCount, setVerifiedAlumniCount] = useState<number>(0);
   
   // News Editor helper
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
 
   // Load data from Supabase
-  useEffect(() => {
-    async function loadDbData() {
-      try {
-        const [dbNews, dbUkms, dbScholarships, dbAlumni] = await Promise.all([
-          SupabaseService.getAdminNewsArticles(),
-          SupabaseService.getAdminUkmRecords(),
-          SupabaseService.getAdminScholarshipRecords(),
-          SupabaseService.getAdminAlumniRecords()
-        ]);
-        setNews(dbNews);
-        setUkms(dbUkms);
-        setScholarships(dbScholarships);
-        setAlumni(dbAlumni);
-      } catch (err) {
-        console.error("AdminPortal failed to load Supabase data, using local mockup fallback:", err);
-      }
+  const loadDbData = async () => {
+    try {
+      const [
+        dbNews,
+        dbUkms,
+        dbScholarships,
+        dbAlumni,
+        dbStudentsCount,
+        dbNewStudentsCount,
+        dbPendingRegistrations,
+        dbAlumniStats
+      ] = await Promise.all([
+        SupabaseService.getAdminNewsArticles(),
+        SupabaseService.getAdminUkmRecords(),
+        SupabaseService.getAdminScholarshipRecords(),
+        SupabaseService.getAdminAlumniRecords(),
+        SupabaseService.getStudentsCount(),
+        SupabaseService.getNewStudentsCountThisMonth(),
+        SupabaseService.getPendingRegistrationsCount(),
+        SupabaseService.getAlumniStats()
+      ]);
+      setNews(dbNews);
+      setUkms(dbUkms);
+      setScholarships(dbScholarships);
+      setAlumni(dbAlumni);
+      setStudentsCount(dbStudentsCount);
+      setNewStudentsCount(dbNewStudentsCount);
+      setPendingRegistrationsCount(dbPendingRegistrations);
+      setAlumniCount(dbAlumniStats.total);
+      setVerifiedAlumniCount(dbAlumniStats.verified);
+    } catch (err) {
+      console.error("AdminPortal failed to load Supabase data, using local mockup fallback:", err);
     }
+  };
+
+  useEffect(() => {
     loadDbData();
   }, []);
 
@@ -200,6 +226,23 @@ export default function AdminPortal() {
     setProfileError(null);
     
     try {
+      // 1. If password is provided, update it via Auth API
+      if (newPassword) {
+        if (newPassword !== confirmPassword) {
+          throw new Error("New passwords do not match.");
+        }
+        if (newPassword.length < 6) {
+          throw new Error("Password must be at least 6 characters.");
+        }
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: newPassword
+        });
+        if (passwordError) {
+          throw new Error(`Auth Error (Password): ${passwordError.message}`);
+        }
+      }
+
+      // 2. Update profile name & avatar in public.users table
       const { error: dbError } = await supabase
         .from('users')
         .update({
@@ -239,6 +282,8 @@ export default function AdminPortal() {
       setSession(updatedSession);
       localStorage.setItem('upb_affairs_session', JSON.stringify(updatedSession));
       setShowEditProfileModal(false);
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err: any) {
       console.error('Error saving profile:', err);
       setProfileError(err.message || 'An unexpected error occurred');
@@ -281,8 +326,7 @@ export default function AdminPortal() {
     const record: UkmRecord = {
       ...newRecord,
       id: crypto.randomUUID(),
-      updatedAt: dateStr,
-      logoUrl: undefined
+      updatedAt: dateStr
     };
     try {
       await SupabaseService.saveAdminUkmRecord(record, true);
@@ -486,10 +530,14 @@ export default function AdminPortal() {
       case 'dashboard':
         return (
           <DashboardOverview
-            studentsCount={14250}
+            studentsCount={studentsCount}
+            newStudentsCount={newStudentsCount}
             ukmsCount={ukms.length}
+            activeUkmsCount={ukms.filter(u => u.status === 'Active').length}
             scholarshipsCount={scholarships.length}
-            alumniCount={alumni.length}
+            openScholarshipsCount={scholarships.filter(s => s.status === 'Open').length}
+            alumniCount={alumniCount}
+            verifiedAlumniCount={verifiedAlumniCount}
             news={news}
             onNavigate={(tab) => setActiveTab(tab)}
             onQuickAction={handleQuickAction}
@@ -614,7 +662,7 @@ export default function AdminPortal() {
           />
         );
       case 'registrations':
-        return <RegistrationQueue />;
+        return <RegistrationQueue onRefresh={loadDbData} />;
       default:
         return <div className="p-12 text-center text-[#737780] font-bold">In development...</div>;
     }
@@ -674,7 +722,14 @@ export default function AdminPortal() {
                 }`}
               >
                 <Icon size={16} className={isActive ? 'text-[#291800]' : 'text-white/60'} />
-                {item.label}
+                <span className="flex-1">{item.label}</span>
+                {item.id === 'registrations' && pendingRegistrationsCount > 0 && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
+                    isActive ? 'bg-[#291800] text-[#feb234]' : 'bg-red-500 text-white'
+                  }`}>
+                    {pendingRegistrationsCount}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -839,6 +894,8 @@ export default function AdminPortal() {
                       onClick={() => {
                         setEditName(session.name);
                         setEditAvatarUrl(session.avatarUrl || '');
+                        setNewPassword('');
+                        setConfirmPassword('');
                         setProfileError(null);
                         setShowEditProfileModal(true);
                         setShowProfileMenu(false);
@@ -910,7 +967,14 @@ export default function AdminPortal() {
                       }`}
                     >
                       <Icon size={16} />
-                      {item.label}
+                      <span className="flex-1">{item.label}</span>
+                      {item.id === 'registrations' && pendingRegistrationsCount > 0 && (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
+                          isActive ? 'bg-[#291800] text-[#feb234]' : 'bg-red-500 text-white'
+                        }`}>
+                          {pendingRegistrationsCount}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -959,7 +1023,9 @@ export default function AdminPortal() {
               </div>
             )}
             
-            <form onSubmit={handleSaveProfile} className="space-y-4">
+            <form onSubmit={handleSaveProfile} className="space-y-4" autoComplete="off">
+              {/* Dummy input to catch browser password manager autofill */}
+              <input type="password" style={{ display: 'none' }} autoComplete="new-password" />
               <div className="flex flex-col items-center gap-3 mb-4">
                 <div className="relative group">
                   <img
@@ -1002,6 +1068,33 @@ export default function AdminPortal() {
                   className="w-full bg-slate-100 border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm text-[#737780] font-medium cursor-not-allowed"
                 />
               </div>
+
+               <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">New Password (Leave blank to keep current)</label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Minimum 6 characters"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
+                />
+              </div>
+              
+              {newPassword && (
+                <div>
+                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Confirm New Password</label>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    placeholder="Re-type new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40] animate-fade-in"
+                  />
+                </div>
+              )}
               
               <div className="flex gap-3 justify-end pt-4 border-t border-[#eceef1] mt-6">
                 <button

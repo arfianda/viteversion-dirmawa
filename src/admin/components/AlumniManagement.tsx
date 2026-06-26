@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, RefreshCw, Download, Database, Users, Plus, Check, Trash2 } from 'lucide-react';
 import { AlumniRecord } from '../types';
+import * as XLSX from 'xlsx';
 
 interface AlumniManagementProps {
   alumni: AlumniRecord[];
@@ -23,6 +24,24 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(() => new Date());
+
+  // Reset to first page when alumni list changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [alumni]);
+
+  const formatLastSyncTime = (date: Date) => {
+    const hours = date.getHours();
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `Today, ${String(displayHours).padStart(2, '0')}:${minutes} ${ampm}`;
+  };
+
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -33,35 +52,93 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
     }
   };
 
+  const parseAndUploadFile = (file: File) => {
+    setSuccessMessage(`Parsing file: ${file.name}...`);
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert sheet to JSON array
+        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        
+        if (!jsonData || jsonData.length === 0) {
+          throw new Error("File Excel kosong atau tidak memiliki data.");
+        }
+        
+        // Map Excel rows to AlumniRecord
+        const parsedRecords: Omit<AlumniRecord, 'id'>[] = jsonData.map((row: any) => {
+          const name = row['Nama'] || row['Nama Lengkap'] || '';
+          const nim = String(row['Nomor Mhs'] || row['NIM'] || row['Nim'] || '');
+          const prodiCode = String(row['Kode Prodi'] || '');
+          const email = row['Email'] || '';
+          const graduationYear = parseInt(row['Tahun Lulus'] || row['Angkatan'] || new Date().getFullYear().toString(), 10);
+          
+          // Map Prodi Code to Name
+          let prodi = 'Teknik Informatika';
+          if (prodiCode === '62401') {
+            prodi = 'Akuntansi';
+          } else if (prodiCode === '57201') {
+            prodi = 'Sistem Informasi';
+          } else if (prodiCode === '61201') {
+            prodi = 'Manajemen';
+          } else if (prodiCode === '22201') {
+            prodi = 'Teknik Sipil';
+          } else if (prodiCode === '26201') {
+            prodi = 'Teknik Industri';
+          } else if (prodiCode === '55201') {
+            prodi = 'Teknik Informatika';
+          } else if (row['Prodi'] || row['Program Studi']) {
+            prodi = row['Prodi'] || row['Program Studi'];
+          }
+          
+          // NIM Validation: 8 to 11 digits
+          const status: 'Valid' | 'Invalid NIM' = (nim.length >= 8 && nim.length <= 11 && /^\d+$/.test(nim)) ? 'Valid' : 'Invalid NIM';
+          
+          return {
+            name,
+            nim,
+            prodi,
+            graduationYear,
+            status,
+            email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@alumni.pelitabangsa.ac.id`
+          };
+        }).filter(r => r.name.trim() !== '' && r.nim.trim() !== '');
+        
+        if (parsedRecords.length === 0) {
+          throw new Error("Tidak ada data alumni yang valid dengan Nama dan NIM.");
+        }
+
+        onBulkAddAlumni(parsedRecords);
+        setLastSyncTime(new Date());
+        setSuccessMessage(`Successfully uploaded and parsed "${file.name}"! ${parsedRecords.length} records verified.`);
+        setTimeout(() => setSuccessMessage(null), 4000);
+      } catch (err: any) {
+        console.error(err);
+        setSuccessMessage(null);
+        alert(`Gagal memproses file: ${err.message || err}`);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      simulateFileUpload(e.dataTransfer.files[0].name);
+      parseAndUploadFile(e.dataTransfer.files[0]);
     }
-  };
-
-  const simulateFileUpload = (fileName: string) => {
-    setSuccessMessage(`Parsing file: ${fileName}...`);
-    setTimeout(() => {
-      // Create mock premium records to append
-      const parsedRecords: Omit<AlumniRecord, 'id'>[] = [
-        { name: 'Diana Ross', nim: '1122334461', prodi: 'Teknik Informatika', graduationYear: 2024, status: 'Valid', email: 'diana.ross@alumni.pelitabangsa.ac.id' },
-        { name: 'Farhan Azis', nim: '112233', prodi: 'Sistem Informasi', graduationYear: 2023, status: 'Invalid NIM', email: 'farhan.azis@alumni.pelitabangsa.ac.id' },
-        { name: 'Gita Gutawa', nim: '1122334463', prodi: 'Akuntansi', graduationYear: 2024, status: 'Valid', email: 'gita.gutawa@alumni.pelitabangsa.ac.id' },
-        { name: 'Irfan Bachdim', nim: '1122334464', prodi: 'Manajemen', graduationYear: 2022, status: 'Valid', email: 'irfan.bachdim@alumni.pelitabangsa.ac.id' },
-      ];
-      onBulkAddAlumni(parsedRecords);
-      setSuccessMessage(`Successfully uploaded and parsed "${fileName}"! Mock records verified.`);
-      setTimeout(() => setSuccessMessage(null), 4000);
-    }, 1500);
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      simulateFileUpload(e.target.files[0].name);
+      parseAndUploadFile(e.target.files[0]);
     }
   };
 
@@ -69,14 +146,28 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
     fileInputRef.current?.click();
   };
 
-  const sampleUpload = () => {
-    simulateFileUpload("UPB_Alumni_Data_Class_of_2024.xlsx");
+  const sampleUpload = async () => {
+    try {
+      setSuccessMessage("Fetching SAMPLETRACER.xlsx...");
+      const response = await fetch('/SAMPLETRACER.xlsx');
+      if (!response.ok) {
+        throw new Error("Gagal mengambil file SAMPLETRACER.xlsx dari server.");
+      }
+      const blob = await response.blob();
+      const file = new File([blob], "SAMPLETRACER.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      parseAndUploadFile(file);
+    } catch (err: any) {
+      console.error(err);
+      setSuccessMessage(null);
+      alert(`Gagal memuat sample file: ${err.message || err}`);
+    }
   };
 
   const handleSync = () => {
     setSyncStatus('syncing');
     setTimeout(() => {
       setSyncStatus('completed');
+      setLastSyncTime(new Date());
       setTimeout(() => setSyncStatus('idle'), 3000);
     }, 2000);
   };
@@ -112,8 +203,31 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
   };
 
   const handleDownloadExcel = () => {
-    alert("Exporting Alumni database to Excel format... Complete!");
+    try {
+      const worksheet = XLSX.utils.json_to_sheet(alumni.map(a => ({
+        'Nama': a.name,
+        'NIM': a.nim,
+        'Program Studi': a.prodi,
+        'Tahun Lulus': a.graduationYear,
+        'Status NIM': a.status,
+        'Email': a.email || ''
+      })));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Alumni");
+      XLSX.writeFile(workbook, "UPB_Alumni_Data.xlsx");
+      setSuccessMessage("Alumni database successfully exported to Excel!");
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch (err: any) {
+      console.error(err);
+      alert(`Gagal mengekspor data: ${err.message || err}`);
+    }
   };
+
+  // Pagination calculations
+  const indexOfLastRow = currentPage * rowsPerPage;
+  const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+  const currentRows = alumni.slice(indexOfFirstRow, indexOfLastRow);
+  const totalPages = Math.ceil(alumni.length / rowsPerPage);
 
   // Integrity calculation
   const totalCount = alumni.length;
@@ -165,7 +279,7 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
       {/* Bento Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left column (span 4): Drag & Drop, System Status */}
-        <div className="lg:col-span-4 flex flex-col gap-6">
+        <div className="lg:col-span-4 flex flex-col gap-6 h-fit">
           
           {/* Upload card */}
           <div className="bg-white rounded-2xl shadow-sm p-6 border border-[#c3c6d1]/40 flex flex-col flex-1 min-h-[300px] justify-between z-10">
@@ -234,7 +348,7 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
                   </div>
                   <div>
                     <p className="text-sm font-bold text-[#191c1e]">Last Sync</p>
-                    <p className="text-xs text-[#737780] font-semibold">Today, 09:42 AM</p>
+                    <p className="text-xs text-[#737780] font-semibold">{formatLastSyncTime(lastSyncTime)}</p>
                   </div>
                 </div>
                 <Check className="text-[#815500] stroke-[3]" size={18} />
@@ -287,7 +401,7 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
                     </tr>
                   </thead>
                   <tbody className="text-sm font-medium divide-y divide-[#c3c6d1]/20 text-[#191c1e]">
-                    {alumni.map((record) => (
+                    {currentRows.map((record) => (
                       <tr
                         key={record.id}
                         className={`hover:bg-[#f2f4f7]/40 transition-colors ${
@@ -342,15 +456,52 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
               </div>
             </div>
 
-            <div className="p-4 border-t border-[#eceef1] bg-[#f7f9fc] text-center">
-              <a
-                href="#all-alumni"
-                onClick={(e) => { e.preventDefault(); alert("You are currently viewing all imported records in real-time.")}}
-                className="text-[#001e40] font-bold text-sm hover:underline cursor-pointer"
-              >
-                View All {alumni.length} Records
-              </a>
-            </div>
+            {alumni.length > 0 && (
+              <div className="p-4 border-t border-[#eceef1] bg-[#f7f9fc] flex flex-col sm:flex-row justify-between items-center gap-4 text-xs font-semibold text-[#43474f]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>Show</span>
+                  <select
+                    value={rowsPerPage}
+                    onChange={(e) => {
+                      setRowsPerPage(parseInt(e.target.value, 10));
+                      setCurrentPage(1);
+                    }}
+                    className="bg-[#f2f4f7] border border-[#c3c6d1] rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#001e40] font-bold cursor-pointer"
+                  >
+                    <option value={10}>10</option>
+                    <option value={25}>25</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                  <span>entries</span>
+                  <span className="text-slate-400 font-medium ml-2">
+                    Showing {indexOfFirstRow + 1} to {Math.min(indexOfLastRow, alumni.length)} of {alumni.length} entries
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    className="px-3 py-1.5 rounded-lg border border-[#c3c6d1] bg-white hover:bg-[#f2f4f7] disabled:opacity-50 disabled:hover:bg-white text-[#001e40] transition-colors cursor-pointer disabled:cursor-not-allowed font-bold"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-3 py-1.5 bg-[#001e40] text-white rounded-lg font-bold">
+                    {currentPage} / {totalPages || 1}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    className="px-3 py-1.5 rounded-lg border border-[#c3c6d1] bg-white hover:bg-[#f2f4f7] disabled:opacity-50 disabled:hover:bg-white text-[#001e40] transition-colors cursor-pointer disabled:cursor-not-allowed font-bold"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

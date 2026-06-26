@@ -458,7 +458,7 @@ export const SupabaseService = {
   },
 
   async saveAdminUkmRecord(ur: UkmRecord, isNew: boolean = false): Promise<void> {
-    const ukmId = isNew ? crypto.randomUUID() : ur.id;
+    const ukmId = ur.id || crypto.randomUUID();
     const dbCategory = mapUkmCategoryToDb(ur.category);
 
     const payload = {
@@ -779,5 +779,51 @@ export const SupabaseService = {
       }
     });
     return stats;
+  },
+
+  async getStudentsCount(): Promise<number> {
+    const { count, error } = await supabase
+      .from('mahasiswa_profiles')
+      .select('*', { count: 'exact', head: true });
+    if (error) throw error;
+    return count || 0;
+  },
+
+  async getNewStudentsCountThisMonth(): Promise<number> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from('mahasiswa_profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', startOfMonth.toISOString());
+    if (error) throw error;
+    return count || 0;
+  },
+
+  async getPendingRegistrationsCount(): Promise<number> {
+    const { count, error } = await supabase
+      .from('registration_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    if (error) throw error;
+    return count || 0;
+  },
+
+  async getAlumniStats(): Promise<{ total: number; verified: number }> {
+    const [
+      { count: total, error: totalError },
+      { count: verified, error: verifiedError }
+    ] = await Promise.all([
+      supabase.from('alumni_records').select('*', { count: 'exact', head: true }),
+      supabase.from('alumni_records').select('*', { count: 'exact', head: true }).eq('nim_status', 'Valid')
+    ]);
+    if (totalError) throw totalError;
+    if (verifiedError) throw verifiedError;
+    return {
+      total: total || 0,
+      verified: verified || 0
+    };
   },
 };

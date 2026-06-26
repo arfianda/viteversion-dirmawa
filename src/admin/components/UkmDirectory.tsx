@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, PlusCircle, Eye, Edit2, Ban, RefreshCw, CheckCircle, Users, Trash2 } from 'lucide-react';
+import { Search, PlusCircle, Eye, Edit2, Ban, RefreshCw, CheckCircle, Users, Trash2, Upload } from 'lucide-react';
 import { UkmRecord } from '../types';
 
 interface UkmDirectoryProps {
@@ -10,10 +10,22 @@ interface UkmDirectoryProps {
   onDeleteUkm?: (id: string) => void;
 }
 
+const mapCategoryToEnglish = (dbCategory: string): string => {
+  if (!dbCategory) return 'Special Interest';
+  const c = dbCategory.toLowerCase();
+  if (c.includes('seni') || c.includes('budaya') || c.includes('art')) return 'Arts & Culture';
+  if (c.includes('olahraga') || c.includes('sport')) return 'Sports';
+  if (c.includes('akademik') || c.includes('academic')) return 'Academic';
+  if (c.includes('sosial') || c.includes('social')) return 'Social';
+  if (c.includes('kerohanian') || c.includes('rohani') || c.includes('relig')) return 'Religious';
+  return 'Special Interest';
+};
+
 export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEditUkm, onDeleteUkm }: UkmDirectoryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState<UkmRecord | null>(null);
   const [showDetailModal, setShowDetailModal] = useState<UkmRecord | null>(null);
   
   // Add UKM Form States
@@ -22,17 +34,57 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
   const [newType, setNewType] = useState('Academic & Tech');
   const [newDesc, setNewDesc] = useState('');
   const [newLeader, setNewLeader] = useState('');
+  const [newLogoUrl, setNewLogoUrl] = useState('');
+
+  // Edit UKM Form States
+  const [editName, setEditName] = useState('');
+  const [editCat, setEditCat] = useState('Academic');
+  const [editType, setEditType] = useState('Academic & Tech');
+  const [editDesc, setEditDesc] = useState('');
+  const [editLeader, setEditLeader] = useState('');
+  const [editLogoUrl, setEditLogoUrl] = useState('');
 
   // Filtering logic
   const filteredUkms = ukms.filter(ukm => {
     const matchesSearch = ukm.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           ukm.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           ukm.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = activeCategory === 'All' || ukm.category === activeCategory;
+    const matchesCategory = activeCategory === 'All' || mapCategoryToEnglish(ukm.category) === activeCategory;
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['All', 'Sports', 'Arts & Culture', 'Academic'];
+  const categories = ['All', 'Sports', 'Arts & Culture', 'Academic', 'Social', 'Religious', 'Special Interest'];
+
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Logo image size must not exceed 2MB!");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (isEdit) {
+        setEditLogoUrl(base64String);
+      } else {
+        setNewLogoUrl(base64String);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const openEditModal = (ukm: UkmRecord) => {
+    setShowEditModal(ukm);
+    setEditName(ukm.name);
+    setEditCat(mapCategoryToEnglish(ukm.category));
+    setEditType(ukm.type);
+    setEditDesc(ukm.description);
+    setEditLeader(ukm.leaderName || '');
+    setEditLogoUrl(ukm.logoUrl || '');
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +99,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
       type: newType,
       status: 'Active',
       description: newDesc,
-      leaderName: newLeader
+      leaderName: newLeader,
+      logoUrl: newLogoUrl || undefined
     });
 
     // Reset layout form
@@ -56,7 +109,29 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
     setNewType('Academic & Tech');
     setNewDesc('');
     setNewLeader('');
+    setNewLogoUrl('');
     setShowAddModal(false);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showEditModal) return;
+    if (!editName || !editDesc || !editLeader) {
+      alert("Please fill in all fields!");
+      return;
+    }
+
+    onEditUkm({
+      ...showEditModal,
+      name: editName,
+      category: editCat,
+      type: editType,
+      description: editDesc,
+      leaderName: editLeader,
+      logoUrl: editLogoUrl || undefined
+    });
+
+    setShowEditModal(null);
   };
 
   const toggleStatus = (id: string, current: 'Active' | 'Inactive') => {
@@ -190,12 +265,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                   <Eye size={16} />
                 </button>
                 <button
-                  onClick={() => {
-                    const desc = prompt(`Edit description for ${ukm.name}:`, ukm.description);
-                    if (desc !== null) {
-                      onEditUkm({ ...ukm, description: desc });
-                    }
-                  }}
+                  onClick={() => openEditModal(ukm)}
                   className="w-8 h-8 rounded-full bg-[#f2f4f7] hover:bg-[#001e40]/10 text-[#001e40] flex items-center justify-center transition-colors cursor-pointer"
                   title="Edit details"
                 >
@@ -269,6 +339,9 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                       setNewCat(e.target.value);
                       if (e.target.value === 'Sports') setNewType('Sports & Athletics');
                       else if (e.target.value === 'Arts & Culture') setNewType('Arts & Performance');
+                      else if (e.target.value === 'Social') setNewType('Social & Community');
+                      else if (e.target.value === 'Religious') setNewType('Spiritual & Religious');
+                      else if (e.target.value === 'Special Interest') setNewType('Special Interest Club');
                       else setNewType('Academic & Tech');
                     }}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -276,6 +349,9 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                     <option value="Academic">Academic</option>
                     <option value="Sports">Sports</option>
                     <option value="Arts & Culture">Arts & Culture</option>
+                    <option value="Social">Social</option>
+                    <option value="Religious">Religious</option>
+                    <option value="Special Interest">Special Interest</option>
                   </select>
                 </div>
 
@@ -305,6 +381,32 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Organization Logo</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-[#f2f4f7] border border-[#c3c6d1]/40 flex items-center justify-center overflow-hidden shrink-0">
+                    {newLogoUrl ? (
+                      <img src={newLogoUrl} alt="New logo preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users size={28} className="text-[#001e40]" />
+                    )}
+                  </div>
+                  <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-[#c3c6d1] rounded-xl p-3 hover:bg-[#f2f4f7]/50 cursor-pointer transition-colors">
+                    <div className="flex flex-col items-center justify-center gap-1 text-[#43474f]">
+                      <Upload size={20} />
+                      <span className="text-xs font-bold text-center">Upload Logo</span>
+                      <span className="text-[10px] text-[#737780] font-medium text-center">Max 2MB (PNG, JPG)</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoFileChange(e, false)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Description</label>
                 <textarea
                   rows={3}
@@ -329,6 +431,132 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                   className="px-5 py-2.5 bg-[#001e40] text-white text-sm font-bold rounded-xl shadow-md cursor-pointer"
                 >
                   Create UKM
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit UKM Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40">
+            <h3 className="font-headline font-bold text-xl text-[#001e40] mb-4">Edit Student Organization (UKM)</h3>
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">UKM Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Futsal Club Pelita Bangsa"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Category</label>
+                  <select
+                    value={editCat}
+                    onChange={(e) => {
+                      setEditCat(e.target.value);
+                      if (e.target.value === 'Sports') setEditType('Sports & Athletics');
+                      else if (e.target.value === 'Arts & Culture') setEditType('Arts & Performance');
+                      else if (e.target.value === 'Social') setEditType('Social & Community');
+                      else if (e.target.value === 'Religious') setEditType('Spiritual & Religious');
+                      else if (e.target.value === 'Special Interest') setEditType('Special Interest Club');
+                      else setEditType('Academic & Tech');
+                    }}
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
+                  >
+                    <option value="Academic">Academic</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Arts & Culture">Arts & Culture</option>
+                    <option value="Social">Social</option>
+                    <option value="Religious">Religious</option>
+                    <option value="Special Interest">Special Interest</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Subtype</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Sports & Recreation"
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value)}
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Leader name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Student Leader's name"
+                  value={editLeader}
+                  onChange={(e) => setEditLeader(e.target.value)}
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Organization Logo</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-[#f2f4f7] border border-[#c3c6d1]/40 flex items-center justify-center overflow-hidden shrink-0">
+                    {editLogoUrl ? (
+                      <img src={editLogoUrl} alt="Logo preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users size={28} className="text-[#001e40]" />
+                    )}
+                  </div>
+                  <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-[#c3c6d1] rounded-xl p-3 hover:bg-[#f2f4f7]/50 cursor-pointer transition-colors">
+                    <div className="flex flex-col items-center justify-center gap-1 text-[#43474f]">
+                      <Upload size={20} />
+                      <span className="text-xs font-bold text-center">Change Logo</span>
+                      <span className="text-[10px] text-[#737780] font-medium text-center">Max 2MB (PNG, JPG)</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleLogoFileChange(e, true)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Description</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Describe the organization's goals, schedules, achievements..."
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40] resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4 border-t border-[#eceef1]">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(null)}
+                  className="px-4 py-2.5 border border-[#c3c6d1] text-[#43474f] text-sm font-bold rounded-xl hover:bg-[#f2f4f7] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#001e40] text-white text-sm font-bold rounded-xl shadow-md cursor-pointer"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
