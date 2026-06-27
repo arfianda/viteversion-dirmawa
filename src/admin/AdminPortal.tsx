@@ -47,6 +47,8 @@ import ScholarshipsManagement from './components/ScholarshipsManagement';
 import NewsEditor from './components/NewsEditor';
 import AdminManagement from './components/AdminManagement';
 import RegistrationQueue from './components/RegistrationQueue';
+import OrmawaApplicationsQueue from './components/OrmawaApplicationsQueue';
+import OrmawaProposalsQueue from './components/OrmawaProposalsQueue';
 
 export default function AdminPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -516,6 +518,8 @@ export default function AdminPortal() {
     { id: 'alumni', label: 'Alumni Data Hub', icon: Award },
     { id: 'ukm', label: 'UKM & Ormawa', icon: Users },
     { id: 'scholarships', label: 'Scholarships Portal', icon: BookOpen },
+    { id: 'ormawa-apps', label: 'Antrian Pengajuan Ormawa', icon: UserPlus },
+    { id: 'ormawa-props', label: 'Proposal & LPJ Ormawa', icon: Newspaper },
     { id: 'settings', label: 'Access Control', icon: Shield },
     { id: 'registrations', label: 'Registrations', icon: UserPlus },
   ];
@@ -663,6 +667,10 @@ export default function AdminPortal() {
         );
       case 'registrations':
         return <RegistrationQueue onRefresh={loadDbData} />;
+      case 'ormawa-apps':
+        return <OrmawaApplicationsQueue reviewerId={session.id} />;
+      case 'ormawa-props':
+        return <OrmawaProposalsQueue />;
       default:
         return <div className="p-12 text-center text-[#737780] font-bold">In development...</div>;
     }

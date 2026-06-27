@@ -24,6 +24,7 @@ import UserManagementView from './components/UserManagementView';
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from './types';
 import AdminPortal from './admin/AdminPortal';
 import MahasiswaPortal from './mahasiswa-dashboard/MahasiswaPortal';
+import OrmawaPortal from './ormawa-dashboard/OrmawaPortal';
 import { SupabaseService } from './services/supabaseService';
 
 export default function App() {
@@ -36,12 +37,18 @@ export default function App() {
     return window.location.search.includes('portal=mahasiswa') || window.location.hash === '#/mahasiswa';
   };
 
+  const checkIsOrmawaPortal = () => {
+    return window.location.search.includes('portal=ormawa') || window.location.hash === '#/ormawa';
+  };
+
   const [isAdminPortal, setIsAdminPortal] = React.useState<boolean>(checkIsAdminPortal);
   const [isMahasiswaPortal, setIsMahasiswaPortal] = React.useState<boolean>(checkIsMahasiswaPortal);
+  const [isOrmawaPortal, setIsOrmawaPortal] = React.useState<boolean>(checkIsOrmawaPortal);
   const getInitialTab = () => {
     const hash = window.location.hash;
     if (hash === '#/admin') return 'admin';
     if (hash === '#/mahasiswa') return 'mahasiswa';
+    if (hash === '#/ormawa') return 'ormawa';
     if (hash === '#/panduan/kode-etik') return 'panduan-kode-etik';
     if (hash === '#/panduan/pok') return 'panduan-pok';
     if (hash === '#/panduan/mahasiswa') return 'panduan-mahasiswa';
@@ -80,6 +87,9 @@ export default function App() {
       setIsMahasiswaPortal(
         window.location.search.includes('portal=mahasiswa') || hash === '#/mahasiswa'
       );
+      setIsOrmawaPortal(
+        window.location.search.includes('portal=ormawa') || hash === '#/ormawa'
+      );
 
       // Sync hash to currentTab
       if (hash === '#/panduan/kode-etik') {
@@ -108,6 +118,8 @@ export default function App() {
         setCurrentTab('news');
       } else if (hash === '#/user-management') {
         setCurrentTab('user-management');
+      } else if (hash === '#/ormawa') {
+        setCurrentTab('ormawa');
       } else if (hash === '#/home' || hash === '') {
         setCurrentTab('home');
       }
@@ -147,6 +159,7 @@ export default function App() {
       case 'news': expectedHash = '#/news'; break;
       case 'user-management': expectedHash = '#/user-management'; break;
       case 'admin': expectedHash = '#/admin'; break;
+      case 'ormawa': expectedHash = '#/ormawa'; break;
       default: expectedHash = '';
     }
     if (expectedHash && window.location.hash !== expectedHash) {
@@ -190,15 +203,17 @@ export default function App() {
   // Re-fetch when returning from admin/mahasiswa portals (only when toggling back to public)
   const prevIsAdmin = React.useRef(isAdminPortal);
   const prevIsMahasiswa = React.useRef(isMahasiswaPortal);
+  const prevIsOrmawa = React.useRef(isOrmawaPortal);
   React.useEffect(() => {
-    const wasPortal = prevIsAdmin.current || prevIsMahasiswa.current;
-    const isNowPublic = !isAdminPortal && !isMahasiswaPortal;
+    const wasPortal = prevIsAdmin.current || prevIsMahasiswa.current || prevIsOrmawa.current;
+    const isNowPublic = !isAdminPortal && !isMahasiswaPortal && !isOrmawaPortal;
     if (wasPortal && isNowPublic) {
       loadData();
     }
     prevIsAdmin.current = isAdminPortal;
     prevIsMahasiswa.current = isMahasiswaPortal;
-  }, [isAdminPortal, isMahasiswaPortal, loadData]);
+    prevIsOrmawa.current = isOrmawaPortal;
+  }, [isAdminPortal, isMahasiswaPortal, isOrmawaPortal, loadData]);
 
   // Scroll to top on tab transitions
   React.useEffect(() => {
@@ -212,6 +227,10 @@ export default function App() {
 
   if (isMahasiswaPortal) {
     return <MahasiswaPortal />;
+  }
+
+  if (isOrmawaPortal) {
+    return <OrmawaPortal />;
   }
 
   // Loading state — full-screen spinner while fetching from Supabase

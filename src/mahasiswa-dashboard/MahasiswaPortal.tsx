@@ -12,7 +12,8 @@ import {
   HelpCircle,
   X,
   User,
-  ExternalLink
+  ExternalLink,
+  PlusCircle
 } from 'lucide-react';
 import { UserSession, UKM, Beasiswa } from '../types/mahasiswa';
 
@@ -23,6 +24,7 @@ import MahasiswaUkmSaya from './components/MahasiswaUkmSaya';
 import MahasiswaBeasiswaSaya from './components/MahasiswaBeasiswaSaya';
 import MahasiswaPengajuanPrestasi from './components/MahasiswaPengajuanPrestasi';
 import MahasiswaSettings from './components/MahasiswaSettings';
+import MahasiswaAjukanOrmawa from './components/MahasiswaAjukanOrmawa';
 import { AuthService } from '../services/authService';
 
 export default function MahasiswaPortal() {
@@ -104,6 +106,7 @@ export default function MahasiswaPortal() {
     { id: 'ukm', label: 'UKM Saya', icon: Users },
     { id: 'beasiswa', label: 'Beasiswa', icon: BookOpen },
     { id: 'prestasi', label: 'Pengajuan Prestasi', icon: Award },
+    { id: 'ajukan-ormawa', label: 'Ajukan Ormawa Baru', icon: PlusCircle },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -117,6 +120,8 @@ export default function MahasiswaPortal() {
         return <MahasiswaBeasiswaSaya />;
       case 'prestasi':
         return <MahasiswaPengajuanPrestasi />;
+      case 'ajukan-ormawa':
+        return <MahasiswaAjukanOrmawa studentId={session.id} studentName={session.name} studentNim={session.nimOrNip || ''} />;
       case 'settings':
         return <MahasiswaSettings session={session} onUpdateSession={handleUpdateSession} />;
       default:

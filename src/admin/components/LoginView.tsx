@@ -79,8 +79,22 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           return;
         }
 
-        // Only allow administrators and superadmins
+        // Only allow administrators, superadmins, and ormawa admins
         console.log('Checking role:', user.role);
+        if (user.role === 'admin_ormawa') {
+          localStorage.setItem('upb_ormawa_session', JSON.stringify({
+            id: user.id,
+            username: user.email,
+            role: 'admin_ormawa',
+            name: user.name,
+            nimOrNip: 'ORMAWA-' + user.id.slice(0, 8),
+            avatarUrl: user.avatarUrl,
+          }));
+          window.location.hash = '#/ormawa';
+          setIsLoading(false);
+          return;
+        }
+
         if (user.role !== 'administrator' && user.role !== 'superadmin' && user.role !== 'admin') {
           setError('Access denied. Admin privileges required.');
           setIsLoading(false);
