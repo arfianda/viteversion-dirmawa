@@ -2,14 +2,15 @@
 -- Created: 2026-06-27
 -- Description: Add admin_ormawa role, ormawa applications, profiles, proposals, and LPJs.
 
--- 1. Add 'admin_ormawa' to user_role enum
-ALTER TYPE public.user_role ADD VALUE IF NOT EXISTS 'admin_ormawa';
+-- 1. Update public.users role check constraint to include 'admin_ormawa'
+ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE public.users ADD CONSTRAINT users_role_check CHECK (role IN ('superadmin', 'admin', 'administrator', 'operator', 'mahasiswa', 'alumni', 'admin_ormawa'));
 
 -- 2. Create public.ormawa_admin_profiles
 CREATE TABLE IF NOT EXISTS public.ormawa_admin_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID UNIQUE NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  ukm_id UUID NOT NULL REFERENCES public.ukms(id) ON DELETE CASCADE,
+  ukm_id TEXT NOT NULL REFERENCES public.ukms(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -39,7 +40,7 @@ CREATE TABLE IF NOT EXISTS public.ormawa_applications (
 -- 4. Create public.ormawa_proposals
 CREATE TABLE IF NOT EXISTS public.ormawa_proposals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ukm_id UUID NOT NULL REFERENCES public.ukms(id) ON DELETE CASCADE,
+  ukm_id TEXT NOT NULL REFERENCES public.ukms(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   target_budget NUMERIC NOT NULL,
@@ -62,7 +63,7 @@ CREATE TABLE IF NOT EXISTS public.ormawa_proposals (
 -- 5. Create public.ormawa_lpjs
 CREATE TABLE IF NOT EXISTS public.ormawa_lpjs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ukm_id UUID NOT NULL REFERENCES public.ukms(id) ON DELETE CASCADE,
+  ukm_id TEXT NOT NULL REFERENCES public.ukms(id) ON DELETE CASCADE,
   proposal_id UUID REFERENCES public.ormawa_proposals(id) ON DELETE SET NULL,
   title TEXT NOT NULL,
   description TEXT,

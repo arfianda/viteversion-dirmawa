@@ -76,3 +76,21 @@ export interface User {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface ScholarshipApplication {
+  id: string;
+  user_id: string;
+  scholarship_id: string;
+  nim: string;
+  name: string;
+  major: string;
+  gpa: number;
+  phone: string;
+  document_url?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
+  created_at: string;
+  updated_at: string;
+  scholarships?: Scholarship;
+}
+

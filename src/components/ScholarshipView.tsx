@@ -5,7 +5,8 @@
 
 import React from 'react';
 import { Scholarship } from '../types';
-import { Search, Calendar, Landmark, CheckCircle, Info, PhoneCall, ChevronDown, ChevronUp, AlertCircle, Sparkles } from 'lucide-react';
+import { Search, Calendar, Landmark, CheckCircle, Info, PhoneCall, ChevronDown, ChevronUp, AlertCircle, Sparkles, FileText, Upload } from 'lucide-react';
+import { SupabaseService } from '../services/supabaseService';
 
 interface ScholarshipViewProps {
   scholarships: Scholarship[];
@@ -16,6 +17,29 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
   const [selectedType, setSelectedType] = React.useState<'semua' | 'internal' | 'pemerintah' | 'swasta'>('semua');
   const [selectedScholarship, setSelectedScholarship] = React.useState<Scholarship | null>(null);
   
+  // Student session state
+  const [studentSession, setStudentSession] = React.useState<any>(null);
+  
+  // Application form state
+  const [showApplyModal, setShowApplyModal] = React.useState(false);
+  const [gpa, setGpa] = React.useState('');
+  const [phone, setPhone] = React.useState('');
+  const [documentName, setDocumentName] = React.useState('cv_dan_transkrip_mahasiswa.pdf');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [submitSuccess, setSubmitSuccess] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem('upb_mahasiswa_session');
+    if (saved) {
+      try {
+        setStudentSession(JSON.parse(saved));
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
   // Accordion state (FAQ)
   const [faqOpenIndex, setFaqOpenIndex] = React.useState<number | null>(null);
 
@@ -57,6 +81,49 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
         setConsultSubmitted(false);
         setConsultForm({ name: '', nim: '', email: '', topic: 'KIP-Kuliah', message: '' });
       }, 5000);
+    }
+  };
+
+  const handleApplySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!studentSession || !selectedScholarship) return;
+    
+    const parsedGpa = parseFloat(gpa);
+    if (isNaN(parsedGpa) || parsedGpa < 0 || parsedGpa > 4.0) {
+      setSubmitError('IPK harus berupa angka antara 0.00 dan 4.00');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    try {
+      await SupabaseService.submitScholarshipApplication({
+        user_id: studentSession.id,
+        scholarship_id: selectedScholarship.id,
+        nim: studentSession.nim || '202100123',
+        name: studentSession.name,
+        major: studentSession.major || 'Teknik Informatika',
+        gpa: parsedGpa,
+        phone: phone,
+        document_url: `https://storage.googleapis.com/dirmawa-docs/${documentName}`
+      });
+      setSubmitSuccess(true);
+      setTimeout(() => {
+        setSubmitSuccess(false);
+        setShowApplyModal(false);
+        setSelectedScholarship(null);
+        setGpa('');
+        setPhone('');
+      }, 3000);
+    } catch (err: any) {
+      console.error(err);
+      if (err?.message?.includes('unique') || err?.message?.includes('duplicate')) {
+        setSubmitError('Anda sudah mengirimkan pendaftaran untuk beasiswa ini sebelumnya.');
+      } else {
+        setSubmitError(err?.message || 'Gagal mengirim pendaftaran beasiswa.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -352,13 +419,151 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
 
             <div className="bg-slate-100 border-t border-slate-200 px-6 py-4 flex justify-between items-center flex-shrink-0 select-none">
               <span className="text-[10px] font-mono font-bold text-[#feb234] uppercase tracking-wide">Pintu SIPMA UPB</span>
-              <button
-                onClick={() => setSelectedScholarship(null)}
-                className="bg-[#001e40] hover:bg-[#002d61] text-white font-sans font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer"
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedScholarship(null)}
+                  className="bg-slate-200 hover:bg-slate-300 text-slate-700 font-sans font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer"
+                >
+                  Tutup Review
+                </button>
+                {studentSession ? (
+                  <button
+                    onClick={() => setShowApplyModal(true)}
+                    className="bg-[#feb234] hover:bg-[#e09c2a] text-[#001e40] font-sans font-black text-xs px-4 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Sparkles size={14} />
+                    Daftar Sekarang
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setSelectedScholarship(null);
+                      window.location.hash = '#/mahasiswa';
+                    }}
+                    className="bg-[#001e40] hover:bg-[#002d61] text-white font-sans font-bold text-xs px-4 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+                  >
+                    Login Mahasiswa untuk Mendaftar
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scholarship application form modal */}
+      {showApplyModal && selectedScholarship && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
+          <div className="bg-white border border-slate-250 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="font-sans font-black text-lg text-[#001e40]">Formulir Pendaftaran Beasiswa</h3>
+              <button 
+                onClick={() => setShowApplyModal(false)}
+                className="text-slate-400 hover:text-slate-650 font-bold"
               >
-                Tutup Review
+                ✕
               </button>
             </div>
+            
+            <form onSubmit={handleApplySubmit} className="p-6 space-y-4 font-sans text-xs">
+              <div className="bg-[#feb234]/10 border border-[#feb234]/20 p-3 rounded-xl text-slate-800 flex flex-col gap-1">
+                <span className="font-bold text-[#001e40]">{selectedScholarship.title}</span>
+                <span className="text-[10px] text-slate-500 font-semibold">{selectedScholarship.provider}</span>
+              </div>
+
+              {submitError && (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl font-semibold flex items-center gap-2">
+                  <AlertCircle size={14} className="shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+
+              {submitSuccess ? (
+                <div className="p-4 bg-emerald-50 border border-emerald-250 text-emerald-800 rounded-xl font-bold flex flex-col items-center justify-center gap-2 text-center py-6">
+                  <CheckCircle size={32} className="text-emerald-600" />
+                  <span>Pendaftaran Beasiswa Berhasil Terkirim!</span>
+                  <span className="text-[10px] font-normal text-emerald-600">Mengarahkan kembali...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-slate-700 block font-bold">Nama Lengkap</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={studentSession?.name || ''}
+                        className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-500 cursor-not-allowed"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-slate-700 block font-bold">NIM</label>
+                      <input
+                        type="text"
+                        disabled
+                        value={studentSession?.nim || '202100123'}
+                        className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-500 cursor-not-allowed"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-700 block font-bold">Program Studi</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={studentSession?.major || 'Teknik Informatika'}
+                      className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-500 cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-slate-700 block font-bold">Indeks Prestasi Kumulatif (IPK) *</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.00"
+                        max="4.00"
+                        required
+                        placeholder="Contoh: 3.75"
+                        value={gpa}
+                        onChange={(e) => setGpa(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:border-[#001e40] focus:bg-white"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-slate-700 block font-bold">No. Handphone (WA) *</label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="0812xxxxxxxx"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:border-[#001e40] focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-700 block font-bold">Dokumen Pendukung (CV &amp; Transkrip Nilai) *</label>
+                    <div className="border-2 border-dashed border-slate-250 p-4 rounded-xl flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100/50 transition-colors">
+                      <Upload size={24} className="text-slate-450" />
+                      <span className="font-bold text-slate-700">{documentName}</span>
+                      <span className="text-[10px] text-slate-400">PDF, Maksimal 5MB (Disimulasikan)</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3 bg-[#001e40] hover:bg-[#002d61] disabled:bg-slate-300 text-white font-bold uppercase rounded-xl shadow font-sans transition-all active:scale-95 text-xs flex items-center justify-center space-x-2 cursor-pointer mt-2"
+                  >
+                    <span>{isSubmitting ? 'Mengirim...' : 'Kirim Pendaftaran Beasiswa'}</span>
+                  </button>
+                </>
+              )}
+            </form>
           </div>
         </div>
       )}

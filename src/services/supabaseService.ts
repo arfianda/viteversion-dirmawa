@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from '../types';
+import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews, ScholarshipApplication } from '../types';
 import { NewsArticle, UkmRecord, ScholarshipRecord, AlumniRecord as AdminAlumniRecord } from '../admin/types';
 
 // Registration request types
@@ -827,5 +827,122 @@ export const SupabaseService = {
       total: total || 0,
       verified: verified || 0
     };
+  },
+
+  // ==========================================
+  // 10. SCHOLARSHIP APPLICATIONS / scholarship_applications
+  // ==========================================
+  async submitScholarshipApplication(appData: {
+    user_id: string;
+    scholarship_id: string;
+    nim: string;
+    name: string;
+    major: string;
+    gpa: number;
+    phone: string;
+    document_url?: string;
+  }): Promise<void> {
+    const { error } = await supabase
+      .from('scholarship_applications')
+      .insert(appData);
+    if (error) throw error;
+
+    // Increment applicants counter on the scholarship record (if possible)
+    const { data: scholarship, error: getError } = await supabase
+      .from('scholarships')
+      .select('applicants')
+      .eq('id', appData.scholarship_id)
+      .single();
+    if (!getError && scholarship) {
+      await supabase
+        .from('scholarships')
+        .update({ applicants: (scholarship.applicants || 0) + 1 })
+        .eq('id', appData.scholarship_id);
+    }
+  },
+
+  async getStudentScholarshipApplications(userId: string): Promise<ScholarshipApplication[]> {
+    const { data, error } = await supabase
+      .from('scholarship_applications')
+      .select('*, scholarships(*)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+      id: row.id,
+      user_id: row.user_id,
+      scholarship_id: row.scholarship_id,
+      nim: row.nim,
+      name: row.name,
+      major: row.major,
+      gpa: Number(row.gpa),
+      phone: row.phone,
+      document_url: row.document_url || '',
+      status: row.status as any,
+      rejection_reason: row.rejection_reason || '',
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      scholarships: row.scholarships ? {
+        id: row.scholarships.id,
+        title: row.scholarships.title,
+        type: row.scholarships.type,
+        provider: row.scholarships.provider,
+        description: row.scholarships.description || '',
+        fundingAmount: row.scholarships.funding_amount || '',
+        registrationDeadline: row.scholarships.registration_deadline || '',
+        requirements: [],
+        bannerImage: row.scholarships.banner_image_url || '',
+        benefits: []
+      } : undefined
+    }));
+  },
+
+  async getAdminScholarshipApplications(): Promise<ScholarshipApplication[]> {
+    const { data, error } = await supabase
+      .from('scholarship_applications')
+      .select('*, scholarships(*)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+      id: row.id,
+      user_id: row.user_id,
+      scholarship_id: row.scholarship_id,
+      nim: row.nim,
+      name: row.name,
+      major: row.major,
+      gpa: Number(row.gpa),
+      phone: row.phone,
+      document_url: row.document_url || '',
+      status: row.status as any,
+      rejection_reason: row.rejection_reason || '',
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      scholarships: row.scholarships ? {
+        id: row.scholarships.id,
+        title: row.scholarships.title,
+        type: row.scholarships.type,
+        provider: row.scholarships.provider,
+        description: row.scholarships.description || '',
+        fundingAmount: row.scholarships.funding_amount || '',
+        registrationDeadline: row.scholarships.registration_deadline || '',
+        requirements: [],
+        bannerImage: row.scholarships.banner_image_url || '',
+        benefits: []
+      } : undefined
+    }));
+  },
+
+  async updateScholarshipApplicationStatus(id: string, status: 'approved' | 'rejected', rejectionReason?: string): Promise<void> {
+    const { error } = await supabase
+      .from('scholarship_applications')
+      .update({
+        status,
+        rejection_reason: rejectionReason || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+    if (error) throw error;
   },
 };

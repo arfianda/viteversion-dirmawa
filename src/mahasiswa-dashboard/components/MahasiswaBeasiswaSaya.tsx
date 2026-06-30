@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Award, 
   CheckCircle2, 
@@ -12,6 +12,8 @@ import {
   Calendar,
   DollarSign
 } from 'lucide-react';
+import { SupabaseService } from '../../services/supabaseService';
+import { ScholarshipApplication, Scholarship } from '../../types';
 
 interface TaskItem {
   id: string;
@@ -23,6 +25,11 @@ interface TaskItem {
 }
 
 export default function MahasiswaBeasiswaSaya() {
+  const [session, setSession] = useState<any>(null);
+  const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
+  const [recommendations, setRecommendations] = useState<Scholarship[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [tasks, setTasks] = useState<TaskItem[]>([
     {
       id: 'gpa-report',
@@ -39,6 +46,42 @@ export default function MahasiswaBeasiswaSaya() {
     }
   ]);
 
+  useEffect(() => {
+    const saved = localStorage.getItem('upb_mahasiswa_session');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setSession(parsed);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
+  const fetchData = async (userId: string) => {
+    setIsLoading(true);
+    try {
+      const [appData, recData] = await Promise.all([
+        SupabaseService.getStudentScholarshipApplications(userId),
+        SupabaseService.getScholarships()
+      ]);
+      setApplications(appData);
+      // Filter recommendations to exclude already applied scholarships
+      const appliedIds = appData.map(a => a.scholarship_id);
+      setRecommendations(recData.filter(r => !appliedIds.includes(r.id)));
+    } catch (e) {
+      console.error('Failed to load student scholarship data:', e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (session?.id) {
+      fetchData(session.id);
+    }
+  }, [session]);
+
   const handleUpload = (taskId: string) => {
     alert(`Mengunggah berkas untuk tugas "${taskId === 'gpa-report' ? 'Laporan IPK Semester Ganjil' : 'Surat Pernyataan Keaktifan'}"...`);
     setTasks(prev => prev.map(task => {
@@ -53,6 +96,7 @@ export default function MahasiswaBeasiswaSaya() {
     }));
   };
 
+  // Mock static history for past years
   const history = [
     {
       name: 'Beasiswa PPA (Peningkatan Prestasi Akademik)',
@@ -60,42 +104,17 @@ export default function MahasiswaBeasiswaSaya() {
       status: 'Selesai',
       amount: 'Rp 5.000.000',
       statusType: 'success'
-    },
-    {
-      name: 'Bantuan Biaya Pendidikan Alumni UPB',
-      year: 2022,
-      status: 'Tidak Lolos',
-      amount: '-',
-      statusType: 'failed'
     }
   ];
 
-  const recommendations = [
-    {
-      id: 'bi',
-      name: 'Beasiswa Bank Indonesia 2024',
-      type: 'EKSTERNAL',
-      deadline: 'Tutup 30 Mar',
-      desc: 'Program bantuan biaya pendidikan untuk mahasiswa semester 4-6 dengan IPK minimal 3.25.',
-      image: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-      id: 'research',
-      name: 'Hibah Riset Skripsi Mahasiswa Akhir',
-      type: 'INTERNAL',
-      deadline: 'Tutup 12 Apr',
-      desc: 'Bantuan dana penelitian untuk mahasiswa tingkat akhir UPB yang sedang menyusun tugas akhir.',
-      image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=600&auto=format&fit=crop'
-    },
-    {
-      id: 'global',
-      name: 'Global Leader Scholarship Foundation',
-      type: 'EKSTERNAL',
-      deadline: 'Tutup 25 Mei',
-      desc: 'Program pertukaran mahasiswa dan beasiswa internasional ke mitra universitas di Asia Timur.',
-      image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=600&auto=format&fit=crop'
-    }
-  ];
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center text-slate-500 font-sans">
+        <div className="w-8 h-8 border-4 border-[#001e40]/20 border-t-[#001e40] rounded-full animate-spin mx-auto mb-4" />
+        <span>Memuat data beasiswa...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in pb-10">
@@ -115,23 +134,30 @@ export default function MahasiswaBeasiswaSaya() {
         
         {/* Active Scholarship Status Card (Span 8) */}
         <div className="lg:col-span-8 bg-[#001e40] text-white rounded-2xl p-6 md:p-8 relative overflow-hidden shadow-lg flex flex-col justify-between min-h-[300px] border border-[#002d61]">
-          {/* Decorative Blur Circle */}
           <div className="absolute -right-16 -bottom-16 w-64 h-64 bg-[#feb234]/10 rounded-full blur-3xl"></div>
-
+          
           <div className="relative z-10 space-y-6">
             <div className="flex flex-wrap items-center gap-2">
               <span className="bg-[#feb234] text-[#291800] px-3.5 py-1 rounded-full text-[10px] font-black tracking-wider uppercase">
-                AKTIF
+                {applications.some(a => a.status === 'approved') ? 'AKTIF' : 'NON-AKTIF'}
               </span>
-              <span className="text-slate-300 text-xs font-mono">ID Beasiswa: SCH-2024-0012</span>
+              <span className="text-slate-300 text-xs font-mono">
+                {applications.some(a => a.status === 'approved') 
+                  ? `ID Beasiswa: SCH-${applications.find(a => a.status === 'approved')?.scholarship_id.toUpperCase()}`
+                  : 'Belum Ada Beasiswa Aktif'}
+              </span>
             </div>
             
             <div>
               <h3 className="font-display font-extrabold text-xl md:text-2xl text-white mb-2 leading-snug">
-                Beasiswa Unggulan Universitas Pelita Bangsa
+                {applications.some(a => a.status === 'approved')
+                  ? applications.find(a => a.status === 'approved')?.scholarships?.title
+                  : 'Ajukan beasiswa di menu rekomendasi beasiswa dibawah ini'}
               </h3>
               <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-medium max-w-xl">
-                Pembebasan biaya kuliah penuh (Uang Kuliah Tunggal) dan pemberian dana pendukung bulanan untuk Semester Genap TA 2024/2025.
+                {applications.some(a => a.status === 'approved')
+                  ? 'Bantuan pembebasan biaya perkuliahan Universitas Pelita Bangsa untuk periode semester aktif Anda.'
+                  : 'Temukan program bantuan biaya pendidikan yang diselenggarakan oleh Pemerintah, UPB, maupun Swasta.'}
               </p>
             </div>
           </div>
@@ -141,19 +167,19 @@ export default function MahasiswaBeasiswaSaya() {
               <p className="text-slate-400 font-semibold mb-0.5">Periode Berlaku</p>
               <p className="font-bold text-white flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-[#feb234]" />
-                <span>Feb 2024 - Agu 2024</span>
+                <span>{applications.some(a => a.status === 'approved') ? 'Semester Genap TA 2024/2025' : '-'}</span>
               </p>
             </div>
             <div>
               <p className="text-slate-400 font-semibold mb-0.5">IPK Minimal (Target)</p>
               <p className="font-bold text-white flex items-center gap-1">
                 <TrendingUp className="w-3.5 h-3.5 text-[#feb234]" />
-                <span>3.50 / 4.00</span>
+                <span>3.00 / 4.00</span>
               </p>
             </div>
             <div className="col-span-2 md:col-span-1">
               <p className="text-slate-400 font-semibold mb-0.5">Semester Berjalan</p>
-              <p className="font-bold text-[#feb234] uppercase tracking-wide">Semester 4 (Ganjil)</p>
+              <p className="font-bold text-[#feb234] uppercase tracking-wide">Semester {session?.semester || '4'}</p>
             </div>
           </div>
         </div>
@@ -209,58 +235,59 @@ export default function MahasiswaBeasiswaSaya() {
 
       </section>
 
-      {/* Scholarship History Table */}
+      {/* Scholarship Applications / History Table */}
       <section className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm">
         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <h4 className="font-sans font-black text-base text-[#001e40]">Riwayat Beasiswa Saya</h4>
-          <button 
-            onClick={() => alert('Mengekspor berkas riwayat beasiswa ke format PDF...')}
-            className="text-xs font-bold text-[#001e40] flex items-center gap-1 hover:underline cursor-pointer"
-          >
-            <span>Ekspor PDF</span>
-            <Download className="w-3.5 h-3.5" />
-          </button>
+          <h4 className="font-sans font-black text-base text-[#001e40]">Pengajuan Beasiswa Aktif</h4>
+          <span className="text-xs text-slate-500 font-medium">Data diperbarui secara real-time</span>
         </div>
         
         <div className="overflow-x-auto text-xs">
-          <table className="w-full text-left font-sans border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 font-black text-[10px] uppercase border-b border-slate-200">
-                <th className="px-6 py-4">Nama Beasiswa</th>
-                <th className="px-6 py-4">Tahun Akademik</th>
-                <th className="px-6 py-4">Status Pencairan</th>
-                <th className="px-6 py-4">Total Nominal</th>
-                <th className="px-6 py-4 text-center">Aksi Berkas</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-150 text-slate-700">
-              {history.map((record, index) => (
-                <tr key={index} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="px-6 py-4 font-bold text-slate-900">{record.name}</td>
-                  <td className="px-6 py-4 font-semibold text-slate-500">{record.year}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border ${
-                      record.statusType === 'success' 
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
-                        : 'bg-red-50 text-red-700 border-red-100'
-                    }`}>
-                      {record.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-bold font-mono text-slate-700">{record.amount}</td>
-                  <td className="px-6 py-4 text-center">
-                    <button 
-                      onClick={() => alert(`Membuka berkas arsip beasiswa tahun ${record.year}...`)}
-                      className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-[#001e40] transition-colors cursor-pointer"
-                      title="Lihat Detail/Arsip"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
+          {applications.length === 0 ? (
+            <div className="text-center py-10 text-slate-400 font-sans">
+              Belum ada riwayat pengajuan beasiswa di semester ini.
+            </div>
+          ) : (
+            <table className="w-full text-left font-sans border-collapse">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 font-black text-[10px] uppercase border-b border-slate-200">
+                  <th className="px-6 py-4">Nama Beasiswa</th>
+                  <th className="px-6 py-4">Tanggal Pengajuan</th>
+                  <th className="px-6 py-4">IPK Dilaporkan</th>
+                  <th className="px-6 py-4">Status Pengajuan</th>
+                  <th className="px-6 py-4">Keterangan / Alasan</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-150 text-slate-700">
+                {applications.map((app) => (
+                  <tr key={app.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900">{app.scholarships?.title || 'Program Beasiswa'}</div>
+                      <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{app.scholarships?.type}</div>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-slate-500">
+                      {new Date(app.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </td>
+                    <td className="px-6 py-4 font-bold font-mono text-slate-800">{app.gpa.toFixed(2)}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold border uppercase ${
+                        app.status === 'approved' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
+                          : app.status === 'rejected'
+                          ? 'bg-red-50 text-red-700 border-red-100'
+                          : 'bg-amber-50 text-amber-700 border-amber-100'
+                      }`}>
+                        {app.status === 'approved' ? 'Disetujui' : app.status === 'rejected' ? 'Ditolak' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-500 max-w-xs truncate">
+                      {app.rejection_reason || (app.status === 'approved' ? 'Pendaftaran Anda disetujui, silakan lengkapi berkas ke kemahasiswaan.' : '-')}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </section>
 
@@ -271,52 +298,57 @@ export default function MahasiswaBeasiswaSaya() {
             <Sparkles className="w-5 h-5 text-[#815500]" />
             Rekomendasi Peluang Beasiswa
           </h4>
-          <a 
-            href="#"
-            onClick={(e) => { e.preventDefault(); alert('Mengalihkan ke direktori beasiswa eksternal...'); }}
-            className="text-xs font-bold text-[#815500] hover:underline"
+          <button 
+            onClick={() => { window.location.hash = '#/scholarships'; }}
+            className="text-xs font-bold text-[#815500] hover:underline cursor-pointer bg-transparent border-0"
           >
             Lihat Semua Peluang
-          </a>
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {recommendations.map(rec => (
-            <div 
-              key={rec.id}
-              className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
-            >
-              <div className="h-40 overflow-hidden relative border-b border-slate-100">
-                <img src={rec.image} alt={rec.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                <div className="absolute top-3 left-3 bg-[#001e40]/75 backdrop-blur-sm text-[#feb234] border border-[#feb234]/30 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
-                  {rec.type}
-                </div>
-              </div>
-              
-              <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
-                <div>
-                  <div className="flex items-center gap-1.5 text-slate-450 text-[10px] font-bold mb-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>{rec.deadline}</span>
+        {recommendations.length === 0 ? (
+          <div className="bg-white border border-slate-200/60 p-6 rounded-2xl text-center text-slate-400 text-xs">
+            Anda telah mendaftar ke semua beasiswa yang tersedia saat ini.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {recommendations.map(rec => (
+              <div 
+                key={rec.id}
+                className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between hover:shadow-md transition-all group"
+              >
+                <div className="h-40 overflow-hidden relative border-b border-slate-100">
+                  <img src={rec.bannerImage || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=600&auto=format&fit=crop'} alt={rec.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <div className="absolute top-3 left-3 bg-[#001e40]/75 backdrop-blur-sm text-[#feb234] border border-[#feb234]/30 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
+                    {rec.type}
                   </div>
-                  <h5 className="font-bold text-sm text-[#001e40] leading-snug group-hover:text-amber-600 transition-colors mb-1.5">
-                    {rec.name}
-                  </h5>
-                  <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-2">
-                    {rec.desc}
-                  </p>
                 </div>
                 
-                <button 
-                  onClick={() => alert(`Mengajukan pendaftaran beasiswa "${rec.name}"...`)}
-                  className="w-full py-2.5 bg-[#feb234] hover:bg-[#feb234]/90 text-[#291800] font-bold text-xs rounded-xl shadow-sm hover:shadow transition-all cursor-pointer"
-                >
-                  Daftar Sekarang
-                </button>
+                <div className="p-5 flex-grow flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-slate-450 text-[10px] font-bold mb-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Tutup {rec.registrationDeadline}</span>
+                    </div>
+                    <h5 className="font-bold text-sm text-[#001e40] leading-snug group-hover:text-amber-600 transition-colors mb-1.5">
+                      {rec.title}
+                    </h5>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed line-clamp-2">
+                      {rec.description}
+                    </p>
+                  </div>
+                  
+                  <button 
+                    onClick={() => { window.location.hash = '#/scholarships'; }}
+                    className="w-full py-2.5 bg-[#feb234] hover:bg-[#feb234]/90 text-[#291800] font-bold text-xs rounded-xl shadow-sm hover:shadow transition-all cursor-pointer"
+                  >
+                    Daftar Sekarang
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
 
     </div>
