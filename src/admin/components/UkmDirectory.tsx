@@ -35,6 +35,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
   const [newDesc, setNewDesc] = useState('');
   const [newLeader, setNewLeader] = useState('');
   const [newLogoUrl, setNewLogoUrl] = useState('');
+  const [newCoverUrl, setNewCoverUrl] = useState('');
 
   // Edit UKM Form States
   const [editName, setEditName] = useState('');
@@ -43,6 +44,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
   const [editDesc, setEditDesc] = useState('');
   const [editLeader, setEditLeader] = useState('');
   const [editLogoUrl, setEditLogoUrl] = useState('');
+  const [editCoverUrl, setEditCoverUrl] = useState('');
 
   // Filtering logic
   const filteredUkms = ukms.filter(ukm => {
@@ -76,6 +78,27 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
     reader.readAsDataURL(file);
   };
 
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Cover image size must not exceed 2MB!");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      if (isEdit) {
+        setEditCoverUrl(base64String);
+      } else {
+        setNewCoverUrl(base64String);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   const openEditModal = (ukm: UkmRecord) => {
     setShowEditModal(ukm);
     setEditName(ukm.name);
@@ -84,6 +107,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
     setEditDesc(ukm.description);
     setEditLeader(ukm.leaderName || '');
     setEditLogoUrl(ukm.logoUrl || '');
+    setEditCoverUrl(ukm.coverUrl || '');
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -100,7 +124,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
       status: 'Active',
       description: newDesc,
       leaderName: newLeader,
-      logoUrl: newLogoUrl || undefined
+      logoUrl: newLogoUrl || undefined,
+      coverUrl: newCoverUrl || undefined
     });
 
     // Reset layout form
@@ -110,6 +135,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
     setNewDesc('');
     setNewLeader('');
     setNewLogoUrl('');
+    setNewCoverUrl('');
     setShowAddModal(false);
   };
 
@@ -128,7 +154,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
       type: editType,
       description: editDesc,
       leaderName: editLeader,
-      logoUrl: editLogoUrl || undefined
+      logoUrl: editLogoUrl || undefined,
+      coverUrl: editCoverUrl || undefined
     });
 
     setShowEditModal(null);
@@ -407,6 +434,32 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Cover Banner Image</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-16 rounded-xl bg-[#f2f4f7] border border-[#c3c6d1]/40 flex items-center justify-center overflow-hidden shrink-0">
+                    {newCoverUrl ? (
+                      <img src={newCoverUrl} alt="New cover preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-[#737780]">No Cover</span>
+                    )}
+                  </div>
+                  <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-[#c3c6d1] rounded-xl p-3 hover:bg-[#f2f4f7]/50 cursor-pointer transition-colors">
+                    <div className="flex flex-col items-center justify-center gap-1 text-[#43474f]">
+                      <Upload size={20} />
+                      <span className="text-xs font-bold text-center">Upload Cover</span>
+                      <span className="text-[10px] text-[#737780] font-medium text-center">Max 2MB (PNG, JPG)</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCoverFileChange(e, false)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Description</label>
                 <textarea
                   rows={3}
@@ -533,6 +586,32 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Cover Banner Image</label>
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-16 rounded-xl bg-[#f2f4f7] border border-[#c3c6d1]/40 flex items-center justify-center overflow-hidden shrink-0">
+                    {editCoverUrl ? (
+                      <img src={editCoverUrl} alt="Cover preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[10px] font-bold text-[#737780]">No Cover</span>
+                    )}
+                  </div>
+                  <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-[#c3c6d1] rounded-xl p-3 hover:bg-[#f2f4f7]/50 cursor-pointer transition-colors">
+                    <div className="flex flex-col items-center justify-center gap-1 text-[#43474f]">
+                      <Upload size={20} />
+                      <span className="text-xs font-bold text-center">Change Cover</span>
+                      <span className="text-[10px] text-[#737780] font-medium text-center">Max 2MB (PNG, JPG)</span>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleCoverFileChange(e, true)}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Description</label>
                 <textarea
                   rows={3}
@@ -568,6 +647,11 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
       {showDetailModal && (
         <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setShowDetailModal(null)}>
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40" onClick={e => e.stopPropagation()}>
+            {showDetailModal.coverUrl && (
+              <div className="w-full h-32 rounded-xl overflow-hidden mb-4 border border-[#c3c6d1]/40">
+                <img src={showDetailModal.coverUrl} alt="Cover" className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="flex items-center gap-4 mb-4 border-b border-[#eceef1] pb-4">
               <div className="w-16 h-16 rounded-xl bg-[#f2f4f7] border border-[#c3c6d1]/40 flex items-center justify-center overflow-hidden shrink-0">
                 {showDetailModal.logoUrl ? (

@@ -24,6 +24,7 @@ export interface UkmRecord {
   type: string; // e.g. "Academic & Tech", "Sports & Recreation", "Arts & Culture"
   status: 'Active' | 'Inactive';
   logoUrl?: string;
+  coverUrl?: string;
   updatedAt: string;
   description: string;
   leaderName?: string;

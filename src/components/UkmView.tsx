@@ -101,7 +101,7 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
               {/* Cover Banner picture */}
               <div 
                 className="h-40 w-full bg-cover bg-center relative"
-                style={{ backgroundImage: `url('${u.coverImage}')`, referrerPolicy: 'no-referrer' } as React.CSSProperties}
+                style={{ backgroundImage: `url('${u.coverImage || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop'}')`, referrerPolicy: 'no-referrer' } as React.CSSProperties}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-4 bg-[#feb234] text-[#001e40] px-2.5 py-0.5 text-[9px] font-sans font-black uppercase rounded-md shadow-sm">
@@ -111,13 +111,29 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
 
               {/* Card content body */}
               <div className="p-6 space-y-4 text-slate-800">
-                <div className="flex justify-between items-start gap-2">
-                  <h3 className="font-sans font-black text-lg text-[#001e40] group-hover:text-[#feb234] transition-colors tracking-tight line-clamp-1">
-                    {u.name}
-                  </h3>
-                  <div className="flex items-center space-x-1.5 bg-yellow-50 text-[#feb234] border border-yellow-250/50 px-2 py-0.5 rounded text-[10px] font-sans font-black">
-                    <Users size={11} />
-                    <span>{u.activeMembers} Mhs</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+                    {u.logoImage ? (
+                      <img 
+                        src={u.logoImage} 
+                        alt={`${u.name} logo`} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop';
+                        }}
+                      />
+                    ) : (
+                      <Users size={20} className="text-[#001e40]" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-grow">
+                    <h3 className="font-sans font-black text-lg text-[#001e40] group-hover:text-[#feb234] transition-colors tracking-tight line-clamp-1">
+                      {u.name}
+                    </h3>
+                    <div className="flex items-center space-x-1.5 bg-yellow-50 text-[#feb234] border border-yellow-250/50 px-2 py-0.5 rounded text-[10px] font-sans font-black w-fit mt-1">
+                      <Users size={11} />
+                      <span>{u.activeMembers} Mhs</span>
+                    </div>
                   </div>
                 </div>
 
@@ -187,7 +203,7 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
             {/* Modal Cover Image header */}
             <div 
               className="h-56 sm:h-64 w-full bg-cover bg-center relative flex-shrink-0"
-              style={{ backgroundImage: `url('${activeUkm.coverImage}')`, referrerPolicy: 'no-referrer' } as React.CSSProperties}
+              style={{ backgroundImage: `url('${activeUkm.coverImage || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop'}')`, referrerPolicy: 'no-referrer' } as React.CSSProperties}
             >
               <button 
                 onClick={() => setSelectedUkmId(null)}
@@ -196,13 +212,29 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
                 ✕
               </button>
               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
-              <div className="absolute bottom-6 left-6 space-y-2 z-11">
-                <span className="bg-[#feb234] text-[#001e40] font-sans text-xs font-black uppercase tracking-wider px-3 py-1 rounded shadow-sm">
-                  {activeUkm.category}
-                </span>
-                <h2 className="font-sans font-black text-2xl sm:text-3.5xl text-[#001e40] leading-none">
-                  {activeUkm.name}
-                </h2>
+              <div className="absolute bottom-6 left-6 flex items-center gap-4 z-11">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border border-slate-200 shadow-md flex items-center justify-center overflow-hidden shrink-0">
+                  {activeUkm.logoImage ? (
+                    <img 
+                      src={activeUkm.logoImage} 
+                      alt={`${activeUkm.name} logo`} 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop';
+                      }}
+                    />
+                  ) : (
+                    <Users size={32} className="text-[#001e40]" />
+                  )}
+                </div>
+                <div className="space-y-1 sm:space-y-2">
+                  <span className="bg-[#feb234] text-[#001e40] font-sans text-xs font-black uppercase tracking-wider px-3 py-1 rounded shadow-sm w-fit block">
+                    {activeUkm.category}
+                  </span>
+                  <h2 className="font-sans font-black text-2xl sm:text-3.5xl text-[#001e40] leading-none">
+                    {activeUkm.name}
+                  </h2>
+                </div>
               </div>
             </div>
 

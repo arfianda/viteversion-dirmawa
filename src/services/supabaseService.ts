@@ -372,6 +372,7 @@ export const SupabaseService = {
       type: row.type || 'Academic & Tech',
       status: (row.status || 'Active') as any,
       logoUrl: row.logo_image_url || undefined,
+      coverUrl: row.cover_image_url || undefined,
       updatedAt: row.updated_at ? new Date(row.updated_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 24, 2023',
       description: row.description || '',
       leaderName: row.leader_name || undefined
@@ -467,6 +468,7 @@ export const SupabaseService = {
       type: ur.type,
       status: ur.status,
       logo_image_url: ur.logoUrl,
+      cover_image_url: ur.coverUrl,
       description: ur.description,
       leader_name: ur.leaderName
     };
@@ -477,7 +479,7 @@ export const SupabaseService = {
         .insert({
           id: ukmId,
           ...payload,
-          cover_image_url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop'
+          cover_image_url: ur.coverUrl || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop'
         });
       if (error) throw error;
     } else {
