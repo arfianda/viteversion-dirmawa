@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Search, HelpCircle, PlusCircle, Sparkles, AlertTriangle, FileText, CheckSquare, Calendar, Edit2, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, HelpCircle, PlusCircle, Sparkles, AlertTriangle, FileText, CheckSquare, Calendar, Edit2, ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { ScholarshipRecord } from '../types';
+import { SupabaseService } from '../../services/supabaseService';
 
 interface ScholarshipsManagementProps {
   scholarships: ScholarshipRecord[];
@@ -23,6 +24,42 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
   const [newDesc, setNewDesc] = useState('');
   const [newCat, setNewCat] = useState('Internal University');
 
+  // Edit modal states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<ScholarshipRecord | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editProvider, setEditProvider] = useState('');
+  const [editDeadline, setEditDeadline] = useState('');
+  const [editType, setEditType] = useState<'Internal' | 'External' | 'Government'>('Internal');
+  const [editStatus, setEditStatus] = useState<'Open' | 'Soon' | 'Closed'>('Open');
+  const [editDesc, setEditDesc] = useState('');
+  const [editCat, setEditCat] = useState('Internal University');
+
+  // Application Stats state
+  const [applications, setApplications] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const data = await SupabaseService.getAdminScholarshipApplications();
+        setApplications(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchApplications();
+  }, [scholarships]);
+
+  // Calculate actual stats
+  const totalApplicants = applications.length;
+  const reviewedApplicants = applications.filter(a => a.status !== 'pending').length;
+
+  // Calculate critical deadlines (closest upcoming deadlines that are open)
+  const upcomingDeadlines = [...scholarships]
+    .filter(s => s.status === 'Open')
+    .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
+    .slice(0, 2);
+
   // Filter logic
   const filteredScholarships = scholarships.filter(item => {
     const matchesTab = activeTab === 'All' || item.type === activeTab;
@@ -31,6 +68,18 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
                           item.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
+
+  // Client-side pagination logic
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
+
+  const totalPages = Math.ceil(filteredScholarships.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedScholarships = filteredScholarships.slice(startIndex, startIndex + itemsPerPage);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,13 +109,31 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
   };
 
   const handleEdit = (item: ScholarshipRecord) => {
-    const newNamePrompt = prompt(`Edit Name for "${item.name}":`, item.name);
-    if (newNamePrompt !== null && newNamePrompt.trim() !== "") {
-      onEditScholarship({
-        ...item,
-        name: newNamePrompt
-      });
-    }
+    setEditingRecord(item);
+    setEditName(item.name);
+    setEditProvider(item.provider);
+    setEditDeadline(item.deadline);
+    setEditType(item.type);
+    setEditStatus(item.status);
+    setEditDesc(item.description || '');
+    setEditCat(item.category || '');
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRecord) return;
+    onEditScholarship({
+      ...editingRecord,
+      name: editName,
+      provider: editProvider,
+      deadline: editDeadline,
+      type: editType,
+      status: editStatus,
+      description: editDesc,
+      category: editCat
+    });
+    setShowEditModal(false);
   };
 
   return (
@@ -152,7 +219,7 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
                   </tr>
                 </thead>
                 <tbody className="text-sm font-medium divide-y divide-[#c3c6d1]/20 text-[#191c1e]">
-                  {filteredScholarships.map((item) => (
+                  {paginatedScholarships.map((item) => (
                     <tr key={item.id} className="hover:bg-[#f2f4f7]/30 transition-colors">
                       <td className="p-4 pl-6">
                         <div className="font-bold text-[#001e40]">{item.name}</div>
@@ -212,14 +279,39 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
 
           {/* Table footer pagination */}
           <div className="p-4 border-t border-[#eceef1] bg-[#f7f9fc] flex justify-between items-center text-xs font-bold text-[#737780]">
-            <span>Showing 1 to {filteredScholarships.length} of {scholarships.length} entries</span>
+            <span>
+              Showing {filteredScholarships.length === 0 ? 0 : startIndex + 1} to{' '}
+              {Math.min(startIndex + itemsPerPage, filteredScholarships.length)} of{' '}
+              {filteredScholarships.length} entries
+            </span>
             <div className="flex gap-1.5 items-center">
-              <button className="p-1 rounded hover:bg-[#eceef1] transition-colors cursor-pointer" disabled>
+              <button
+                className="p-1 rounded hover:bg-[#eceef1] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1 || totalPages <= 1}
+              >
                 <ChevronLeft size={16} />
               </button>
-              <button className="w-7 h-7 rounded bg-[#001e40] text-white flex items-center justify-center text-xs">1</button>
-              <button className="w-7 h-7 rounded hover:bg-[#eceef1] text-[#191c1e] flex items-center justify-center text-xs" onClick={() => alert("Simple demo rendering limited page parameters.")}>2</button>
-              <button className="p-1 rounded hover:bg-[#eceef1] transition-colors cursor-pointer" onClick={() => alert("Simple demo rendering limited page parameters.")}>
+              
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-7 h-7 rounded flex items-center justify-center text-xs transition-colors cursor-pointer ${
+                    currentPage === page
+                      ? 'bg-[#001e40] text-white'
+                      : 'hover:bg-[#eceef1] text-[#191c1e]'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+              <button
+                className="p-1 rounded hover:bg-[#eceef1] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={currentPage === totalPages || totalPages <= 1}
+              >
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -241,7 +333,7 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
                   </div>
                   <span className="text-sm font-bold text-[#191c1e]">Total Applicants</span>
                 </div>
-                <span className="font-headline font-bold text-lg text-[#001e40]">5,585</span>
+                <span className="font-headline font-bold text-lg text-[#001e40]">{totalApplicants}</span>
               </div>
 
               <div className="flex justify-between items-center p-3.5 rounded-xl bg-[#f7f9fc] border border-[#c3c6d1]/20">
@@ -251,7 +343,7 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
                   </div>
                   <span className="text-sm font-bold text-[#191c1e]">Reviewed</span>
                 </div>
-                <span className="font-headline font-bold text-lg text-[#001e40]">3,120</span>
+                <span className="font-headline font-bold text-lg text-[#001e40]">{reviewedApplicants}</span>
               </div>
 
             </div>
@@ -267,27 +359,29 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
             </div>
 
             <ul className="relative z-10 space-y-4">
-              <li className="flex gap-4 items-start pb-4 border-b border-white/10">
-                <div className="bg-[#feb234] text-[#291800] rounded-xl py-1.5 px-3 text-center min-w-[56px] font-bold">
-                  <div className="text-[9px] uppercase tracking-wider font-bold">Oct</div>
-                  <div className="text-lg font-headline leading-none mt-0.5">15</div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white leading-tight">Beasiswa Prestasi Akademik</div>
-                  <div className="text-[11px] text-white/70 mt-1 font-semibold leading-relaxed">Internal evaluation closes</div>
-                </div>
-              </li>
-
-              <li className="flex gap-4 items-start">
-                <div className="bg-white/10 text-white border border-white/15 rounded-xl py-1.5 px-3 text-center min-w-[56px] font-bold">
-                  <div className="text-[9px] uppercase tracking-wider font-bold">Nov</div>
-                  <div className="text-lg font-headline leading-none mt-0.5">01</div>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-white leading-tight">Djarum Foundation Plus</div>
-                  <div className="text-[11px] text-white/70 mt-1 font-semibold leading-relaxed">Provider callback deadline</div>
-                </div>
-              </li>
+              {upcomingDeadlines.length === 0 ? (
+                <li className="text-xs text-white/50 italic py-2">No active open deadlines</li>
+              ) : (
+                upcomingDeadlines.map((item, index) => {
+                  const dateParts = item.deadline.split('-');
+                  const monthStr = dateParts[1] ? new Date(item.deadline).toLocaleString('id-ID', { month: 'short' }) : 'DAY';
+                  const dayStr = dateParts[2] || '00';
+                  return (
+                    <li key={item.id} className={`flex gap-4 items-start ${index === 0 && upcomingDeadlines.length > 1 ? 'pb-4 border-b border-white/10' : ''}`}>
+                      <div className="bg-[#feb234] text-[#291800] rounded-xl py-1.5 px-3 text-center min-w-[56px] font-bold">
+                        <div className="text-[9px] uppercase tracking-wider font-bold">{monthStr}</div>
+                        <div className="text-lg font-headline leading-none mt-0.5">{dayStr}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-white leading-tight">{item.name}</div>
+                        <div className="text-[11px] text-white/70 mt-1 font-semibold leading-relaxed">
+                          Status: <span className="text-[#feb234] uppercase font-bold">{item.status}</span>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })
+              )}
             </ul>
           </div>
 
@@ -380,6 +474,120 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
                   className="px-5 py-2.5 bg-[#001e40] hover:bg-[#1f477b] text-white text-sm font-bold rounded-xl shadow-md cursor-pointer"
                 >
                   Create Scholarship Opportunity
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Scholarship Modal */}
+      {showEditModal && editingRecord && (
+        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-headline font-bold text-xl text-[#001e40]">Edit Scholarship Opportunity</h3>
+              <button onClick={() => setShowEditModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-650 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleEditSubmit} className="space-y-4 animate-fade-in text-xs font-sans">
+              <div>
+                <label className="block text-[10px] font-bold text-[#43474f] uppercase tracking-wider mb-1">Scholarship Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#001e40]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-[#43474f] uppercase tracking-wider mb-1">Provider</label>
+                  <input
+                    type="text"
+                    required
+                    value={editProvider}
+                    onChange={(e) => setEditProvider(e.target.value)}
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-xs focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#43474f] uppercase tracking-wider mb-1">Deadline</label>
+                  <input
+                    type="date"
+                    required
+                    value={editDeadline}
+                    onChange={(e) => setEditDeadline(e.target.value)}
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-xs focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold text-[#43474f] uppercase tracking-wider mb-1">Type</label>
+                  <select
+                    value={editType}
+                    onChange={(e) => setEditType(e.target.value as any)}
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-xs focus:outline-none font-bold text-slate-800"
+                  >
+                    <option value="Internal">Internal</option>
+                    <option value="External">External</option>
+                    <option value="Government">Government</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#43474f] uppercase tracking-wider mb-1">Status</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value as any)}
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-xs focus:outline-none font-bold text-slate-800"
+                  >
+                    <option value="Open">Open</option>
+                    <option value="Soon">Soon</option>
+                    <option value="Closed">Closed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#43474f] uppercase tracking-wider mb-1">Category Detail</label>
+                <input
+                  type="text"
+                  value={editCat}
+                  onChange={(e) => setEditCat(e.target.value)}
+                  placeholder="e.g. Internal University"
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-xs focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#43474f] uppercase tracking-wider mb-1">Description</label>
+                <textarea
+                  value={editDesc}
+                  onChange={(e) => setEditDesc(e.target.value)}
+                  rows={3}
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-xs focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-[#eceef1]">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-350 text-slate-700 font-bold rounded-xl transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-[#001e40] hover:bg-[#1f477b] text-white font-bold rounded-xl transition cursor-pointer"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

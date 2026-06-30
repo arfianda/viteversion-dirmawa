@@ -28,6 +28,7 @@ import { UserSession, AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle, A
 import { INITIAL_ALUMNI, INITIAL_UKMS, INITIAL_SCHOLARSHIPS, INITIAL_NEWS, INITIAL_ADMINS } from './data';
 import { SupabaseService } from '../services/supabaseService';
 import { supabase } from '../services/supabaseClient';
+import { AuthService } from '../services/authService';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -49,6 +50,7 @@ import AdminManagement from './components/AdminManagement';
 import RegistrationQueue from './components/RegistrationQueue';
 import OrmawaApplicationsQueue from './components/OrmawaApplicationsQueue';
 import OrmawaProposalsQueue from './components/OrmawaProposalsQueue';
+import ScholarshipApplicationsQueue from './components/ScholarshipApplicationsQueue';
 
 export default function AdminPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -132,6 +134,31 @@ export default function AdminPortal() {
       setPendingRegistrationsCount(dbPendingRegistrations);
       setAlumniCount(dbAlumniStats.total);
       setVerifiedAlumniCount(dbAlumniStats.verified);
+
+      // Load administrators list from Supabase
+      const { data: dbUsers, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, email, role, created_at')
+        .in('role', ['superadmin', 'admin', 'administrator', 'operator']);
+      
+      if (!usersError && dbUsers) {
+        const dbAdmins: AdminRecord[] = dbUsers.map((u: any) => {
+          let displayRole: 'Super Admin' | 'Admin' | 'Editor' = 'Admin';
+          if (u.role === 'superadmin') displayRole = 'Super Admin';
+          else if (u.role === 'operator') displayRole = 'Editor';
+          
+          const initials = u.name ? u.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'AD';
+          return {
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: displayRole,
+            avatarInitials: initials,
+            lastActive: u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : 'Today'
+          };
+        });
+        setAdmins(dbAdmins);
+      }
     } catch (err) {
       console.error("AdminPortal failed to load Supabase data, using local mockup fallback:", err);
     }
@@ -447,23 +474,69 @@ export default function AdminPortal() {
     }
   };
 
-  const handleAddAdmin = (newAdmin: Omit<AdminRecord, 'id' | 'avatarInitials' | 'lastActive'>) => {
-    const initials = newAdmin.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-    const admin: AdminRecord = {
-      ...newAdmin,
-      id: String(Date.now()),
-      lastActive: 'Just now',
-      avatarInitials: initials
-    };
-    setAdmins([...admins, admin]);
+  const handleAddAdmin = async (newAdmin: Omit<AdminRecord, 'id' | 'avatarInitials' | 'lastActive'>) => {
+    if (!session) return;
+    try {
+      let mappedRole: 'superadmin' | 'admin' | 'operator' = 'admin';
+      if (newAdmin.role === 'Super Admin') mappedRole = 'superadmin';
+      else if (newAdmin.role === 'Editor') mappedRole = 'operator';
+
+      const result = await AuthService.addUser(session.id, {
+        email: newAdmin.email,
+        name: newAdmin.name,
+        role: mappedRole
+      });
+
+      if (!result.success || !result.user) {
+        throw new Error(result.error || 'Failed to create user');
+      }
+
+      const initials = newAdmin.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      const admin: AdminRecord = {
+        ...newAdmin,
+        id: result.user.id,
+        lastActive: 'Just now',
+        avatarInitials: initials
+      };
+      setAdmins([...admins, admin]);
+      alert(`Success: Admin user created with default password "password123"!`);
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menambah admin ke database: ' + (err.message || String(err)));
+    }
   };
 
-  const handleRemoveAdmin = (id: string) => {
-    setAdmins(admins.filter(item => item.id !== id));
+  const handleRemoveAdmin = async (id: string) => {
+    if (!session) return;
+    if (!confirm('Apakah Anda yakin ingin menghapus administrator ini?')) return;
+    try {
+      const result = await AuthService.deleteUser(id, session.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
+      setAdmins(admins.filter(item => item.id !== id));
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menghapus admin dari database: ' + (err.message || String(err)));
+    }
   };
 
-  const handleUpdateAdminRole = (id: string, role: 'Super Admin' | 'Admin' | 'Editor') => {
-    setAdmins(admins.map(item => item.id === id ? { ...item, role } : item));
+  const handleUpdateAdminRole = async (id: string, role: 'Super Admin' | 'Admin' | 'Editor') => {
+    if (!session) return;
+    try {
+      let mappedRole: 'superadmin' | 'admin' | 'operator' = 'admin';
+      if (role === 'Super Admin') mappedRole = 'superadmin';
+      else if (role === 'Editor') mappedRole = 'operator';
+
+      const result = await AuthService.updateUserRole(id, mappedRole, session.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update role');
+      }
+      setAdmins(admins.map(item => item.id === id ? { ...item, role } : item));
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal memperbarui peran admin di database: ' + (err.message || String(err)));
+    }
   };
 
   // Dynamic quick creation from Sidebar Header
@@ -518,11 +591,19 @@ export default function AdminPortal() {
     { id: 'alumni', label: 'Alumni Data Hub', icon: Award },
     { id: 'ukm', label: 'UKM & Ormawa', icon: Users },
     { id: 'scholarships', label: 'Scholarships Portal', icon: BookOpen },
+    { id: 'scholarship-apps', label: 'Antrian Beasiswa', icon: BookOpen },
     { id: 'ormawa-apps', label: 'Antrian Pengajuan Ormawa', icon: UserPlus },
     { id: 'ormawa-props', label: 'Proposal & LPJ Ormawa', icon: Newspaper },
     { id: 'settings', label: 'Access Control', icon: Shield },
     { id: 'registrations', label: 'Registrations', icon: UserPlus },
   ];
+
+  const visibleNavItems = NAVIGATION_ITEMS.filter(item => {
+    if (item.id === 'settings' && session?.role !== 'superadmin') {
+      return false;
+    }
+    return true;
+  });
 
   if (!session) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
@@ -657,6 +738,9 @@ export default function AdminPortal() {
           </div>
         );
       case 'settings':
+        if (session.role !== 'superadmin') {
+          return <div className="p-12 text-center text-red-500 font-bold">Access Denied: Super Admin only.</div>;
+        }
         return (
           <AdminManagement
             admins={admins}
@@ -671,6 +755,8 @@ export default function AdminPortal() {
         return <OrmawaApplicationsQueue reviewerId={session.id} />;
       case 'ormawa-props':
         return <OrmawaProposalsQueue />;
+      case 'scholarship-apps':
+        return <ScholarshipApplicationsQueue />;
       default:
         return <div className="p-12 text-center text-[#737780] font-bold">In development...</div>;
     }
@@ -712,7 +798,7 @@ export default function AdminPortal() {
 
         {/* Dynamic Navigation lists */}
         <div className="flex-1 overflow-y-auto space-y-1">
-          {NAVIGATION_ITEMS.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
             return (
@@ -957,7 +1043,7 @@ export default function AdminPortal() {
               </div>
 
               <div className="flex-1 space-y-2 mt-4">
-                {NAVIGATION_ITEMS.map((item) => {
+                {visibleNavItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
                   return (
