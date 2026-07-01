@@ -1,6 +1,29 @@
 import { supabase } from './supabaseClient';
-import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from '../types';
+import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews, ScholarshipApplication, Appointment } from '../types';
 import { NewsArticle, UkmRecord, ScholarshipRecord, AlumniRecord as AdminAlumniRecord } from '../admin/types';
+
+// Registration request types
+interface RegistrationRequest {
+  id: string;
+  nim: string;
+  name: string;
+  email: string;
+  password?: string;
+  major: string;
+  faculty: string;
+  semester: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
+  created_at: string;
+}
+
+interface RegistrationStats {
+  pending: number;
+  approved: number;
+  rejected: number;
+}
 
 // Helper to map DB news category/types
 function mapAdminCategoryToDb(category: string): 'Berita' | 'Agenda' | 'Pengumuman' {
@@ -118,11 +141,15 @@ export const SupabaseService = {
   },
 
   async deleteNewsArticle(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('student_news')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'student_news' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
   async addStudentNews(item: Omit<StudentNews, 'id'>): Promise<StudentNews> {
@@ -291,11 +318,15 @@ export const SupabaseService = {
   },
 
   async deleteScholarship(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('scholarships')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'scholarships' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
 
@@ -319,6 +350,7 @@ export const SupabaseService = {
       logoImage: row.logo_image_url || '',
       vision: row.vision || '',
       activeMembers: row.active_members || 0,
+      instagramUrl: row.instagram_url || '',
       mission: (row.ukpm_missions || []).map((m: any) => m.mission),
       schedule: (row.ukpm_schedules || []).map((s: any) => ({ day: s.day, time: s.time, activity: s.activity })),
       gallery: (row.ukpm_gallery || []).map((g: any) => g.image_url),
@@ -343,7 +375,8 @@ export const SupabaseService = {
       logoUrl: row.logo_image_url || undefined,
       updatedAt: row.updated_at ? new Date(row.updated_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 24, 2023',
       description: row.description || '',
-      leaderName: row.leader_name || undefined
+      leaderName: row.leader_name || undefined,
+      instagramUrl: row.instagram_url || undefined
     }));
   },
 
@@ -359,7 +392,8 @@ export const SupabaseService = {
       logo_image_url: u.logoImage,
       vision: u.vision,
       active_members: u.activeMembers,
-      leader_name: u.contacts && u.contacts[0] ? u.contacts[0].name : ''
+      leader_name: u.contacts && u.contacts[0] ? u.contacts[0].name : '',
+      instagram_url: u.instagramUrl || null
     };
 
     if (isNew) {
@@ -427,7 +461,7 @@ export const SupabaseService = {
   },
 
   async saveAdminUkmRecord(ur: UkmRecord, isNew: boolean = false): Promise<void> {
-    const ukmId = isNew ? crypto.randomUUID() : ur.id;
+    const ukmId = ur.id || crypto.randomUUID();
     const dbCategory = mapUkmCategoryToDb(ur.category);
 
     const payload = {
@@ -437,7 +471,8 @@ export const SupabaseService = {
       status: ur.status,
       logo_image_url: ur.logoUrl,
       description: ur.description,
-      leader_name: ur.leaderName
+      leader_name: ur.leaderName,
+      instagram_url: ur.instagramUrl || null
     };
 
     if (isNew) {
@@ -459,11 +494,15 @@ export const SupabaseService = {
   },
 
   async deleteUkm(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('ukms')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'ukms' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
 
@@ -523,11 +562,15 @@ export const SupabaseService = {
   },
 
   async deleteAchievement(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('achievements')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select();
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'achievements' table are blocking the DELETE operation for your authenticated session.");
+    }
   },
 
 
@@ -633,7 +676,32 @@ export const SupabaseService = {
   },
 
   async saveAdminAlumniRecordsBulk(records: Omit<AdminAlumniRecord, 'id'>[]): Promise<void> {
-    const payloads = records.map(ar => ({
+    // 1. Fetch all existing NIMs from database to prevent duplicate insertions
+    const { data: existing, error: fetchError } = await supabase
+      .from('alumni_records')
+      .select('nim');
+    if (fetchError) throw fetchError;
+    
+    const existingNims = new Set(existing ? existing.map((x: any) => String(x.nim || '').trim()) : []);
+
+    // 2. Filter records to avoid duplicate NIMs within the batch and matching existing DB records
+    const seenBatchNims = new Set<string>();
+    const uniqueNewRecords = records.filter(ar => {
+      const cleanNim = String(ar.nim || '').trim();
+      if (!cleanNim) return false;
+      if (existingNims.has(cleanNim) || seenBatchNims.has(cleanNim)) {
+        return false;
+      }
+      seenBatchNims.add(cleanNim);
+      return true;
+    });
+
+    if (uniqueNewRecords.length === 0) {
+      console.log('No new alumni records to insert (all duplicates skipped).');
+      return;
+    }
+
+    const payloads = uniqueNewRecords.map(ar => ({
       id: crypto.randomUUID(),
       name: ar.name,
       nim: ar.nim,
@@ -641,9 +709,9 @@ export const SupabaseService = {
       graduation_year: ar.graduationYear,
       nim_status: ar.status,
       email: ar.email || '',
-      status: 'Bekerja' as any,
-      company: '',
-      position: ''
+      status: ar.employmentStatus || 'Bekerja',
+      company: ar.company || '',
+      position: ar.position || ''
     }));
 
     const { error } = await supabase
@@ -653,10 +721,383 @@ export const SupabaseService = {
   },
 
   async deleteAlumni(id: string): Promise<void> {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('alumni_records')
+      .delete()
+      .eq('id', id)
+      .select();
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error("No rows deleted. This usually indicates that Row-Level Security (RLS) policies on your Supabase 'alumni_records' table are blocking the DELETE operation for your authenticated session.");
+    }
+  },
+
+  // ==========================================
+  // 6. REGISTRATION REQUESTS / registration_requests
+  // ==========================================
+  async getRegistrationRequests(status?: 'pending' | 'approved' | 'rejected', limit?: number, offset?: number): Promise<RegistrationRequest[]> {
+    let query = supabase
+      .from('registration_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (status) {
+      query = query.eq('status', status);
+    }
+    if (limit) {
+      query = query.limit(limit);
+    }
+    if (offset) {
+      query = query.range(offset, offset + (limit || 0) - 1);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []) as RegistrationRequest[];
+  },
+
+  async approveRegistrationRequest(id: string, adminId: string): Promise<void> {
+    const { data: supabaseData } = await supabase.auth.getSession();
+    if (!supabaseData.session) {
+      throw new Error("Admin session required for approval");
+    }
+
+    const { error } = await supabase.rpc('approve_registration_request', {
+      p_request_id: id,
+      p_admin_id: adminId
+    });
+
+    if (error) {
+      throw new Error(error.message || "Failed to approve registration");
+    }
+  },
+
+  async rejectRegistrationRequest(id: string, reason?: string): Promise<void> {
+    const { error } = await supabase
+      .from('registration_requests')
+      .update({
+        status: 'rejected',
+        rejection_reason: reason || null,
+        reviewed_by: (await supabase.auth.getUser()).data.user?.id || null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async getRegistrationRequestStats(): Promise<RegistrationStats> {
+    const { data, error } = await supabase
+      .from('registration_requests')
+      .select('status, count');
+    if (error) throw error;
+
+    const stats: RegistrationStats = { pending: 0, approved: 0, rejected: 0 };
+    (data || []).forEach((row: any) => {
+      if (row.status in stats) {
+        stats[row.status as 'pending' | 'approved' | 'rejected'] = parseInt(row.count, 10);
+      }
+    });
+    return stats;
+  },
+
+  async getStudentsCount(): Promise<number> {
+    const { count, error } = await supabase
+      .from('mahasiswa_profiles')
+      .select('*', { count: 'exact', head: true });
+    if (error) throw error;
+    return count || 0;
+  },
+
+  async getNewStudentsCountThisMonth(): Promise<number> {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+
+    const { count, error } = await supabase
+      .from('mahasiswa_profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', startOfMonth.toISOString());
+    if (error) throw error;
+    return count || 0;
+  },
+
+  async getPendingRegistrationsCount(): Promise<number> {
+    const { count, error } = await supabase
+      .from('registration_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    if (error) throw error;
+    return count || 0;
+  },
+
+  async getAlumniStats(): Promise<{ total: number; verified: number }> {
+    const [
+      { count: total, error: totalError },
+      { count: verified, error: verifiedError }
+    ] = await Promise.all([
+      supabase.from('alumni_records').select('*', { count: 'exact', head: true }),
+      supabase.from('alumni_records').select('*', { count: 'exact', head: true }).eq('nim_status', 'Valid')
+    ]);
+    if (totalError) throw totalError;
+    if (verifiedError) throw verifiedError;
+    return {
+      total: total || 0,
+      verified: verified || 0
+    };
+  },
+
+  // ==========================================
+  // 10. SCHOLARSHIP APPLICATIONS / scholarship_applications
+  // ==========================================
+  async submitScholarshipApplication(appData: {
+    user_id: string;
+    scholarship_id: string;
+    nim: string;
+    name: string;
+    major: string;
+    gpa: number;
+    phone: string;
+    document_url?: string;
+  }): Promise<void> {
+    const { error } = await supabase
+      .from('scholarship_applications')
+      .insert(appData);
+    if (error) throw error;
+
+    // Increment applicants counter on the scholarship record (if possible)
+    const { data: scholarship, error: getError } = await supabase
+      .from('scholarships')
+      .select('applicants')
+      .eq('id', appData.scholarship_id)
+      .single();
+    if (!getError && scholarship) {
+      await supabase
+        .from('scholarships')
+        .update({ applicants: (scholarship.applicants || 0) + 1 })
+        .eq('id', appData.scholarship_id);
+    }
+  },
+
+  async getStudentScholarshipApplications(userId: string): Promise<ScholarshipApplication[]> {
+    const { data, error } = await supabase
+      .from('scholarship_applications')
+      .select('*, scholarships(*)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+      id: row.id,
+      user_id: row.user_id,
+      scholarship_id: row.scholarship_id,
+      nim: row.nim,
+      name: row.name,
+      major: row.major,
+      gpa: Number(row.gpa),
+      phone: row.phone,
+      document_url: row.document_url || '',
+      status: row.status as any,
+      rejection_reason: row.rejection_reason || '',
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      scholarships: row.scholarships ? {
+        id: row.scholarships.id,
+        title: row.scholarships.title,
+        type: row.scholarships.type,
+        provider: row.scholarships.provider,
+        description: row.scholarships.description || '',
+        fundingAmount: row.scholarships.funding_amount || '',
+        registrationDeadline: row.scholarships.registration_deadline || '',
+        requirements: [],
+        bannerImage: row.scholarships.banner_image_url || '',
+        benefits: []
+      } : undefined
+    }));
+  },
+
+  async getAdminScholarshipApplications(): Promise<ScholarshipApplication[]> {
+    const { data, error } = await supabase
+      .from('scholarship_applications')
+      .select('*, scholarships(*)')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+
+    return (data || []).map(row => ({
+      id: row.id,
+      user_id: row.user_id,
+      scholarship_id: row.scholarship_id,
+      nim: row.nim,
+      name: row.name,
+      major: row.major,
+      gpa: Number(row.gpa),
+      phone: row.phone,
+      document_url: row.document_url || '',
+      status: row.status as any,
+      rejection_reason: row.rejection_reason || '',
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      scholarships: row.scholarships ? {
+        id: row.scholarships.id,
+        title: row.scholarships.title,
+        type: row.scholarships.type,
+        provider: row.scholarships.provider,
+        description: row.scholarships.description || '',
+        fundingAmount: row.scholarships.funding_amount || '',
+        registrationDeadline: row.scholarships.registration_deadline || '',
+        requirements: [],
+        bannerImage: row.scholarships.banner_image_url || '',
+        benefits: []
+      } : undefined
+    }));
+  },
+
+  async updateScholarshipApplicationStatus(id: string, status: 'approved' | 'rejected', rejectionReason?: string): Promise<void> {
+    const { error } = await supabase
+      .from('scholarship_applications')
+      .update({
+        status,
+        rejection_reason: rejectionReason || null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  // ==========================================
+  // MEMBER REPORTS MANAGEMENT
+  // ==========================================
+  async createMemberReport(ukmId: string, reportedCount: number): Promise<void> {
+    const reportId = crypto.randomUUID();
+    const { error } = await supabase
+      .from('member_reports')
+      .insert({
+        id: reportId,
+        ukm_id: ukmId,
+        reported_count: reportedCount,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    if (error) throw error;
+  },
+
+  async getPendingMemberReports(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('member_reports')
+      .select('*, ukms(name)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getPendingMemberReportForUkm(ukmId: string): Promise<any> {
+    const { data, error } = await supabase
+      .from('member_reports')
+      .select('*')
+      .eq('ukm_id', ukmId)
+      .eq('status', 'pending')
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  async approveMemberReport(reportId: string, ukmId: string, count: number): Promise<void> {
+    // 1. Update report status to approved
+    const { error: reportError } = await supabase
+      .from('member_reports')
+      .update({ status: 'approved', updated_at: new Date().toISOString() })
+      .eq('id', reportId);
+    if (reportError) throw reportError;
+
+    // 2. Update active_members in ukms table
+    const { error: ukmError } = await supabase
+      .from('ukms')
+      .update({ active_members: count, updated_at: new Date().toISOString() })
+      .eq('id', ukmId);
+    if (ukmError) throw ukmError;
+  },
+
+  async rejectMemberReport(reportId: string): Promise<void> {
+    const { error } = await supabase
+      .from('member_reports')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('id', reportId);
+    if (error) throw error;
+  },
+
+  async getSystemSetting(key: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? data.value : 'false';
+  },
+
+  async setSystemSetting(key: string, value: string): Promise<void> {
+    const { error } = await supabase
+      .from('system_settings')
+      .upsert({ key, value });
+    if (error) throw error;
+  },
+
+  // ==========================================
+  // APPOINTMENTS MANAGEMENT & ROLES UPDATE
+  // ==========================================
+  async getAppointments(): Promise<Appointment[]> {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .order('requested_date', { ascending: true })
+      .order('requested_time', { ascending: true });
+    if (error) throw error;
+    return (data || []) as Appointment[];
+  },
+
+  async createAppointment(appointment: Omit<Appointment, 'id'>): Promise<Appointment> {
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert({
+        ...appointment,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Appointment;
+  },
+
+  async updateAppointment(id: string, updates: Partial<Appointment>): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteAppointment(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
       .delete()
       .eq('id', id);
     if (error) throw error;
+  },
+
+  async updateUserRoles(userId: string, roles: string[]): Promise<void> {
+    const primaryRole = roles.length > 0 ? roles[0] : 'operator';
+    const { error } = await supabase
+      .from('users')
+      .update({
+        roles,
+        role: primaryRole,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+    if (error) throw error;
   }
 };
+

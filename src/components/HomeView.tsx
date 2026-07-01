@@ -5,21 +5,79 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles } from 'lucide-react';
+import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { StudentNews } from '../types';
 
 interface HomeViewProps {
   setCurrentTab: (tab: string) => void;
   setSelectedUkmId: (id: string | null) => void;
+  news: StudentNews[];
+  ukmsCount: number;
+  alumniCount: number;
+  achievementsCount: number;
 }
 
-export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewProps) {
+export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCount, alumniCount, achievementsCount }: HomeViewProps) {
   const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
+  const [currentSlide, setCurrentSlide] = React.useState(0);
+  const [isPaused, setIsPaused] = React.useState(false);
+
+  // Filter news to exclude agenda items for the main news list
+  const newsAndAnnouncements = React.useMemo(() => {
+    return news.filter(item => {
+      const cat = item.category?.toLowerCase() || '';
+      return !cat.includes('agenda');
+    });
+  }, [news]);
+
+  // Find all agenda items
+  const agendaItems = React.useMemo(() => {
+    return news.filter(item => {
+      const cat = item.category?.toLowerCase() || '';
+      return cat.includes('agenda');
+    });
+  }, [news]);
+
+  const latestAgenda = agendaItems[0];
+
+  // Hero carousel slides with placeholder images
+  const heroSlides = [
+    {
+      image: '/gedung-upb.jpg',
+      subtitle: 'Portal resmi informasi dan layanan kemahasiswaan Universitas Pelita Bangsa.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Mewujudkan prestasi mahasiswa berkualitas di tingkat nasional dan internasional.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Jejak alumni sukses yang menginspirasi di berbagai industri profesional.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1562774053-701939374585?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Mengembangkan potensi akademik dan karakter untuk masa depan gemilang.'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1576267423048-15c0040fec78?q=80&w=1920&auto=format&fit=crop',
+      subtitle: 'Wadah kreativitas mahasiswa melalui Unit Kegiatan Mahasiswa yang aktif dan berprestasi.'
+    }
+  ];
+
+  // Auto-rotation logic
+  React.useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isPaused, heroSlides.length]);
 
   // Stats matching the exact values of your stitch mockups: 50+ Unit Kegiatan Mahasiswa, 15k+ Jaringan Alumni, 500+ Prestasi Gemilang
   const stats = [
-    { value: '50+', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
-    { value: '15k+', label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
-    { value: '500+', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
+    { value: ukmsCount ? `${ukmsCount}+` : '50+', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
+    { value: alumniCount ? (alumniCount >= 1000 ? `${(alumniCount/1000).toFixed(0)}k+` : `${alumniCount}+`) : '15k+', label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
+    { value: achievementsCount ? `${achievementsCount}+` : '500+', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
   ];
 
   const handleServiceClick = (id: string) => {
@@ -30,18 +88,35 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
   return (
     <div className="space-y-16">
 
-      {/* 1. HERO BANNER - Exact layout styling of Universitas Pelita Bangsa */}
-      <section className="relative h-[480px] lg:h-[520px] overflow-hidden rounded-3xl shadow-xl">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('/gedung-upb.jpg')`
-          }}
-        />
-        {/* Navy overlay to replicate the dark gradient color schema in visual mockups */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#001e40] via-[#001e40]/90 to-[#001e40]/35" />
+      {/* 1. HERO CAROUSEL - Auto-sliding horizontal carousel */}
+      <section className="relative h-[480px] lg:h-[520px] overflow-hidden rounded-3xl shadow-xl"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        {/* Slides container */}
+        <div className="absolute inset-0">
+          {heroSlides.map((slide, index) => (
+            <motion.div
+              key={index}
+              className="absolute inset-0"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{
+                opacity: index === currentSlide ? 1 : 0,
+                x: index === currentSlide ? 0 : index < currentSlide ? -100 : 100
+              }}
+              transition={{ duration: 0.7, ease: "easeInOut" }}
+            >
+              <div
+                className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: `url('${slide.image}')` }}
+              />
+              {/* Navy overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#001e40] via-[#001e40]/90 to-[#001e40]/35" />
+            </motion.div>
+          ))}
+        </div>
 
-        {/* Content Box */}
+        {/* Content Box - Fixed position with changing subtitle */}
         <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-12 lg:px-20 max-w-2xl space-y-5 z-10 text-white">
           <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 text-[#feb234] px-3.5 py-1 rounded-full text-[11px] font-sans font-bold uppercase tracking-wider w-fit">
             <Sparkles size={11} className="text-[#feb234]" />
@@ -52,9 +127,15 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
             Portal resmi <br /> Kemahasiswaan dan Alumni Universitas Pelita Bangsa
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-xl">
-            Portal resmi informasi dan layanan kemahasiswaan Universitas Pelita Bangsa.
-          </p>
+          <motion.p
+            key={currentSlide}
+            className="text-sm sm:text-base text-slate-300 font-sans leading-relaxed max-w-xl"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {heroSlides[currentSlide].subtitle}
+          </motion.p>
 
           <div className="flex flex-wrap gap-3.5 pt-2">
             <button
@@ -71,6 +152,38 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
               Lihat Program Unggulan
             </button>
           </div>
+        </div>
+
+        {/* Navigation Arrows */}
+        <button
+          onClick={() => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length)}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100"
+          aria-label="Previous slide"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          onClick={() => setCurrentSlide((prev) => (prev + 1) % heroSlides.length)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white border border-white/20 transition-all opacity-0 hover:opacity-100 group-hover:opacity-100"
+          aria-label="Next slide"
+        >
+          <ChevronRight size={20} />
+        </button>
+
+        {/* Slide Indicators */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+          {heroSlides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`transition-all duration-300 rounded-full ${
+                index === currentSlide
+                  ? 'w-8 h-2 bg-[#feb234]'
+                  : 'w-2 h-2 bg-white/40 hover:bg-white/60'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
       </section>
 
@@ -158,7 +271,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
             {/* ALUMNI Card */}
             <div
-              onClick={() => handleServiceClick('alumni')}
+              onClick={() => handleServiceClick('alumni-data')}
               className="bg-white hover:bg-slate-50 border border-slate-100 p-5 rounded-2xl shadow-sm cursor-pointer group flex flex-col justify-between h-[148px] transition-all"
             >
               <div className="flex justify-between items-start">
@@ -178,7 +291,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
           {/* PUSAT KARIR (Solid navy/blue card) */}
           <div
-            onClick={() => handleServiceClick('alumni')}
+            onClick={() => handleServiceClick('alumni-data')}
             className="bg-gradient-to-br from-[#001e40] to-[#002d61] hover:to-[#0a3366] border border-slate-800 p-6 rounded-2xl shadow-sm cursor-pointer group flex flex-col justify-between h-[320px] text-white transition-all"
           >
             <div className="w-10 h-10 rounded-xl bg-[#feb234]/15 text-[#feb234] flex items-center justify-center">
@@ -217,53 +330,34 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
 
           {/* News listing matching stitch */}
           <div className="space-y-4">
-
-            {/* News 1 */}
-            <div className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
-              <div
-                className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
-                style={{ backgroundImage: `url('https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop')` } as React.CSSProperties}
-              />
-              <div className="space-y-2 flex-grow">
-                <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
-                  Prestasi
-                </span>
-                <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
-                  Tim Robotik Universitas Pelita Bangsa Raih Juara 1 Nasional
-                </h3>
-                <p className="text-xs text-slate-505 font-sans line-clamp-1 leading-normal">
-                  Inovasi terbaru dari tim mahasiswa teknik berhasil memenangkan kompetisi bergengsi tingkat nasional.
-                </p>
-                <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
-                  <Calendar size={10} />
-                  <span>12 Oktober 2024</span>
+            {newsAndAnnouncements.slice(0, 3).map((item) => (
+              <div key={item.id} className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
+                <div
+                  className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
+                  style={{ backgroundImage: `url('${item.image || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop'}')` } as React.CSSProperties}
+                />
+                <div className="space-y-2 flex-grow">
+                  <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
+                    {item.category}
+                  </span>
+                  <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
+                    {item.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
+                    {item.summary}
+                  </p>
+                  <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
+                    <Calendar size={10} />
+                    <span>{item.date}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* News 2 */}
-            <div className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
-              <div
-                className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
-                style={{ backgroundImage: `url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop')` } as React.CSSProperties}
-              />
-              <div className="space-y-2 flex-grow">
-                <span className="inline-block bg-sky-50 text-sky-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
-                  Akademik
-                </span>
-                <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
-                  Pendaftaran Beasiswa Internal Semester Ganjil 2026 Dibuka
-                </h3>
-                <p className="text-xs text-slate-505 font-sans line-clamp-1 leading-normal">
-                  Segera persiapkan berkas Anda, pendaftaran beasiswa prestasi dan bantuan studi telah resmi dibuka.
-                </p>
-                <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
-                  <Calendar size={10} />
-                  <span>10 Oktober 2024</span>
-                </div>
+            ))}
+            {newsAndAnnouncements.length === 0 && (
+              <div className="text-center py-6 text-slate-500 text-sm">
+                Tidak ada berita saat ini.
               </div>
-            </div>
-
+            )}
           </div>
         </div>
 
@@ -276,24 +370,40 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId }: HomeViewPr
           <div className="bg-[#001e40] p-6 rounded-2xl text-white space-y-5 shadow-md">
             <div className="flex items-center space-x-2 text-[#feb234]">
               <Calendar size={16} />
-              <span className="font-mono text-xs uppercase tracking-wider font-extrabold">Hari Ini</span>
+              <span className="font-mono text-xs uppercase tracking-wider font-extrabold">
+                {latestAgenda ? 'Agenda Terdekat' : 'Hari Ini'}
+              </span>
             </div>
 
-            <div className="space-y-3">
-              <h3 className="font-sans font-black text-lg text-white leading-tight">
-                Job Fair &amp; Career Expo 2026
-              </h3>
-              <p className="text-xs text-slate-400">
-                Aula Gedung B, Kampus Cikarang.
-              </p>
-              <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
-                <p>⌚ 09.00 - 16.00 WIB</p>
-                <p>📍 Auditorium Lt. 3</p>
+            {latestAgenda ? (
+              <div className="space-y-3">
+                <h3 className="font-sans font-black text-lg text-white leading-tight">
+                  {latestAgenda.title}
+                </h3>
+                <p className="text-xs text-slate-350 leading-relaxed font-sans line-clamp-3">
+                  {latestAgenda.summary}
+                </p>
+                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
+                  <p>📅 Tanggal: {latestAgenda.date}</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                <h3 className="font-sans font-black text-lg text-white leading-tight">
+                  Job Fair &amp; Career Expo 2026
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Aula Gedung B, Kampus Cikarang.
+                </p>
+                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
+                  <p>⌚ 09.00 - 16.00 WIB</p>
+                  <p>📍 Auditorium Lt. 3</p>
+                </div>
+              </div>
+            )}
 
             <button
-              onClick={() => handleServiceClick('alumni')}
+              onClick={() => handleServiceClick(latestAgenda ? 'news' : 'alumni-data')}
               className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition"
             >
               Lihat Detail

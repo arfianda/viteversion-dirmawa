@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { UserSession } from '../types';
+import { AuthService } from '../../services/authService';
+import { supabase } from '../../services/supabaseClient';
 
 interface LoginViewProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -12,48 +14,110 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSignup, setIsSignup] = useState(false);
+  const [signupMessage, setSignupMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSignupMessage(null);
+    setIsLoading(true);
 
-    // Auto-validate for ease of use and match specific mockups
-    if (email.length > 0 && password.length > 0) {
-      let name = 'Arfianda Firsta';
-      const emailToUse = email;
+    try {
+      if (isSignup) {
+        // Sign up new user
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: email.split('@')[0],
+              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
+            },
+          },
+        });
 
-      if (email.toLowerCase().includes('abcd')) {
-        name = 'Dr. ABCD';
-      } else if (email.toLowerCase().includes('efgh')) {
-        name = 'EFGH, M.Kom';
-      } else if (email.toLowerCase().includes('asdf')) {
-        name = 'ASDF';
+        if (signUpError) {
+          setError(signUpError.message);
+          setIsLoading(false);
+          return;
+        }
+
+        if (data?.user) {
+          // Create profile in public.users with superadmin role for arfiandafirsta@gmail.com
+          const { error: profileError } = await supabase
+            .from('users')
+            .insert({
+              id: data.user.id,
+              email,
+              name: email.split('@')[0],
+              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
+            });
+
+          if (profileError) {
+            console.error('Profile creation error:', profileError);
+            setError('Failed to create user profile: ' + profileError.message);
+            setIsLoading(false);
+            return;
+          }
+
+          setSignupMessage('Account created! You can now sign in.');
+          setIsSignup(false);
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Sign in existing user
+        const { user, error: authError } = await AuthService.signIn(email, password);
+
+        console.log('Login attempt - user:', user);
+
+        if (authError || !user) {
+          setError(authError || 'Login failed. Please check your credentials.');
+          setIsLoading(false);
+          return;
+        }
+
+        // Only allow administrators, superadmins, and ormawa admins
+        console.log('Checking role:', user.role);
+        if (user.role === 'admin_ormawa') {
+          localStorage.setItem('upb_ormawa_session', JSON.stringify({
+            id: user.id,
+            username: user.email,
+            role: 'admin_ormawa',
+            name: user.name,
+            nimOrNip: 'ORMAWA-' + user.id.slice(0, 8),
+            avatarUrl: user.avatarUrl,
+          }));
+          window.location.hash = '#/ormawa';
+          setIsLoading(false);
+          return;
+        }
+
+        const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator'];
+        if (!allowedRoles.includes(user.role)) {
+          setError('Akses ditolak. Peran admin/staf diperlukan.');
+          setIsLoading(false);
+          return;
+        }
+
+        onLoginSuccess({
+          id: user.id,
+          username: user.email,
+          role: user.role === 'superadmin' ? 'superadmin' : 'admin',
+          roles: user.roles || [user.role],
+          name: user.name,
+          nimOrNip: 'ADMIN-' + user.id.slice(0, 8),
+          avatarUrl: user.avatarUrl,
+        });
+        setIsLoading(false);
+        return;
       }
-
-      onLoginSuccess({
-        username: emailToUse,
-        role: 'admin',
-        name: name,
-        nimOrNip: '11223344'
-      });
-    } else {
-      setError('Please fill in both email and password.');
+    } catch (err: any) {
+      setError(err.message || 'An unexpected error occurred');
     }
-  };
-
-  // Pre-fill demo credentials
-  const fillDemo = (demoType: 'admin' | 'super' | 'editor') => {
-    if (demoType === 'admin') {
-      setEmail('admin@pelitabangsa.ac.id');
-      setPassword('admin123');
-    } else if (demoType === 'super') {
-      setEmail('superadmin@pelitabangsa.ac.id');
-      setPassword('super123');
-    } else if (demoType === 'editor') {
-      setEmail('editor@pelitabangsa.ac.id');
-      setPassword('editor123');
-    }
-    setError(null);
+    setIsLoading(false);
   };
 
   return (
@@ -89,6 +153,12 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           {error && (
             <div className="bg-[#ffdad6] text-[#93000a] text-sm p-3 rounded-lg border border-[#ffdad6] text-center font-medium">
               {error}
+            </div>
+          )}
+
+          {signupMessage && (
+            <div className="bg-[#dcfce7] text-[#166534] text-sm p-3 rounded-lg border border-[#dcfce7] text-center font-medium">
+              {signupMessage}
             </div>
           )}
 
@@ -163,41 +233,32 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
             {/* Submit Button */}
             <button
-              className="w-full mt-2 bg-[#001e40] hover:bg-[#1f477b] text-white font-semibold text-sm rounded-xl py-3.5 transition-colors shadow-lg shadow-[#001e40]/10 flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full mt-2 bg-[#001e40] hover:bg-[#1f477b] text-white font-semibold text-sm rounded-xl py-3.5 transition-colors shadow-lg shadow-[#001e40]/10 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               type="submit"
               id="sign-in-button"
+              disabled={isLoading}
             >
-              Sign In
-              <ArrowRight size={16} />
+              {isLoading ? (isSignup ? 'Creating account...' : 'Signing in...') : (isSignup ? 'Create Account' : 'Sign In')}
+              {!isLoading && <ArrowRight size={16} />}
             </button>
           </form>
 
-          {/* Quick Demo Credentials */}
-          <div className="mt-1 pt-4 border-t border-[#c3c6d1]/20 flex flex-col gap-2">
-            <p className="text-xs text-[#737780] font-medium text-center">Quick Demo Accounts (Click to Auto-fill):</p>
-            <div className="flex flex-wrap gap-2 justify-center">
+          {/* Toggle Sign Up / Sign In */}
+          <div className="mt-1 pt-4 border-t border-[#c3c6d1]/20 text-center">
+            <p className="text-xs text-[#737780] font-medium">
+              {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
               <button
                 type="button"
-                onClick={() => fillDemo('super')}
-                className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
+                onClick={() => {
+                  setIsSignup(!isSignup);
+                  setError(null);
+                  setSignupMessage(null);
+                }}
+                className="text-[#001e40] font-bold hover:underline"
               >
-                Super Admin
+                {isSignup ? 'Sign In' : 'Sign Up Here'}
               </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('admin')}
-                className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
-              >
-                Admin (EFGH)
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('editor')}
-                className="text-[11px] font-semibold bg-[#f2f4f7] hover:bg-[#eceef1] text-[#001e40] py-1 px-2.5 rounded-lg border border-[#c3c6d1]/30 transition-colors"
-              >
-                Editor (ASDF)
-              </button>
-            </div>
+            </p>
           </div>
 
           {/* Security Indicator */}

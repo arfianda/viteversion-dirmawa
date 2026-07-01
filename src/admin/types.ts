@@ -1,6 +1,8 @@
 export interface UserSession {
+  id: string;
   username: string;
-  role: 'mahasiswa' | 'admin';
+  role: 'mahasiswa' | 'admin' | 'superadmin';
+  roles?: string[];
   name: string;
   nimOrNip?: string;
   avatarUrl?: string;
@@ -14,6 +16,9 @@ export interface AlumniRecord {
   graduationYear: number;
   status: 'Valid' | 'Invalid NIM';
   email?: string;
+  employmentStatus?: 'Bekerja' | 'Wirausaha' | 'Melanjutkan Studi' | 'Belum Bekerja';
+  company?: string;
+  position?: string;
 }
 
 export interface UkmRecord {
@@ -26,6 +31,7 @@ export interface UkmRecord {
   updatedAt: string;
   description: string;
   leaderName?: string;
+  instagramUrl?: string;
 }
 
 export interface ScholarshipRecord {
@@ -58,6 +64,22 @@ export interface AdminRecord {
   name: string;
   email: string;
   role: 'Super Admin' | 'Admin' | 'Editor';
+  roles?: string[];
   lastActive: string;
   avatarInitials: string;
+}
+
+export interface RegistrationRequest {
+  id: string;
+  nim: string;
+  name: string;
+  email: string;
+  major: string;
+  faculty: string;
+  semester: number;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
+  created_at: string;
 }

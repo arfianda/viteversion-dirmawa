@@ -31,6 +31,7 @@ export interface UKM {
   contacts: { role: string; name: string; contact: string }[];
   requirements: string[];
   activeMembers: number;
+  instagramUrl?: string;
 }
 
 export interface Achievement {
@@ -65,3 +66,59 @@ export interface StudentNews {
   date: string;
   category: 'Berita' | 'Agenda' | 'Pengumuman';
 }
+
+export type UserRole =
+  | 'superadmin'
+  | 'direktur'
+  | 'staf_beasiswa'
+  | 'staf_ormawa'
+  | 'staf_alumni'
+  | 'staf_depan'
+  | 'admin'
+  | 'administrator'
+  | 'operator'
+  | 'mahasiswa'
+  | 'alumni';
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  roles?: UserRole[];
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface ScholarshipApplication {
+  id: string;
+  user_id: string;
+  scholarship_id: string;
+  nim: string;
+  name: string;
+  major: string;
+  gpa: number;
+  phone: string;
+  document_url?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejection_reason?: string;
+  created_at: string;
+  updated_at: string;
+  scholarships?: Scholarship;
+}
+
+export interface Appointment {
+  id: string;
+  created_by?: string;
+  student_name: string;
+  ormawa_name?: string;
+  purpose: string;
+  requested_date: string;
+  requested_time: string;
+  status: 'pending' | 'approved' | 'rejected';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+

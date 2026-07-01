@@ -12,23 +12,43 @@ import {
   HelpCircle,
   X,
   User,
-  ExternalLink
+  ExternalLink,
+  PlusCircle
 } from 'lucide-react';
 import { UserSession, UKM, Beasiswa } from '../types/mahasiswa';
 
 import MahasiswaLogin from './components/MahasiswaLogin';
+import MahasiswaRegister from './components/MahasiswaRegister';
 import MahasiswaDashboardOverview from './components/MahasiswaDashboardOverview';
 import MahasiswaUkmSaya from './components/MahasiswaUkmSaya';
 import MahasiswaBeasiswaSaya from './components/MahasiswaBeasiswaSaya';
 import MahasiswaPengajuanPrestasi from './components/MahasiswaPengajuanPrestasi';
 import MahasiswaSettings from './components/MahasiswaSettings';
+import MahasiswaAjukanOrmawa from './components/MahasiswaAjukanOrmawa';
+import { AuthService } from '../services/authService';
 
 export default function MahasiswaPortal() {
-  const [session, setSession] = useState<UserSession | null>(null);
+  const [session, setSession] = useState<UserSession | null>(() => {
+    const saved = localStorage.getItem('upb_mahasiswa_session');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.role === 'mahasiswa') {
+          return parsed;
+        } else {
+          localStorage.removeItem('upb_mahasiswa_session');
+        }
+      } catch (e) {
+        localStorage.removeItem('upb_mahasiswa_session');
+      }
+    }
+    return null;
+  });
   const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showRegister, setShowRegister] = useState(false);
 
   const [notifications, setNotifications] = useState([
     { id: '1', text: 'Batas akhir Laporan IPK Beasiswa adalah 15 Maret 2024.', unread: true },
@@ -36,16 +56,20 @@ export default function MahasiswaPortal() {
     { id: '3', text: 'Pengajuan prestasi Gemastik XVII terkirim untuk verifikasi.', unread: false }
   ]);
 
-  // Load session from localStorage on mount
+  // Verify session validity with active auth in the background on mount
   useEffect(() => {
-    const saved = localStorage.getItem('upb_mahasiswa_session');
-    if (saved) {
+    const checkActiveAuth = async () => {
       try {
-        setSession(JSON.parse(saved));
+        const activeUser = await AuthService.getSession();
+        if (activeUser && activeUser.role !== 'mahasiswa') {
+          localStorage.removeItem('upb_mahasiswa_session');
+          setSession(null);
+        }
       } catch (e) {
-        localStorage.removeItem('upb_mahasiswa_session');
+        console.error('Failed to verify active session:', e);
       }
-    }
+    };
+    checkActiveAuth();
   }, []);
 
   const handleLoginSuccess = (userSession: UserSession) => {
@@ -71,7 +95,10 @@ export default function MahasiswaPortal() {
   const unreadNotificationsCount = notifications.filter(n => n.unread).length;
 
   if (!session) {
-    return <MahasiswaLogin onLoginSuccess={handleLoginSuccess} />;
+    if (showRegister) {
+      return <MahasiswaRegister onRegistered={() => setShowRegister(false)} onBackToLogin={() => setShowRegister(false)} />;
+    }
+    return <MahasiswaLogin onLoginSuccess={handleLoginSuccess} onRegister={() => setShowRegister(true)} />;
   }
 
   const navItems = [
@@ -79,6 +106,7 @@ export default function MahasiswaPortal() {
     { id: 'ukm', label: 'UKM Saya', icon: Users },
     { id: 'beasiswa', label: 'Beasiswa', icon: BookOpen },
     { id: 'prestasi', label: 'Pengajuan Prestasi', icon: Award },
+    { id: 'ajukan-ormawa', label: 'Ajukan Ormawa Baru', icon: PlusCircle },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -92,6 +120,8 @@ export default function MahasiswaPortal() {
         return <MahasiswaBeasiswaSaya />;
       case 'prestasi':
         return <MahasiswaPengajuanPrestasi />;
+      case 'ajukan-ormawa':
+        return <MahasiswaAjukanOrmawa studentId={session.id} studentName={session.name} studentNim={session.nimOrNip || ''} />;
       case 'settings':
         return <MahasiswaSettings session={session} onUpdateSession={handleUpdateSession} />;
       default:

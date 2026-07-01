@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { UKM } from '../types';
-import { Search, Calendar, Phone, CheckCircle, Users, Compass, Sparkles } from 'lucide-react';
+import { Search, Calendar, Phone, CheckCircle, Users, Compass, Sparkles, Instagram } from 'lucide-react';
 
 interface UkmViewProps {
   ukms: UKM[];
@@ -104,6 +104,11 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
                 style={{ backgroundImage: `url('${u.coverImage}')`, referrerPolicy: 'no-referrer' } as React.CSSProperties}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent" />
+                {u.logoImage && (
+                  <div className="absolute -bottom-7 right-4 w-14 h-14 rounded-full border-2 border-white bg-white overflow-hidden shadow-md z-10">
+                    <img src={u.logoImage} alt={`${u.name} logo`} className="w-full h-full object-cover" />
+                  </div>
+                )}
                 <div className="absolute bottom-4 left-4 bg-[#feb234] text-[#001e40] px-2.5 py-0.5 text-[9px] font-sans font-black uppercase rounded-md shadow-sm">
                   {u.category}
                 </div>
@@ -196,13 +201,33 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
                 ✕
               </button>
               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
-              <div className="absolute bottom-6 left-6 space-y-2 z-11">
-                <span className="bg-[#feb234] text-[#001e40] font-sans text-xs font-black uppercase tracking-wider px-3 py-1 rounded shadow-sm">
-                  {activeUkm.category}
-                </span>
-                <h2 className="font-sans font-black text-2xl sm:text-3.5xl text-[#001e40] leading-none">
-                  {activeUkm.name}
-                </h2>
+              <div className="absolute bottom-6 left-6 flex items-center gap-3.5 z-11">
+                {activeUkm.logoImage && (
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-white bg-white overflow-hidden shadow-md flex-shrink-0">
+                    <img src={activeUkm.logoImage} alt={`${activeUkm.name} logo`} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-block bg-[#feb234] text-[#001e40] font-sans text-xs font-black uppercase tracking-wider px-3 py-1 rounded shadow-sm">
+                      {activeUkm.category}
+                    </span>
+                    {activeUkm.instagramUrl && (
+                      <a
+                        href={activeUkm.instagramUrl.startsWith('http') ? activeUkm.instagramUrl : `https://instagram.com/${activeUkm.instagramUrl.replace('@', '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 bg-[#e1306c] hover:bg-[#c13584] text-white font-sans text-[10px] font-black px-2.5 py-1 rounded shadow-sm transition-all uppercase tracking-wider"
+                      >
+                        <Instagram size={11} />
+                        <span>Instagram</span>
+                      </a>
+                    )}
+                  </div>
+                  <h2 className="font-sans font-black text-2xl sm:text-3.5xl text-[#001e40] leading-none">
+                    {activeUkm.name}
+                  </h2>
+                </div>
               </div>
             </div>
 

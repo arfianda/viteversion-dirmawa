@@ -1,56 +1,117 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, GraduationCap } from 'lucide-react';
-import { UserSession } from '../../admin/types';
+import { UserSession } from '../../types/mahasiswa';
+import { AuthService } from '../../services/authService';
+import { supabase } from '../../services/supabaseClient';
 
 interface MahasiswaLoginProps {
   onLoginSuccess: (session: UserSession) => void;
+  onRegister: () => void;
 }
 
-export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) {
+interface MahasiswaProfile {
+  user_id: string;
+  major: string;
+  semester: number;
+}
+
+interface UserData {
+  email: string;
+  role: string;
+  name: string;
+  avatar_url: string | null;
+}
+
+export default function MahasiswaLogin({ onLoginSuccess, onRegister }: MahasiswaLoginProps) {
   const [nim, setNim] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
 
-    // Auto-validate and mock login for student Budi Santoso
-    if (nim.length > 0 && password.length > 0) {
+    try {
+      // Step 1: Fetch the student's email, name, role, major, and semester via secure RPC by NIM
+      const { data: loginInfoList, error: loginInfoError } = await supabase
+        .rpc('get_student_login_info', { p_nim: nim });
+
+      const loginInfo = loginInfoList && loginInfoList.length > 0 ? loginInfoList[0] : null;
+
+      if (loginInfoError || !loginInfo) {
+        // Fall back to checking registration requests if they just signed up
+        const { data: reqData, error: reqError } = await supabase
+          .rpc('get_registration_status', { p_query: nim });
+
+        const firstRequest = reqData && reqData.length > 0 ? reqData[0] : null;
+
+        if (!reqError && firstRequest) {
+          if (firstRequest.status === 'pending') {
+            setError('Pendaftaran akun Anda sedang ditinjau oleh Admin. Harap tunggu persetujuan.');
+          } else if (firstRequest.status === 'rejected') {
+            setError(`Pendaftaran akun Anda ditolak oleh Admin. Alasan: ${firstRequest.rejection_reason || 'Tidak ada alasan yang diberikan.'}`);
+          } else {
+            setError('NIM tidak ditemukan. Silakan periksa kembali NIM Anda.');
+          }
+        } else {
+          setError('NIM tidak ditemukan. Silakan periksa kembali NIM Anda.');
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 2: Ensure the user is a student
+      if (loginInfo.role !== 'mahasiswa') {
+        setError('Akses ditolak. Portal ini hanya untuk mahasiswa.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 3: Authenticate via Supabase Auth
+      const { user, error: authError } = await AuthService.signIn(loginInfo.email, password);
+
+      if (authError || !user) {
+        setError(authError || 'NIM atau password salah. Silakan periksa kembali.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Step 4: Build session
       onLoginSuccess({
+        id: user.id,
         username: nim,
         role: 'mahasiswa',
-        name: 'Budi Santoso',
-        nimOrNip: '202100123',
-        avatarUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCDuRNRGb9oj_sK4_ZepOpHCc_V5pc9klUmosgc9MepqPJQDAmBMTfcgzJL5J_llH95iF1KZrdpHkPlFbW9X2kEsqU1UYJfNd0lFl6Bm1zRfE1xVyeNCwYzWhAa9w0qiPHOJIQGGQlCTNTgE5h6F-fe-KpZel1vtzzmsNNeO-t3tHPcAfuzX4AKwdtlmb2m98VIAxwGmrnOr21f-vagOeYjvHvXnGcPLbOh_bxqCDlGVE5cEFBIFD1xN_TbKu_v0Sk_1LGZz2k6pG4'
+        name: loginInfo.name || user.name,
+        nimOrNip: nim,
+        avatarUrl: loginInfo.avatar_url || user.avatarUrl,
+        email: loginInfo.email,
+        major: loginInfo.major,
+        semester: loginInfo.semester,
       });
-    } else {
-      setError('Harap isi NIM dan Password.');
-    }
-  };
 
-  const fillDemo = () => {
-    setNim('202100123');
-    setPassword('student123');
-    setError(null);
+      setIsLoading(false);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError('Terjadi kesalahan saat login. Silakan coba lagi.');
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-[#f7f9fc] flex items-center justify-center p-4 md:p-10 font-sans text-[#191c1e] antialiased">
       <div className="w-full max-w-[1100px] bg-white rounded-3xl overflow-hidden shadow-xl shadow-[#001e40]/5 flex flex-col md:flex-row min-h-[680px] border border-slate-200/50">
-        
         {/* Left Panel: Brand / Image Graphic */}
         <div className="hidden md:flex w-1/2 relative bg-[#001e40] items-center justify-center p-12 text-center text-white overflow-hidden">
-          {/* Overlay Image */}
           <div className="absolute inset-0 z-0">
-            <img 
-              alt="Universitas Pelita Bangsa Campus" 
+            <img
+              alt="Universitas Pelita Bangsa Campus"
               className="w-full h-full object-cover opacity-25 mix-blend-overlay"
-              src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1200&auto=format&fit=crop" 
+              src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=1200&auto=format&fit=crop"
             />
-            {/* Soft dark radial gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#001e40] via-transparent to-transparent opacity-80"></div>
           </div>
 
@@ -69,7 +130,6 @@ export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) 
 
         {/* Right Panel: Login Form */}
         <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white">
-          
           {/* Mobile Header */}
           <div className="md:hidden flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
             <div className="w-10 h-10 bg-[#001e40]/5 rounded-xl flex items-center justify-center text-[#001e40]">
@@ -84,7 +144,7 @@ export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) 
             <h2 className="font-sans font-black text-3xl text-[#001e40] tracking-tight mb-1.5">
               Masuk Portal Mahasiswa
             </h2>
-            <p className="text-sm text-slate-500 font-medium">
+            <p className="text-sm text-sale-500 font-medium">
               Silakan masuk menggunakan NIM dan sandi Anda.
             </p>
           </div>
@@ -102,16 +162,16 @@ export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) 
                 NIM / Username
               </label>
               <div className="relative">
-                <input 
+                <input
                   className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 text-slate-800 text-sm rounded-xl px-4 py-3.5 font-medium outline-none transition-all placeholder:text-slate-400"
-                  id="nim" 
-                  name="nim" 
-                  placeholder="Masukkan NIM Anda" 
-                  required 
+                  id="nim"
+                  name="nim"
+                  placeholder="Masukkan NIM Anda"
+                  required
                   type="text"
                   value={nim}
-                  onChange={(e) => setNim(e.target.value)}
-                />
+                    onChange={(e) => setNim(e.target.value)}
+                  />
               </div>
             </div>
 
@@ -121,8 +181,8 @@ export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) 
                 <label className="block font-bold text-xs uppercase tracking-wider text-slate-600" htmlFor="password">
                   Password
                 </label>
-                <a 
-                  className="text-xs font-semibold text-[#001e40] hover:underline" 
+                <a
+                  className="text-xs font-semibold text-[#001e40] hover:underline"
                   href="#"
                   onClick={(e) => { e.preventDefault(); alert('Hubungi Biro Teknologi Informasi UPB untuk mereset kata sandi Anda.'); }}
                 >
@@ -130,19 +190,19 @@ export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) 
                 </a>
               </div>
               <div className="relative">
-                <input 
+                <input
                   className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 text-slate-800 text-sm rounded-xl pl-4 pr-12 py-3.5 font-medium outline-none transition-all placeholder:text-slate-400"
-                  id="password" 
-                  name="password" 
-                  placeholder="Masukkan password Anda" 
-                  required 
+                  id="password"
+                  name="password"
+                  placeholder="Masukkan password Anda"
+                  required
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
-                <button 
+                <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                    onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -150,54 +210,51 @@ export default function MahasiswaLogin({ onLoginSuccess }: MahasiswaLoginProps) 
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center pt-1">
-              <input 
-                className="h-4 w-4 rounded border-slate-300 text-[#001e40] focus:ring-[#001e40] bg-slate-50 cursor-pointer"
-                id="remember-me" 
-                name="remember-me" 
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              <label className="ml-2 block text-xs text-slate-500 font-semibold cursor-pointer select-none" htmlFor="remember-me">
-                Ingat saya selama 30 hari
-              </label>
-            </div>
-
             {/* Submit Button */}
             <div className="pt-3">
-              <button 
-                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 bg-[#001e40] hover:bg-[#1f477b] text-white font-bold text-sm rounded-xl shadow-lg shadow-[#001e40]/10 transition-colors cursor-pointer" 
+              <button
+                className="w-full flex justify-center items-center gap-2 py-3.5 px-4 bg-[#001e40] hover:bg-[#1f477b] text-white font-bold text-sm rounded-xl shadow-lg shadow-[#001e40]/10 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 type="submit"
+                disabled={isLoading}
               >
-                <span>Masuk Portal</span>
-                <ArrowRight className="w-4 h-4" />
+                {isLoading ? 'Memuat...' : 'Masuk Portal'}
+                {!isLoading && <ArrowRight className="w-4 h-4" />}
               </button>
             </div>
           </form>
 
-          {/* Quick Demo Credentials */}
-          <div className="mt-8 pt-6 border-t border-slate-100 flex flex-col items-center gap-2">
-            <p className="text-xs text-slate-400 font-medium">Akun Demo (Klik untuk isi otomatis):</p>
+          {/* Register Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-slate-500">
+              Belum punya akun?{' '}
+              <button
+                type="button"
+                onClick={onRegister}
+                className="text-[#001e40] font-bold hover:underline cursor-pointer"
+              >
+                Daftar disini
+              </button>
+            </p>
+          </div>
+
+          {/* Back to Landing Page Link */}
+          <div className="mt-2 text-center">
             <button
               type="button"
-              onClick={fillDemo}
-              className="text-xs font-bold text-[#001e40] bg-[#feb234]/10 hover:bg-[#feb234]/20 border border-[#feb234]/25 py-2 px-4 rounded-xl transition-all flex items-center gap-1.5"
+              onClick={() => { window.location.hash = ''; }}
+              className="text-slate-400 hover:text-[#001e40] text-xs font-bold transition-colors cursor-pointer"
             >
-              <GraduationCap className="w-4 h-4 text-[#feb234]" />
-              <span>Budi Santoso (NIM 202100123)</span>
+              Kembali ke Beranda
             </button>
           </div>
 
           {/* Security Banner */}
-          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400">
+          <div className="mt-6 pt-6 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400">
             <ShieldCheck className="w-5 h-5 text-[#001e40]" />
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Authorized Student Access Only
             </span>
           </div>
-
         </div>
       </div>
     </div>
