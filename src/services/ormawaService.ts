@@ -352,7 +352,8 @@ export const OrmawaService = {
         description: details.description,
         vision: details.vision,
         logo_image_url: details.logoImage,
-        cover_image_url: details.coverImage
+        cover_image_url: details.coverImage,
+        instagram_url: details.instagramUrl
       })
       .eq('id', ukmId);
 

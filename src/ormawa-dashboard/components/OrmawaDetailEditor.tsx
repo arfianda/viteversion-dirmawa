@@ -39,6 +39,37 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
   // Images state
   const [logoImage, setLogoImage] = useState('');
   const [coverImage, setCoverImage] = useState('');
+  const [instagramUrl, setInstagramUrl] = useState('');
+
+  const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Logo image size must not exceed 2MB!');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCoverFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 2 * 1024 * 1024) {
+        alert('Banner image size must not exceed 2MB!');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -53,6 +84,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
         setGallery(ukm.gallery || []);
         setLogoImage(ukm.logo_image_url || '');
         setCoverImage(ukm.cover_image_url || '');
+        setInstagramUrl(ukm.instagram_url || '');
       } catch (e: any) {
         console.error('Failed to load UKM details:', e);
         setErrorMsg('Gagal memuat profil organisasi.');
@@ -117,7 +149,8 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
         contacts,
         gallery: activeGallery,
         logoImage,
-        coverImage
+        coverImage,
+        instagramUrl
       });
 
       setSuccessMsg('Profil organisasi berhasil diperbarui! Perubahan Anda langsung sinkron ke Direktori UKM mahasiswa.');
@@ -178,19 +211,30 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
             
             {/* Logo Image URL */}
             <div className="space-y-2">
-              <label className="font-bold text-slate-600 block">URL Logo Organisasi</label>
+              <label className="font-bold text-slate-600 block">Logo Organisasi</label>
               <div className="flex gap-4 items-center">
-                <img 
-                  src={logoImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'} 
-                  alt="Logo Preview" 
-                  className="w-14 h-14 rounded-full object-cover border border-slate-200 shrink-0 bg-slate-50"
-                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'; }}
-                />
+                <div className="relative group shrink-0">
+                  <img 
+                    src={logoImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'} 
+                    alt="Logo Preview" 
+                    className="w-14 h-14 rounded-full object-cover border border-slate-200 bg-slate-50"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'; }}
+                  />
+                  <label className="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[8px] font-bold">
+                    Upload
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleLogoFile} 
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
                 <input 
                   type="text" 
                   value={logoImage} 
                   onChange={(e) => setLogoImage(e.target.value)} 
-                  placeholder="https://example.com/logo.png"
+                  placeholder="Atau masukkan URL logo..."
                   className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>
@@ -198,19 +242,44 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
 
             {/* Cover Image URL */}
             <div className="space-y-2">
-              <label className="font-bold text-slate-600 block">URL Banner / Sampul Organisasi</label>
+              <label className="font-bold text-slate-600 block">Banner / Sampul Organisasi</label>
               <div className="flex gap-4 items-center">
-                <img 
-                  src={coverImage || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'} 
-                  alt="Cover Preview" 
-                  className="w-20 h-12 rounded-lg object-cover border border-slate-200 shrink-0 bg-slate-50"
-                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'; }}
-                />
+                <div className="relative group shrink-0">
+                  <img 
+                    src={coverImage || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'} 
+                    alt="Cover Preview" 
+                    className="w-20 h-12 rounded-lg object-cover border border-slate-200 bg-slate-50"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'; }}
+                  />
+                  <label className="absolute inset-0 bg-black/40 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[8px] font-bold">
+                    Upload
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleCoverFile} 
+                      className="hidden" 
+                    />
+                  </label>
+                </div>
                 <input 
                   type="text" 
                   value={coverImage} 
                   onChange={(e) => setCoverImage(e.target.value)} 
-                  placeholder="https://example.com/cover.jpg"
+                  placeholder="Atau masukkan URL banner..."
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
+                />
+              </div>
+            </div>
+
+            {/* Instagram Link */}
+            <div className="md:col-span-2 space-y-2 pt-4 border-t border-slate-100">
+              <label className="font-bold text-slate-600 block">Link Profil Instagram</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  value={instagramUrl} 
+                  onChange={(e) => setInstagramUrl(e.target.value)} 
+                  placeholder="e.g. https://instagram.com/ukmseni_upb"
                   className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
                 />
               </div>

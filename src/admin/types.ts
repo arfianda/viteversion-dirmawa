@@ -27,6 +27,7 @@ export interface UkmRecord {
   updatedAt: string;
   description: string;
   leaderName?: string;
+  instagramUrl?: string;
 }
 
 export interface ScholarshipRecord {

@@ -21,7 +21,8 @@ import {
   UserPlus,
   ExternalLink,
   X,
-  Trash2
+  Trash2,
+  ClipboardList
 } from 'lucide-react';
 
 import { UserSession, AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle, AdminRecord } from './types';
@@ -51,6 +52,7 @@ import RegistrationQueue from './components/RegistrationQueue';
 import OrmawaApplicationsQueue from './components/OrmawaApplicationsQueue';
 import OrmawaProposalsQueue from './components/OrmawaProposalsQueue';
 import ScholarshipApplicationsQueue from './components/ScholarshipApplicationsQueue';
+import MemberReportsQueue from './components/MemberReportsQueue';
 
 export default function AdminPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -99,6 +101,7 @@ export default function AdminPortal() {
   const [pendingRegistrationsCount, setPendingRegistrationsCount] = useState<number>(0);
   const [alumniCount, setAlumniCount] = useState<number>(0);
   const [verifiedAlumniCount, setVerifiedAlumniCount] = useState<number>(0);
+  const [isUnderConstruction, setIsUnderConstruction] = useState<boolean>(false);
   
   // News Editor helper
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
@@ -158,6 +161,14 @@ export default function AdminPortal() {
           };
         });
         setAdmins(dbAdmins);
+      }
+
+      // Load under_construction status from Supabase
+      try {
+        const dbUc = await SupabaseService.getSystemSetting('under_construction');
+        setIsUnderConstruction(dbUc === 'true');
+      } catch (ucErr) {
+        console.error("Failed to load under_construction setting:", ucErr);
       }
     } catch (err) {
       console.error("AdminPortal failed to load Supabase data, using local mockup fallback:", err);
@@ -590,16 +601,21 @@ export default function AdminPortal() {
     { id: 'news', label: 'News & Announcements', icon: Newspaper },
     { id: 'alumni', label: 'Alumni Data Hub', icon: Award },
     { id: 'ukm', label: 'UKM & Ormawa', icon: Users },
+    { id: 'member-reports', label: 'Verifikasi Anggota', icon: ClipboardList },
     { id: 'scholarships', label: 'Scholarships Portal', icon: BookOpen },
     { id: 'scholarship-apps', label: 'Antrian Beasiswa', icon: BookOpen },
     { id: 'ormawa-apps', label: 'Antrian Pengajuan Ormawa', icon: UserPlus },
     { id: 'ormawa-props', label: 'Proposal & LPJ Ormawa', icon: Newspaper },
     { id: 'settings', label: 'Access Control', icon: Shield },
+    { id: 'system-control', label: 'System Control', icon: SettingsIcon },
     { id: 'registrations', label: 'Registrations', icon: UserPlus },
   ];
 
   const visibleNavItems = NAVIGATION_ITEMS.filter(item => {
     if (item.id === 'settings' && session?.role !== 'superadmin') {
+      return false;
+    }
+    if (item.id === 'system-control' && session?.role !== 'superadmin') {
       return false;
     }
     return true;
@@ -757,6 +773,53 @@ export default function AdminPortal() {
         return <OrmawaProposalsQueue />;
       case 'scholarship-apps':
         return <ScholarshipApplicationsQueue />;
+      case 'member-reports':
+        return <MemberReportsQueue />;
+      case 'system-control':
+        return (
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6 shadow-sm max-w-2xl font-sans text-left">
+            <div>
+              <h2 className="font-sans font-black text-2xl text-[#001e40]">System Control Panel</h2>
+              <p className="text-xs text-[#737780] font-semibold mt-1">
+                Kelola status global website dan konfigurasi sistem kemahasiswaan Universitas Pelita Bangsa.
+              </p>
+            </div>
+
+            <div className="border-t border-[#eceef1] pt-6 space-y-6">
+              {/* Under Construction Toggle */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#f2f4f7]/40 border border-slate-200/60 p-5 rounded-2xl">
+                <div className="space-y-1">
+                  <span className="text-sm font-bold text-slate-800 block">Mode Perbaikan (Under Construction)</span>
+                  <p className="text-xs text-slate-500 max-w-md font-semibold leading-relaxed">
+                    Bila diaktifkan, pengunjung umum akan diarahkan ke halaman Under Construction. Admin tetap dapat mengakses Admin Portal untuk mengelola data.
+                  </p>
+                </div>
+                
+                {/* Custom Toggle Switch */}
+                <button
+                  onClick={async () => {
+                    const nextVal = !isUnderConstruction;
+                    try {
+                      await SupabaseService.setSystemSetting('under_construction', nextVal ? 'true' : 'false');
+                      setIsUnderConstruction(nextVal);
+                    } catch (e: any) {
+                      alert('Gagal memperbarui status: ' + (e.message || e));
+                    }
+                  }}
+                  className={`w-14 h-8 rounded-full transition-colors flex items-center p-1 cursor-pointer shrink-0 ${
+                    isUnderConstruction ? 'bg-[#feb234]' : 'bg-slate-300'
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${
+                      isUnderConstruction ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return <div className="p-12 text-center text-[#737780] font-bold">In development...</div>;
     }
@@ -957,11 +1020,17 @@ export default function AdminPortal() {
                     {session.role === 'superadmin' ? 'Super Admin' : session.role === 'admin' ? 'Admin' : 'Student'}
                   </p>
                 </div>
-                <img
-                  alt="Administrator Headshot"
-                  className="w-8 h-8 rounded-full border border-[#c3c6d1] object-cover"
-                  src={session.avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuDk50HzYys7OGAA-TewCZjPixQ6ZVicRUtWnJs_hQdagpxmcbEBVUy7V5q3X0MDjPCA3qkhDRfYPbSbJz6lnP_DFPgyF0UfuaRNlhU7zlyJpwDqLifJ5a1q4sFUzl33KuAg6_iI98SJc7HPMcCA0bs7pGyTcsrSsHE8KF1xEG6Z8cLuHFiYBuhhRCU_s_wmTv4yBftmEWExjh63mPAx_7ixdOe5OshrJ_omvjYZp1hCYSugL1CdsnmAgqu7uCNcSweCyBwY_IY-zWg"}
-                />
+                {session.avatarUrl ? (
+                  <img
+                    alt="Administrator Headshot"
+                    className="w-8 h-8 rounded-full border border-[#c3c6d1] object-cover"
+                    src={session.avatarUrl}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full border border-[#c3c6d1] bg-[#f2f4f7] text-[#5c606a] flex items-center justify-center">
+                    <User size={16} />
+                  </div>
+                )}
               </button>
 
               {/* Profile Dropdown Menu */}
@@ -1122,11 +1191,17 @@ export default function AdminPortal() {
               <input type="password" style={{ display: 'none' }} autoComplete="new-password" />
               <div className="flex flex-col items-center gap-3 mb-4">
                 <div className="relative group">
-                  <img
-                    alt="Current Profile Avatar"
-                    className="w-20 h-20 rounded-full border-2 border-[#001e40] object-cover"
-                    src={editAvatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuDk50HzYys7OGAA-TewCZjPixQ6ZVicRUtWnJs_hQdagpxmcbEBVUy7V5q3X0MDjPCA3qkhDRfYPbSbJz6lnP_DFPgyF0UfuaRNlhU7zlyJpwDqLifJ5a1q4sFUzl33KuAg6_iI98SJc7HPMcCA0bs7pGyTcsrSsHE8KF1xEG6Z8cLuHFiYBuhhRCU_s_wmTv4yBftmEWExjh63mPAx_7ixdOe5OshrJ_omvjYZp1hCYSugL1CdsnmAgqu7uCNcSweCyBwY_IY-zWg"}
-                  />
+                  {editAvatarUrl ? (
+                    <img
+                      alt="Current Profile Avatar"
+                      className="w-20 h-20 rounded-full border-2 border-[#001e40] object-cover"
+                      src={editAvatarUrl}
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full border-2 border-[#001e40] bg-[#f2f4f7] text-[#001e40] flex items-center justify-center">
+                      <User size={36} />
+                    </div>
+                  )}
                   <label className="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold">
                     <Camera size={14} className="mr-1" />
                     Upload

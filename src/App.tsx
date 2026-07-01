@@ -20,6 +20,7 @@ import KodeEtikMahasiswaView from './components/panduan/KodeEtikMahasiswaView';
 import POKUPBView from './components/panduan/POKUPB';
 import PanduanMahasiswaView from './components/panduan/PanduanMahasiswaView';
 import UserManagementView from './components/UserManagementView';
+import UnderConstructionView from './components/UnderConstructionView';
 
 import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews } from './types';
 import AdminPortal from './admin/AdminPortal';
@@ -76,6 +77,7 @@ export default function App() {
   const [alumni, setAlumni] = React.useState<AlumniRecord[]>([]);
   const [isLoading, setIsLoading] = React.useState<boolean>(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [underConstruction, setUnderConstruction] = React.useState<boolean>(false);
 
   //  ALL useEffect hooks SECOND
   React.useEffect(() => {
@@ -173,19 +175,21 @@ export default function App() {
     setLoadError(null);
     try {
       console.log('[App] Fetching data from Supabase...');
-      const [dbScholarships, dbUkms, dbAchievements, dbNews, dbAlumni] = await Promise.all([
+      const [dbScholarships, dbUkms, dbAchievements, dbNews, dbAlumni, dbUnderConstruction] = await Promise.all([
         SupabaseService.getScholarships(),
         SupabaseService.getUkms(),
         SupabaseService.getAchievements(),
         SupabaseService.getNews(),
         SupabaseService.getAlumni(),
+        SupabaseService.getSystemSetting('under_construction')
       ]);
-      console.log('[App] Supabase data loaded:', { scholarships: dbScholarships.length, ukms: dbUkms.length, achievements: dbAchievements.length, news: dbNews.length, alumni: dbAlumni.length });
+      console.log('[App] Supabase data loaded:', { scholarships: dbScholarships.length, ukms: dbUkms.length, achievements: dbAchievements.length, news: dbNews.length, alumni: dbAlumni.length, underConstruction: dbUnderConstruction });
       setScholarships(dbScholarships);
       setUkms(dbUkms);
       setAchievements(dbAchievements);
       setNews(dbNews);
       setAlumni(dbAlumni);
+      setUnderConstruction(dbUnderConstruction === 'true');
     } catch (err: any) {
       console.error('[App] Failed to load data from Supabase:', err);
       setLoadError(err?.message || 'Gagal memuat data dari database.');
@@ -223,6 +227,10 @@ export default function App() {
   //  Conditional returns AFTER all hooks
   if (isAdminPortal) {
     return <AdminPortal />;
+  }
+
+  if (underConstruction) {
+    return <UnderConstructionView />;
   }
 
   if (isMahasiswaPortal) {

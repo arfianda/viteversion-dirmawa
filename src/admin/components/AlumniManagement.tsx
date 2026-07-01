@@ -324,16 +324,6 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
                 Browse Files
               </button>
             </div>
-
-            <div className="mt-4 pt-3 border-t border-[#eceef1]">
-              <button
-                type="button"
-                onClick={sampleUpload}
-                className="w-full text-center text-xs font-bold text-[#001e40] hover:text-[#1f477b] hover:underline"
-              >
-                💡 Simulate uploading UPB_Alumni_Data_Class_of_2024.xlsx
-              </button>
-            </div>
           </div>
 
           {/* System Status card */}

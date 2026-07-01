@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   Search, 
@@ -7,8 +7,10 @@ import {
   Mail, 
   CheckCircle,
   FileSpreadsheet,
-  Plus
+  Plus,
+  ClipboardList
 } from 'lucide-react';
+import { SupabaseService } from '../../services/supabaseService';
 
 interface OrmawaMemberManagementProps {
   ukmId: string;
@@ -27,6 +29,10 @@ interface Member {
 
 export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberManagementProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [reportedCount, setReportedCount] = useState<number>(0);
+  const [pendingReport, setPendingReport] = useState<any>(null);
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportSuccess, setReportSuccess] = useState(false);
   
   // Seed Mock members based on the organization name
   const [members, setMembers] = useState<Member[]>([
@@ -37,6 +43,43 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
     { id: '5', name: 'Rian Hidayat', nim: '202302333', major: 'Manajemen', semester: 2, joinDate: '18 Sep 2023', role: 'Anggota' },
     { id: '6', name: 'Lani Anggraini', nim: '202300222', major: 'Sistem Informasi', semester: 2, joinDate: '22 Sep 2023', role: 'Anggota' },
   ]);
+
+  useEffect(() => {
+    setReportedCount(members.length);
+  }, [members]);
+
+  useEffect(() => {
+    const fetchPendingReport = async () => {
+      try {
+        const report = await SupabaseService.getPendingMemberReportForUkm(ukmId);
+        setPendingReport(report);
+      } catch (e) {
+        console.error('Failed to fetch pending report:', e);
+      }
+    };
+    fetchPendingReport();
+  }, [ukmId]);
+
+  const handleReportSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (reportedCount <= 0) {
+      alert('Jumlah anggota harus lebih dari 0!');
+      return;
+    }
+    setIsReporting(true);
+    try {
+      await SupabaseService.createMemberReport(ukmId, reportedCount);
+      setReportSuccess(true);
+      const report = await SupabaseService.getPendingMemberReportForUkm(ukmId);
+      setPendingReport(report);
+      setTimeout(() => setReportSuccess(false), 3000);
+    } catch (e: any) {
+      console.error(e);
+      alert('Gagal melaporkan anggota: ' + (e.message || e));
+    } finally {
+      setIsReporting(false);
+    }
+  };
 
   // Form add member
   const [showAddModal, setShowAddModal] = useState(false);
@@ -103,6 +146,58 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
           <UserPlus className="w-4 h-4" />
           <span>Tambah Anggota</span>
         </button>
+      </section>
+
+      {/* Report Member Count Widget */}
+      <section className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-yellow-50 text-[#feb234] rounded-xl border border-yellow-100 shrink-0">
+            <ClipboardList className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-800 text-sm">Pelaporan Jumlah Anggota Aktif</h3>
+            <p className="text-xs text-slate-400 font-semibold">Laporkan jumlah total anggota aktif Anda untuk disinkronkan ke direktori UKM publik setelah disetujui Dirmawa.</p>
+          </div>
+        </div>
+
+        {pendingReport ? (
+          <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <p className="text-xs font-bold text-slate-700">Laporan Menunggu Verifikasi</p>
+              <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+                Jumlah yang dilaporkan: <strong className="text-[#001e40]">{pendingReport.reported_count} Anggota</strong>
+              </p>
+            </div>
+            <span className="inline-block px-3 py-1 bg-yellow-50 text-yellow-800 border border-yellow-200/60 rounded-full text-[10px] font-black uppercase tracking-wider">
+              Menunggu Persetujuan
+            </span>
+          </div>
+        ) : (
+          <form onSubmit={handleReportSubmit} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+            <div className="flex items-center gap-2 max-w-xs w-full">
+              <input
+                type="number"
+                value={reportedCount}
+                onChange={(e) => setReportedCount(Number(e.target.value))}
+                placeholder="Jumlah anggota..."
+                className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none transition-all"
+              />
+              <span className="text-xs text-slate-500 font-bold shrink-0">Mhs</span>
+            </div>
+            <button
+              type="submit"
+              disabled={isReporting}
+              className="bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] font-sans font-black text-xs px-5 py-3 rounded-xl uppercase tracking-wider shadow cursor-pointer transition active:scale-95 disabled:opacity-50"
+            >
+              {isReporting ? 'Mengirim...' : 'Laporkan Anggota'}
+            </button>
+            {reportSuccess && (
+              <span className="text-xs text-green-600 font-bold flex items-center gap-1 animate-fade-in">
+                <CheckCircle className="w-3.5 h-3.5" /> Laporan terkirim!
+              </span>
+            )}
+          </form>
+        )}
       </section>
 
       {/* Search and Table box */}

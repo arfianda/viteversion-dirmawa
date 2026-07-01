@@ -31,6 +31,7 @@ export interface UKM {
   contacts: { role: string; name: string; contact: string }[];
   requirements: string[];
   activeMembers: number;
+  instagramUrl?: string;
 }
 
 export interface Achievement {
