@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews, ScholarshipApplication } from '../types';
+import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews, ScholarshipApplication, Appointment } from '../types';
 import { NewsArticle, UkmRecord, ScholarshipRecord, AlumniRecord as AdminAlumniRecord } from '../admin/types';
 
 // Registration request types
@@ -676,7 +676,32 @@ export const SupabaseService = {
   },
 
   async saveAdminAlumniRecordsBulk(records: Omit<AdminAlumniRecord, 'id'>[]): Promise<void> {
-    const payloads = records.map(ar => ({
+    // 1. Fetch all existing NIMs from database to prevent duplicate insertions
+    const { data: existing, error: fetchError } = await supabase
+      .from('alumni_records')
+      .select('nim');
+    if (fetchError) throw fetchError;
+    
+    const existingNims = new Set(existing ? existing.map((x: any) => String(x.nim || '').trim()) : []);
+
+    // 2. Filter records to avoid duplicate NIMs within the batch and matching existing DB records
+    const seenBatchNims = new Set<string>();
+    const uniqueNewRecords = records.filter(ar => {
+      const cleanNim = String(ar.nim || '').trim();
+      if (!cleanNim) return false;
+      if (existingNims.has(cleanNim) || seenBatchNims.has(cleanNim)) {
+        return false;
+      }
+      seenBatchNims.add(cleanNim);
+      return true;
+    });
+
+    if (uniqueNewRecords.length === 0) {
+      console.log('No new alumni records to insert (all duplicates skipped).');
+      return;
+    }
+
+    const payloads = uniqueNewRecords.map(ar => ({
       id: crypto.randomUUID(),
       name: ar.name,
       nim: ar.nim,
@@ -684,9 +709,9 @@ export const SupabaseService = {
       graduation_year: ar.graduationYear,
       nim_status: ar.status,
       email: ar.email || '',
-      status: 'Bekerja' as any,
-      company: '',
-      position: ''
+      status: ar.employmentStatus || 'Bekerja',
+      company: ar.company || '',
+      position: ar.position || ''
     }));
 
     const { error } = await supabase
@@ -1014,5 +1039,65 @@ export const SupabaseService = {
       .from('system_settings')
       .upsert({ key, value });
     if (error) throw error;
+  },
+
+  // ==========================================
+  // APPOINTMENTS MANAGEMENT & ROLES UPDATE
+  // ==========================================
+  async getAppointments(): Promise<Appointment[]> {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .order('requested_date', { ascending: true })
+      .order('requested_time', { ascending: true });
+    if (error) throw error;
+    return (data || []) as Appointment[];
+  },
+
+  async createAppointment(appointment: Omit<Appointment, 'id'>): Promise<Appointment> {
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert({
+        ...appointment,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Appointment;
+  },
+
+  async updateAppointment(id: string, updates: Partial<Appointment>): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteAppointment(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async updateUserRoles(userId: string, roles: string[]): Promise<void> {
+    const primaryRole = roles.length > 0 ? roles[0] : 'operator';
+    const { error } = await supabase
+      .from('users')
+      .update({
+        roles,
+        role: primaryRole,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+    if (error) throw error;
   }
 };
+

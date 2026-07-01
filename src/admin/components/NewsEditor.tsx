@@ -16,9 +16,10 @@ interface NewsEditorProps {
   article: NewsArticle | null;
   onSave: (article: NewsArticle) => void;
   onBack: () => void;
+  readOnly?: boolean;
 }
 
-export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps) {
+export default function NewsEditor({ article, onSave, onBack, readOnly = false }: NewsEditorProps) {
   // If no active editing article, use defaults
   const [id] = useState(article?.id || generateUUID());
   const [title, setTitle] = useState(article?.title || 'Universitas Pelita Bangsa Launches New Tech Incubator');
@@ -37,6 +38,7 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
   const [coverImage, setCoverImage] = useState<string | null>(article?.coverImageUrl || null);
 
   const handleAddTag = (e: React.KeyboardEvent) => {
+    if (readOnly) return;
     if (e.key === 'Enter' && tagInput.trim() !== '') {
       e.preventDefault();
       if (!tags.includes(tagInput.trim())) {
@@ -47,10 +49,12 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
+    if (readOnly) return;
     setTags(tags.filter(t => t !== tagToRemove));
   };
 
   const handleSaveAction = (newStatus?: 'Draft' | 'Published' | 'Archived') => {
+    if (readOnly) return;
     const finalStatus = newStatus || status;
     onSave({
       id,
@@ -68,6 +72,7 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
   };
 
   const simulateCoverUpload = () => {
+    if (readOnly) return;
     // Simulated cover URL
     setCoverImage("https://lh3.googleusercontent.com/aida-public/AB6AXuCKm5znh_KB_mBV_IKSCdEaYJ1mOsq4eYtwWfbAm-UHEDRznPRdsNKTjpeI6Gl74m-9RUOLeU_3_WXC49JqK4ByqVrfWohIWI2vPUJGS42hnVyb-3X-QCD59AlgJEbXn7LtZGn4iXMiJSApSAu7jmp4VzK1w6rz1J8T4T3E8RKZQkk7k9riFbFjx8_LI7dAuLyXxO10MRm0ZLEchNNrRTSzCj5WtRqVshssD5toBZpaocgbUoboPus9aPe8PzMQmD9xxo3q-1gvv9I");
   };
@@ -84,22 +89,24 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
           >
             <ArrowLeft size={18} />
           </button>
-          <h2 className="font-headline font-bold text-[#191c1e] text-lg">Edit News Article</h2>
+          <h2 className="font-headline font-bold text-[#191c1e] text-lg">{readOnly ? 'Lihat Artikel' : 'Edit News Article'}</h2>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => handleSaveAction('Draft')}
-            className="font-bold text-xs text-[#43474f] px-4 py-2.5 rounded-xl border border-[#c3c6d1] hover:bg-slate-100 transition-colors cursor-pointer"
-          >
-            Save as Draft
-          </button>
-          <button
-            onClick={() => handleSaveAction('Published')}
-            className="font-bold text-xs bg-[#001e40] hover:bg-[#1F477B] text-white px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
-          >
-            Publish News
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleSaveAction('Draft')}
+              className="font-bold text-xs text-[#43474f] px-4 py-2.5 rounded-xl border border-[#c3c6d1] hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              Save as Draft
+            </button>
+            <button
+              onClick={() => handleSaveAction('Published')}
+              className="font-bold text-xs bg-[#001e40] hover:bg-[#1F477B] text-white px-5 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
+            >
+              Publish News
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Editor Main Space Layout Grid */}
@@ -117,6 +124,7 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Article Title"
                 className="w-full bg-transparent border-none font-headline font-bold text-xl text-[#191c1e] placeholder-[#cbd5e1] p-2 focus:ring-0 outline-none"
+                disabled={readOnly}
               />
             </div>
 
@@ -184,6 +192,7 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Start crafting university announcement content here..."
                   className="w-full h-full bg-white text-[#191c1e] placeholder-[#737780]/60 resize-none border-none outline-none focus:ring-0 p-0 text-sm font-medium leading-relaxed"
+                  disabled={readOnly}
                 />
               </div>
 
@@ -225,6 +234,7 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
                     value={visibility}
                     onChange={(e) => setVisibility(e.target.value as any)}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl py-2 px-3 text-sm text-[#191c1e] focus:outline-none focus:ring-1 focus:ring-[#001e40]"
+                    disabled={readOnly}
                   >
                     <option value="Public">Public</option>
                     <option value="Students Only">Students Only</option>
@@ -239,6 +249,7 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
                     value={publishDate}
                     onChange={(e) => setPublishDate(e.target.value)}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#001e40]"
+                    disabled={readOnly}
                   />
                 </div>
               </div>
@@ -258,6 +269,7 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#001e40]"
+                    disabled={readOnly}
                   >
                     <option value="News">News</option>
                     <option value="Announcement">Announcement</option>
@@ -273,8 +285,9 @@ export default function NewsEditor({ article, onSave, onBack }: NewsEditorProps)
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={handleAddTag}
-                    placeholder="Type and press Enter"
+                    placeholder={readOnly ? "" : "Type and press Enter"}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl py-2 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#001e40]"
+                    disabled={readOnly}
                   />
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {tags.map((tag) => (

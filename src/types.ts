@@ -67,13 +67,25 @@ export interface StudentNews {
   category: 'Berita' | 'Agenda' | 'Pengumuman';
 }
 
-export type UserRole = 'superadmin' | 'admin' | 'operator';
+export type UserRole =
+  | 'superadmin'
+  | 'direktur'
+  | 'staf_beasiswa'
+  | 'staf_ormawa'
+  | 'staf_alumni'
+  | 'staf_depan'
+  | 'admin'
+  | 'administrator'
+  | 'operator'
+  | 'mahasiswa'
+  | 'alumni';
 
 export interface User {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  roles?: UserRole[];
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -94,4 +106,19 @@ export interface ScholarshipApplication {
   updated_at: string;
   scholarships?: Scholarship;
 }
+
+export interface Appointment {
+  id: string;
+  created_by?: string;
+  student_name: string;
+  ormawa_name?: string;
+  purpose: string;
+  requested_date: string;
+  requested_time: string;
+  status: 'pending' | 'approved' | 'rejected';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 
