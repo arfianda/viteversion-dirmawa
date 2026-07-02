@@ -21,7 +21,8 @@ import {
   UserPlus,
   ExternalLink,
   X,
-  Trash2
+  Trash2,
+  ClipboardList
 } from 'lucide-react';
 
 import { UserSession, AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle, AdminRecord } from './types';
@@ -51,6 +52,9 @@ import RegistrationQueue from './components/RegistrationQueue';
 import OrmawaApplicationsQueue from './components/OrmawaApplicationsQueue';
 import OrmawaProposalsQueue from './components/OrmawaProposalsQueue';
 import ScholarshipApplicationsQueue from './components/ScholarshipApplicationsQueue';
+import MemberReportsQueue from './components/MemberReportsQueue';
+import AppointmentScheduler from './components/AppointmentScheduler';
+import { Calendar } from 'lucide-react';
 
 export default function AdminPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -99,6 +103,7 @@ export default function AdminPortal() {
   const [pendingRegistrationsCount, setPendingRegistrationsCount] = useState<number>(0);
   const [alumniCount, setAlumniCount] = useState<number>(0);
   const [verifiedAlumniCount, setVerifiedAlumniCount] = useState<number>(0);
+  const [isUnderConstruction, setIsUnderConstruction] = useState<boolean>(false);
   
   // News Editor helper
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
@@ -159,6 +164,14 @@ export default function AdminPortal() {
         });
         setAdmins(dbAdmins);
       }
+
+      // Load under_construction status from Supabase
+      try {
+        const dbUc = await SupabaseService.getSystemSetting('under_construction');
+        setIsUnderConstruction(dbUc === 'true');
+      } catch (ucErr) {
+        console.error("Failed to load under_construction setting:", ucErr);
+      }
     } catch (err) {
       console.error("AdminPortal failed to load Supabase data, using local mockup fallback:", err);
     }
@@ -180,11 +193,12 @@ export default function AdminPortal() {
 
         const { data: profile } = await supabase
           .from('users')
-          .select('role')
+          .select('role, roles')
           .eq('id', sbSession.user.id)
           .single();
 
-        if (!profile || (profile.role !== 'administrator' && profile.role !== 'superadmin' && profile.role !== 'admin')) {
+        const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator'];
+        if (!profile || !allowedRoles.includes(profile.role)) {
           handleSignOut();
         }
       } catch (err) {
@@ -539,6 +553,20 @@ export default function AdminPortal() {
     }
   };
 
+  const handleUpdateAdminRoles = async (id: string, roles: string[]) => {
+    if (!session) return;
+    try {
+      const result = await AuthService.updateUserRoles(id, roles as any, session.id);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update roles');
+      }
+      setAdmins(admins.map(item => item.id === id ? { ...item, roles } : item));
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal memperbarui peran admin di database: ' + (err.message || String(err)));
+    }
+  };
+
   // Dynamic quick creation from Sidebar Header
   const handleCreateNewClick = () => {
     if (activeTab === 'alumni') {
@@ -586,28 +614,61 @@ export default function AdminPortal() {
 
   // Nav categories representation
   const NAVIGATION_ITEMS = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'news', label: 'News & Announcements', icon: Newspaper },
-    { id: 'alumni', label: 'Alumni Data Hub', icon: Award },
+    { id: 'dashboard', label: 'Dasbor', icon: LayoutDashboard },
+    { id: 'news', label: 'Berita & Pengumuman', icon: Newspaper },
+    { id: 'alumni', label: 'Hub Data Alumni', icon: Award },
     { id: 'ukm', label: 'UKM & Ormawa', icon: Users },
-    { id: 'scholarships', label: 'Scholarships Portal', icon: BookOpen },
+    { id: 'member-reports', label: 'Verifikasi Anggota', icon: ClipboardList },
+    { id: 'scholarships', label: 'Portal Beasiswa', icon: BookOpen },
     { id: 'scholarship-apps', label: 'Antrian Beasiswa', icon: BookOpen },
     { id: 'ormawa-apps', label: 'Antrian Pengajuan Ormawa', icon: UserPlus },
     { id: 'ormawa-props', label: 'Proposal & LPJ Ormawa', icon: Newspaper },
-    { id: 'settings', label: 'Access Control', icon: Shield },
-    { id: 'registrations', label: 'Registrations', icon: UserPlus },
+    { id: 'appointments', label: 'Janji Temu Direktur', icon: Calendar },
+    { id: 'settings', label: 'Kontrol Akses', icon: Shield },
+    { id: 'registrations', label: 'Registrasi Staf/Admin', icon: UserPlus },
   ];
 
   const visibleNavItems = NAVIGATION_ITEMS.filter(item => {
-    if (item.id === 'settings' && session?.role !== 'superadmin') {
-      return false;
+    if (!session) return false;
+    
+    // Superadmin has access to everything
+    const rolesList = session.roles || [session.role];
+    if (rolesList.includes('superadmin')) {
+      return true;
     }
-    return true;
+
+    if (item.id === 'settings' || item.id === 'registrations') {
+      return false; // Only superadmin can access access control and registration queue
+    }
+
+    if (rolesList.includes('direktur')) {
+      // Direktur sees news, alumni, ukm, scholarships, and appointments
+      return ['dashboard', 'news', 'alumni', 'ukm', 'scholarships', 'appointments'].includes(item.id);
+    }
+
+    // Otherwise check specific staff roles
+    const allowedTabs: string[] = ['dashboard'];
+    if (rolesList.includes('staf_beasiswa')) {
+      allowedTabs.push('scholarships', 'scholarship-apps');
+    }
+    if (rolesList.includes('staf_ormawa')) {
+      allowedTabs.push('ukm', 'member-reports', 'ormawa-apps', 'ormawa-props');
+    }
+    if (rolesList.includes('staf_alumni')) {
+      allowedTabs.push('alumni');
+    }
+    if (rolesList.includes('staf_depan')) {
+      allowedTabs.push('appointments', 'ukm', 'ormawa-props');
+    }
+
+    return allowedTabs.includes(item.id);
   });
 
   if (!session) {
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
+
+  const isReadOnly = (session.roles || [session.role]).includes('direktur') && !(session.roles || [session.role]).includes('superadmin');
 
   // Active view content distribution
   const renderTabContent = () => {
@@ -635,6 +696,7 @@ export default function AdminPortal() {
             onAddAlumni={handleAddAlumni}
             onBulkAddAlumni={handleBulkAddAlumni}
             onDeleteAlumni={handleDeleteAlumni}
+            readOnly={isReadOnly}
           />
         );
       case 'ukm':
@@ -645,6 +707,7 @@ export default function AdminPortal() {
             onUpdateUkmStatus={handleUpdateUkmStatus}
             onEditUkm={handleEditUkm}
             onDeleteUkm={handleDeleteUkm}
+            readOnly={isReadOnly}
           />
         );
       case 'scholarships':
@@ -654,6 +717,7 @@ export default function AdminPortal() {
             onAddScholarship={handleAddScholarship}
             onEditScholarship={handleEditScholarship}
             onDeleteScholarship={handleDeleteScholarship}
+            readOnly={isReadOnly}
           />
         );
       case 'news':
@@ -663,41 +727,44 @@ export default function AdminPortal() {
               article={editingArticle}
               onBack={() => setEditingArticle(null)}
               onSave={handleSaveNewsArticle}
+              readOnly={isReadOnly}
             />
           );
         }
         return (
           <div className="space-y-6 animate-fade-in pb-12">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left">
               <div>
-                <h2 className="font-headline font-bold text-3xl text-[#191c1e]">Communications Portal</h2>
-                <p className="text-sm text-[#43474f] font-medium">Draft, manage, and distribute newsletters or official announcements.</p>
+                <h2 className="font-sans font-black text-3xl text-[#001e40]">Portal Komunikasi</h2>
+                <p className="text-sm text-[#43474f] font-medium">Tulis, kelola, dan distribusikan buletin atau pengumuman resmi.</p>
               </div>
-              <button
-                onClick={() =>
-                  setEditingArticle({
-                    id: generateUUID(),
-                    title: '',
-                    content: '',
-                    status: 'Draft',
-                    visibility: 'Public',
-                    publishDate: '2026-05-26',
-                    category: 'News',
-                    tags: []
-                  })
-                }
-                className="bg-[#001e40] hover:bg-[#1f477b] text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
-              >
-                <Plus size={16} />
-                Draft New Article
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() =>
+                    setEditingArticle({
+                      id: generateUUID(),
+                      title: '',
+                      content: '',
+                      status: 'Draft',
+                      visibility: 'Public',
+                      publishDate: '2026-05-26',
+                      category: 'News',
+                      tags: []
+                    })
+                  }
+                  className="bg-[#001e40] hover:bg-[#1f477b] text-white font-bold text-sm px-5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus size={16} />
+                  Tulis Artikel Baru
+                </button>
+              )}
             </div>
 
             {/* Existing News List Grid */}
-            <div className="bg-white rounded-2xl border border-[#c3c6d1]/40 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#c3c6d1]/40 shadow-sm overflow-hidden text-left">
               <div className="p-5 border-b border-[#eceef1] bg-slate-50 flex justify-between items-center">
-                <span className="text-xs font-bold text-[#43474f] uppercase tracking-wider">Announcement Library</span>
-                <span className="text-xs font-semibold text-[#001e40]">{news.length} total write-ups</span>
+                <span className="text-xs font-bold text-[#43474f] uppercase tracking-wider">Perpustakaan Pengumuman</span>
+                <span className="text-xs font-semibold text-[#001e40]">{news.length} total tulisan</span>
               </div>
               <div className="divide-y divide-[#eceef1]">
                 {news.map((item) => (
@@ -705,7 +772,7 @@ export default function AdminPortal() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[10px] font-bold bg-[#feb234]/15 text-[#6d4700] px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-[#feb234]/20">
-                          {item.category}
+                          {item.category === 'News' ? 'Berita' : item.category === 'Announcement' ? 'Pengumuman' : item.category === 'Agenda' ? 'Agenda' : item.category}
                         </span>
                         <span className="text-xs text-[#737780] font-semibold">{item.publishDate}</span>
                       </div>
@@ -722,14 +789,16 @@ export default function AdminPortal() {
                         onClick={() => setEditingArticle(item)}
                         className="bg-[#001e40]/5 hover:bg-[#001e40]/10 text-[#001e40] font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
                       >
-                        Edit / Publish
+                        {isReadOnly ? 'Lihat Artikel' : 'Edit / Terbitkan'}
                       </button>
-                      <button
-                        onClick={() => handleDeleteNews(item.id)}
-                        className="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
-                      >
-                        Delete
-                      </button>
+                      {!isReadOnly && (
+                        <button
+                          onClick={() => handleDeleteNews(item.id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer"
+                        >
+                          Hapus
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -747,8 +816,11 @@ export default function AdminPortal() {
             onAddAdmin={handleAddAdmin}
             onRemoveAdmin={handleRemoveAdmin}
             onUpdateAdminRole={handleUpdateAdminRole}
+            onUpdateAdminRoles={handleUpdateAdminRoles}
           />
         );
+      case 'appointments':
+        return <AppointmentScheduler userRoles={session.roles || [session.role]} />;
       case 'registrations':
         return <RegistrationQueue onRefresh={loadDbData} />;
       case 'ormawa-apps':
@@ -757,6 +829,53 @@ export default function AdminPortal() {
         return <OrmawaProposalsQueue />;
       case 'scholarship-apps':
         return <ScholarshipApplicationsQueue />;
+      case 'member-reports':
+        return <MemberReportsQueue />;
+      case 'system-control':
+        return (
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6 shadow-sm max-w-2xl font-sans text-left">
+            <div>
+              <h2 className="font-sans font-black text-2xl text-[#001e40]">System Control Panel</h2>
+              <p className="text-xs text-[#737780] font-semibold mt-1">
+                Kelola status global website dan konfigurasi sistem kemahasiswaan Universitas Pelita Bangsa.
+              </p>
+            </div>
+
+            <div className="border-t border-[#eceef1] pt-6 space-y-6">
+              {/* Under Construction Toggle */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#f2f4f7]/40 border border-slate-200/60 p-5 rounded-2xl">
+                <div className="space-y-1">
+                  <span className="text-sm font-bold text-slate-800 block">Mode Perbaikan (Under Construction)</span>
+                  <p className="text-xs text-slate-500 max-w-md font-semibold leading-relaxed">
+                    Bila diaktifkan, pengunjung umum akan diarahkan ke halaman Under Construction. Admin tetap dapat mengakses Admin Portal untuk mengelola data.
+                  </p>
+                </div>
+                
+                {/* Custom Toggle Switch */}
+                <button
+                  onClick={async () => {
+                    const nextVal = !isUnderConstruction;
+                    try {
+                      await SupabaseService.setSystemSetting('under_construction', nextVal ? 'true' : 'false');
+                      setIsUnderConstruction(nextVal);
+                    } catch (e: any) {
+                      alert('Gagal memperbarui status: ' + (e.message || e));
+                    }
+                  }}
+                  className={`w-14 h-8 rounded-full transition-colors flex items-center p-1 cursor-pointer shrink-0 ${
+                    isUnderConstruction ? 'bg-[#feb234]' : 'bg-slate-300'
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${
+                      isUnderConstruction ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return <div className="p-12 text-center text-[#737780] font-bold">In development...</div>;
     }
@@ -779,7 +898,7 @@ export default function AdminPortal() {
           />
           <div>
             <h1 className="font-headline font-bold text-white text-sm leading-tight leading-none truncate max-w-[140px]">
-              Student Affairs
+              DIRMAWA
             </h1>
             <p className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">Admin Portal</p>
           </div>
@@ -792,7 +911,7 @@ export default function AdminPortal() {
             className="w-full bg-[#feb234] hover:bg-[#feb234]/90 text-[#291800] font-bold text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-transform hover:scale-[1.01] cursor-pointer"
           >
             <Plus size={16} className="stroke-[3]" />
-            Create New
+            Buat Baru
           </button>
         </div>
 
@@ -831,16 +950,20 @@ export default function AdminPortal() {
 
         {/* Footer items */}
         <div className="px-2 mt-auto border-t border-white/10 pt-4 flex flex-col gap-1">
-          <button
-            onClick={() => {
-              setActiveTab('settings');
-              setMobileMenuOpen(false);
-            }}
-            className="text-white/70 hover:text-white flex items-center gap-3 px-4 py-2 text-xs font-bold transition-colors cursor-pointer"
-          >
-            <SettingsIcon size={16} />
-            System Control
-          </button>
+          {session?.role === 'superadmin' && (
+            <button
+              onClick={() => {
+                setActiveTab('system-control');
+                setMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-3 px-4 py-2 text-xs font-bold transition-colors cursor-pointer rounded-xl ${
+                activeTab === 'system-control' ? 'bg-white/15 text-white font-black' : 'text-white/70 hover:text-white'
+              }`}
+            >
+              <SettingsIcon size={16} />
+              Kontrol Sistem
+            </button>
+          )}
           <button
             onClick={() => { window.location.hash = ''; }}
             className="text-white/70 hover:text-white flex items-center gap-3 px-4 py-2 text-xs font-bold transition-colors cursor-pointer"
@@ -853,7 +976,7 @@ export default function AdminPortal() {
             className="text-white/70 hover:text-red-300 flex items-center gap-3 px-4 py-2 text-xs font-bold transition-colors cursor-pointer"
           >
             <LogOut size={16} />
-            Sign Out
+            Keluar
           </button>
         </div>
       </nav>
@@ -887,7 +1010,7 @@ export default function AdminPortal() {
                 type="text"
                 value={searchGlobalQuery}
                 onChange={(e) => setSearchGlobalQuery(e.target.value)}
-                placeholder="Search across portal..."
+                placeholder="Cari di portal..."
                 className="bg-transparent border-none text-xs font-medium focus:ring-0 placeholder-[#737780]/80 text-[#191c1e] w-48 outline-none"
               />
             </div>
@@ -957,11 +1080,17 @@ export default function AdminPortal() {
                     {session.role === 'superadmin' ? 'Super Admin' : session.role === 'admin' ? 'Admin' : 'Student'}
                   </p>
                 </div>
-                <img
-                  alt="Administrator Headshot"
-                  className="w-8 h-8 rounded-full border border-[#c3c6d1] object-cover"
-                  src={session.avatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuDk50HzYys7OGAA-TewCZjPixQ6ZVicRUtWnJs_hQdagpxmcbEBVUy7V5q3X0MDjPCA3qkhDRfYPbSbJz6lnP_DFPgyF0UfuaRNlhU7zlyJpwDqLifJ5a1q4sFUzl33KuAg6_iI98SJc7HPMcCA0bs7pGyTcsrSsHE8KF1xEG6Z8cLuHFiYBuhhRCU_s_wmTv4yBftmEWExjh63mPAx_7ixdOe5OshrJ_omvjYZp1hCYSugL1CdsnmAgqu7uCNcSweCyBwY_IY-zWg"}
-                />
+                {session.avatarUrl ? (
+                  <img
+                    alt="Administrator Headshot"
+                    className="w-8 h-8 rounded-full border border-[#c3c6d1] object-cover"
+                    src={session.avatarUrl}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full border border-[#c3c6d1] bg-[#f2f4f7] text-[#5c606a] flex items-center justify-center">
+                    <User size={16} />
+                  </div>
+                )}
               </button>
 
               {/* Profile Dropdown Menu */}
@@ -1007,7 +1136,7 @@ export default function AdminPortal() {
                       className="w-full text-left flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-[#43474f] hover:bg-[#f2f4f7] rounded-lg transition-colors cursor-pointer"
                     >
                       <SettingsIcon size={14} />
-                      Access Control
+                      Kontrol Akses
                     </button>
                     <button
                       onClick={() => {
@@ -1017,7 +1146,7 @@ export default function AdminPortal() {
                       className="w-full text-left flex items-center gap-2 px-2.5 py-2 text-xs font-bold text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                     >
                       <LogOut size={14} />
-                      Sign Out
+                      Keluar
                     </button>
                   </div>
                 </div>
@@ -1038,7 +1167,7 @@ export default function AdminPortal() {
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuA53r5C5uZeYiR8TGIWbzuUSXAUlfE6L70SCfAA8cV-XGHpZBTcig38onXkxohVqxK77Madf71cV0BRf9LP2QezTiwjuxJqltB1Q1WlVI9_A8-IB_tb1v4F2bmfQVfF36nplyaXmd5Msv3BJTZ3Q6NpIhgee-2Zz4NudZm12Sn6ttF_oPYa6fnG7P8bsFWTDmRQ_WV8dGGfR4DoyqKBKiAtdye8SrDpNT6mYLk18hDlt65ezFR25ZP8zmx0KmWJacqfh6sibMRea3Y"
                 />
                 <div>
-                  <h4 className="font-headline font-bold text-sm">UPB Staff Portal</h4>
+                  <h4 className="font-headline font-bold text-sm">DIRMAWA Admin Portal</h4>
                 </div>
               </div>
 
@@ -1075,6 +1204,20 @@ export default function AdminPortal() {
               </div>
 
               <div className="mt-auto border-t border-white/10 pt-4 flex flex-col gap-2">
+                {session?.role === 'superadmin' && (
+                  <button
+                    onClick={() => {
+                      setActiveTab('system-control');
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`flex items-center gap-3 py-2 text-xs font-bold text-left cursor-pointer ${
+                      activeTab === 'system-control' ? 'text-white font-black' : 'text-white/70 hover:text-white'
+                    }`}
+                  >
+                    <SettingsIcon size={16} />
+                    Kontrol Sistem
+                  </button>
+                )}
                 <button
                   onClick={() => { window.location.hash = ''; }}
                   className="text-white/70 hover:text-white flex items-center gap-3 py-2 text-xs font-bold text-left cursor-pointer"
@@ -1084,7 +1227,7 @@ export default function AdminPortal() {
                 </button>
                 <button onClick={handleSignOut} className="text-white/70 hover:text-red-300 flex items-center gap-3 py-2 text-xs font-bold text-left cursor-pointer">
                   <LogOut size={16} />
-                  Sign Out
+                  Keluar
                 </button>
               </div>
             </div>
@@ -1122,11 +1265,17 @@ export default function AdminPortal() {
               <input type="password" style={{ display: 'none' }} autoComplete="new-password" />
               <div className="flex flex-col items-center gap-3 mb-4">
                 <div className="relative group">
-                  <img
-                    alt="Current Profile Avatar"
-                    className="w-20 h-20 rounded-full border-2 border-[#001e40] object-cover"
-                    src={editAvatarUrl || "https://lh3.googleusercontent.com/aida-public/AB6AXuDk50HzYys7OGAA-TewCZjPixQ6ZVicRUtWnJs_hQdagpxmcbEBVUy7V5q3X0MDjPCA3qkhDRfYPbSbJz6lnP_DFPgyF0UfuaRNlhU7zlyJpwDqLifJ5a1q4sFUzl33KuAg6_iI98SJc7HPMcCA0bs7pGyTcsrSsHE8KF1xEG6Z8cLuHFiYBuhhRCU_s_wmTv4yBftmEWExjh63mPAx_7ixdOe5OshrJ_omvjYZp1hCYSugL1CdsnmAgqu7uCNcSweCyBwY_IY-zWg"}
-                  />
+                  {editAvatarUrl ? (
+                    <img
+                      alt="Current Profile Avatar"
+                      className="w-20 h-20 rounded-full border-2 border-[#001e40] object-cover"
+                      src={editAvatarUrl}
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full border-2 border-[#001e40] bg-[#f2f4f7] text-[#001e40] flex items-center justify-center">
+                      <User size={36} />
+                    </div>
+                  )}
                   <label className="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold">
                     <Camera size={14} className="mr-1" />
                     Upload

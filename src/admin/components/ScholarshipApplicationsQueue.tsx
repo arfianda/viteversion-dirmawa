@@ -78,14 +78,14 @@ export default function ScholarshipApplicationsQueue() {
   return (
     <div className="space-y-6 animate-fade-in pb-10">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm text-left">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="font-display font-extrabold text-2xl text-[#001e40] mb-1.5">
-              Scholarship Applications Queue
+            <h2 className="font-sans font-black text-2xl text-[#001e40] mb-1.5">
+              Antrian Pendaftaran Beasiswa
             </h2>
             <p className="text-sm text-slate-500 font-medium">
-              Review and approve student scholarship application requests.
+              Tinjau dan setujui permintaan pendaftaran beasiswa mahasiswa.
             </p>
           </div>
           <button
@@ -93,7 +93,7 @@ export default function ScholarshipApplicationsQueue() {
             className="flex items-center gap-2 px-4 py-2.5 bg-[#001e40] hover:bg-[#1f477b] text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            Refresh Queue
+            Perbarui Antrian
           </button>
         </div>
       </div>
@@ -118,10 +118,10 @@ export default function ScholarshipApplicationsQueue() {
                   : 'bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-slate-800'
               }`}
             >
-              {filter === 'all' && `All (${applications.length})`}
-              {filter === 'pending' && `Pending (${getStatusCount('pending')})`}
-              {filter === 'approved' && `Approved (${getStatusCount('approved')})`}
-              {filter === 'rejected' && `Rejected (${getStatusCount('rejected')})`}
+              {filter === 'all' && `Semua (${applications.length})`}
+              {filter === 'pending' && `Menunggu (${getStatusCount('pending')})`}
+              {filter === 'approved' && `Disetujui (${getStatusCount('approved')})`}
+              {filter === 'rejected' && `Ditolak (${getStatusCount('rejected')})`}
             </button>
           ))}
         </div>
@@ -130,7 +130,7 @@ export default function ScholarshipApplicationsQueue() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
           <input
             type="text"
-            placeholder="Search by student name or NIM..."
+            placeholder="Cari berdasarkan nama mahasiswa atau NIM..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-sans text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#001e40] focus:bg-white transition-all"
@@ -143,23 +143,23 @@ export default function ScholarshipApplicationsQueue() {
         {loading ? (
           <div className="py-20 text-center text-slate-400 text-xs">
             <RefreshCw className="animate-spin w-8 h-8 text-[#001e40] mx-auto mb-4" />
-            Loading applications queue...
+            Memuat antrian pendaftaran...
           </div>
         ) : filteredApplications.length === 0 ? (
           <div className="py-20 text-center text-slate-400 text-xs">
-            No scholarship applications found.
+            Tidak ada pendaftaran beasiswa ditemukan.
           </div>
         ) : (
-          <div className="overflow-x-auto text-xs">
+          <div className="overflow-x-auto text-xs text-left">
             <table className="w-full text-left font-sans border-collapse">
               <thead>
                 <tr className="bg-slate-50 text-slate-500 font-black text-[10px] uppercase border-b border-slate-200">
-                  <th className="px-6 py-4">Student Info</th>
+                  <th className="px-6 py-4">Informasi Mahasiswa</th>
                   <th className="px-6 py-4">Program Studi</th>
                   <th className="px-6 py-4">Beasiswa Diambil</th>
-                  <th className="px-6 py-4">GPA</th>
+                  <th className="px-6 py-4">IPK</th>
                   <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-center">Actions</th>
+                  <th className="px-6 py-4 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-150 text-slate-700">
@@ -183,7 +183,7 @@ export default function ScholarshipApplicationsQueue() {
                           ? 'bg-red-50 text-red-700 border-red-100'
                           : 'bg-amber-50 text-amber-700 border-amber-100'
                       }`}>
-                        {app.status}
+                        {app.status === 'pending' ? 'MENUNGGU' : app.status === 'approved' ? 'DISETUJUI' : 'DITOLAK'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -191,7 +191,7 @@ export default function ScholarshipApplicationsQueue() {
                         <button
                           onClick={() => setModal({ type: 'detail', application: app })}
                           className="p-1.5 bg-slate-50 hover:bg-slate-150 text-slate-650 rounded-lg cursor-pointer"
-                          title="View Details"
+                          title="Lihat Detail"
                         >
                           <Eye size={14} />
                         </button>
@@ -200,14 +200,14 @@ export default function ScholarshipApplicationsQueue() {
                             <button
                               onClick={() => setModal({ type: 'approve', application: app })}
                               className="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg cursor-pointer"
-                              title="Approve Application"
+                              title="Setujui Pendaftaran"
                             >
                               <CheckCircle size={14} />
                             </button>
                             <button
                               onClick={() => setModal({ type: 'reject', application: app })}
                               className="p-1.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg cursor-pointer"
-                              title="Reject Application"
+                              title="Tolak Pendaftaran"
                             >
                               <XCircle size={14} />
                             </button>

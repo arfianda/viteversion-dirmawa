@@ -5,7 +5,8 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
-  role: 'administrator' | 'superadmin' | 'admin' | 'mahasiswa' | 'alumni' | 'admin_ormawa';
+  role: 'administrator' | 'superadmin' | 'admin' | 'mahasiswa' | 'alumni' | 'admin_ormawa' | 'direktur' | 'staf_beasiswa' | 'staf_ormawa' | 'staf_alumni' | 'staf_depan';
+  roles?: string[];
   nim?: string;
   avatarUrl?: string;
 }
@@ -32,7 +33,7 @@ export const AuthService = {
       // Fetch user profile from public.users table
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('id, email, name, role, phone, avatar_url')
+        .select('id, email, name, role, roles, phone, avatar_url')
         .eq('id', data.user.id)
         .single();
 
@@ -40,6 +41,7 @@ export const AuthService = {
         // If no profile exists, create a basic one from auth metadata
         const userName = data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'User';
         const userRole = data.user.user_metadata?.role || 'mahasiswa';
+        const userRoles = data.user.user_metadata?.roles || [userRole];
 
         return {
           user: {
@@ -47,6 +49,7 @@ export const AuthService = {
             email: data.user.email || '',
             name: userName,
             role: userRole as AuthUser['role'],
+            roles: userRoles,
             nim: data.user.user_metadata?.nim,
             avatarUrl: data.user.user_metadata?.avatar_url,
           },
@@ -60,6 +63,7 @@ export const AuthService = {
           email: profile.email,
           name: profile.name,
           role: profile.role as AuthUser['role'],
+          roles: profile.roles || [profile.role],
           nim: undefined, // Will be in mahasiswa_profiles or alumni_profiles
           avatarUrl: profile.avatar_url || undefined,
         },
@@ -91,7 +95,7 @@ export const AuthService = {
       // Fetch user profile
       const { data: profile } = await supabase
         .from('users')
-        .select('id, email, name, role, phone, avatar_url')
+        .select('id, email, name, role, roles, phone, avatar_url')
         .eq('id', session.user.id)
         .single();
 
@@ -101,6 +105,7 @@ export const AuthService = {
           email: session.user.email || '',
           name: session.user.user_metadata?.name || 'User',
           role: session.user.user_metadata?.role || 'mahasiswa',
+          roles: session.user.user_metadata?.roles || [session.user.user_metadata?.role || 'mahasiswa'],
         };
       }
 
@@ -109,6 +114,7 @@ export const AuthService = {
         email: profile.email,
         name: profile.name,
         role: profile.role as AuthUser['role'],
+        roles: profile.roles || [profile.role],
         avatarUrl: profile.avatar_url || undefined,
       };
     } catch {
@@ -125,7 +131,7 @@ export const AuthService = {
         // Fetch profile on sign in
         const { data: profile } = await supabase
           .from('users')
-          .select('id, email, name, role, phone, avatar_url')
+          .select('id, email, name, role, roles, phone, avatar_url')
           .eq('id', session.user.id)
           .single();
 
@@ -135,6 +141,7 @@ export const AuthService = {
             email: profile.email,
             name: profile.name,
             role: profile.role as AuthUser['role'],
+            roles: profile.roles || [profile.role],
             avatarUrl: profile.avatar_url || undefined,
           });
         } else {
@@ -143,6 +150,7 @@ export const AuthService = {
             email: session.user.email || '',
             name: session.user.user_metadata?.name || 'User',
             role: session.user.user_metadata?.role || 'mahasiswa',
+            roles: session.user.user_metadata?.roles || [session.user.user_metadata?.role || 'mahasiswa'],
           });
         }
       } else if (event === 'SIGNED_OUT') {
@@ -272,6 +280,33 @@ export const AuthService = {
   },
 
   /**
+   * Update user roles array (superadmin only)
+   */
+  async updateUserRoles(targetUserId: string, newRoles: UserRole[], currentUserId: string): Promise<{ success: boolean; error?: string }> {
+    const isSuper = await this.isSuperadmin(currentUserId);
+    if (!isSuper) {
+      return { success: false, error: 'Only superadmin can change roles' };
+    }
+
+    const primaryRole = newRoles.length > 0 ? newRoles[0] : 'operator';
+    const { error } = await supabase
+      .from('users')
+      .update({
+        roles: newRoles,
+        role: primaryRole,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', targetUserId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  },
+
+
+  /**
    * Get all users (superadmin only)
    */
   async getAllUsers(currentUserId: string): Promise<User[] | null> {
@@ -282,7 +317,7 @@ export const AuthService = {
 
     const { data, error } = await supabase
       .from('users')
-      .select('id, email, name, role, created_at, updated_at')
+      .select('id, email, name, role, roles, created_at, updated_at')
       .order('created_at', { ascending: false });
 
     if (error) {

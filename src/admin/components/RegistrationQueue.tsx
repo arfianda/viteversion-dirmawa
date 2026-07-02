@@ -83,16 +83,16 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
   };
 
   return (
-    <div className="space-y-6 animate-fade-in pb-10">
+    <div className="space-y-6 animate-fade-in pb-10 text-left">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl border border-slantezinc200/60 shadow-sm">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="font-display font-extrabold text-2xl text-[#001e40] mb-1.5">
-              Student Registration Queue
+            <h2 className="font-sans font-black text-2xl text-[#001e40] mb-1.5">
+              Antrian Registrasi Mahasiswa
             </h2>
             <p className="text-sm text-slate-500 font-medium">
-              Review and approve new student registrations requests.
+              Tinjau dan setujui permintaan registrasi akun mahasiswa baru.
             </p>
           </div>
           <button
@@ -100,7 +100,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
             className="flex items-center gap-2 px-4 py-2.5 bg-[#001e40] hover:bg-[#1f477b] text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
           >
             <RefreshCw className="w-4 h-4" />
-            Refresh
+            Perbarui
           </button>
         </div>
       </div>
@@ -109,17 +109,17 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pending</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Menunggu</p>
             <p className="text-3xl font-black text-[#815500]">{getStatusCount('pending')}</p>
           </div>
-          <div className="p-3 bg-amber-100 rounded slated650 text-amber-700 rounded-xl">
+          <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
             <Clock className="w-6 h-6" />
           </div>
         </div>
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Approved</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Disetujui</p>
             <p className="text-3xl font-black text-emerald-600">{getStatusCount('approved')}</p>
           </div>
           <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
@@ -129,7 +129,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
 
         <div className="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-sm flex items-center justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Rejected</p>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Ditolak</p>
             <p className="text-3xl font-black text-red-600">{getStatusCount('rejected')}</p>
           </div>
           <div className="p-3 bg-red-100 text-red-700 rounded-xl">
@@ -144,13 +144,13 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
           <button
             key={filter}
             onClick={() => setActiveFilter(filter)}
-            className={`px-4 py-2 rounded-xl text-xs font-bold capitalize transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
               activeFilter === filter
                 ? 'bg-[#001e40] text-white shadow-sm'
                 : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
             }`}
           >
-            {filter === 'all' ? 'All Requests' : filter}
+            {filter === 'all' ? 'Semua Permintaan' : filter === 'pending' ? 'Menunggu' : filter === 'approved' ? 'Disetujui' : 'Ditolak'}
             {filter !== 'all' && (
               <span className="ml-1 bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded-full text-xs font-bold">
                 {getStatusCount(filter as 'pending' | 'approved' | 'rejected')}
@@ -169,7 +169,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
             onClick={() => setError(null)}
             className="text-red-500 hover:text-red-700 font-bold text-xs"
           >
-            Dismiss
+            Tutup
           </button>
         </div>
       )}
@@ -177,16 +177,16 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
       {/* Requests Table */}
       <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <h3 className="font-sans font-black text-lg text-[#001e40]">Registration Requests</h3>
+          <h3 className="font-sans font-black text-lg text-[#001e40]">Permintaan Registrasi</h3>
           <span className="text-xs text-slate-500 font-semibold">
-            Showing {filteredRequests.length} of {requests.length} requests
+            Menampilkan {filteredRequests.length} dari {requests.length} permintaan
           </span>
         </div>
 
         {loading ? (
           <div className="p-12 text-center text-slate-400 text-sm font-medium">
             <div className="inline-block w-6 h-6 border-2 border-slate-200 border-t-[#001e40] rounded-full animate-spin mb-2"></div>
-            <p>Loading registration requests...</p>
+            <p>Memuat permintaan registrasi...</p>
           </div>
         ) : filteredRequests.length === 0 ? (
           <div className="p-12 text-center">
@@ -195,22 +195,22 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
             </div>
             <p className="text-sm font-bold text-slate-700">
               {activeFilter === 'all'
-                ? 'No registration requests found'
-                : `No ${activeFilter} requests found`}
+                ? 'Tidak ada permintaan registrasi ditemukan'
+                : `Tidak ada permintaan dengan status ${activeFilter === 'pending' ? 'menunggu' : activeFilter === 'approved' ? 'disetujui' : 'ditolak'} ditemukan`}
             </p>
-            <p className="text-xs text-slate-400 mt-1">Check back later for new submissions.</p>
+            <p className="text-xs text-slate-400 mt-1">Periksa kembali nanti untuk pengajuan baru.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left font-sans text-xs">
               <thead>
                 <tr className="bg-slate-50 text-slate-500 font-black uppercase tracking-wider border-b border-slate-200 text-[10px]">
-                  <th className="px-5 py-4 pl-6">Student Info</th>
+                  <th className="px-5 py-4 pl-6">Informasi Mahasiswa</th>
                   <th className="px-5 py-4">NIM</th>
                   <th className="px-5 py-4">Program Studi</th>
                   <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Date</th>
-                  <th className="px-5 py-4 text-right pr-6">Actions</th>
+                  <th className="px-5 py-4">Tanggal</th>
+                  <th className="px-5 py-4 text-right pr-6">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -248,7 +248,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                         {req.status === 'pending' && <Clock className="w-3 h-3" />}
                         {req.status === 'approved' && <CheckCircle className="w-3 h-3" />}
                         {req.status === 'rejected' && <XCircle className="w-3 h-3" />}
-                        {req.status}
+                        {req.status === 'pending' ? 'Menunggu' : req.status === 'approved' ? 'Disetujui' : 'Ditolak'}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-slate-500">
@@ -265,14 +265,14 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                             <button
                               onClick={() => setModal({ type: 'approve', request: req })}
                               className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition-colors cursor-pointer"
-                              title="Approve"
+                              title="Setujui"
                             >
                               <CheckCircle className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => setModal({ type: 'reject', request: req })}
                               className="p-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg transition-colors cursor-pointer"
-                              title="Reject"
+                              title="Tolak"
                             >
                               <XCircle className="w-4 h-4" />
                             </button>
@@ -281,7 +281,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                         <button
                           onClick={() => setModal({ type: 'detail', request: req })}
                           className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer"
-                          title="View Details"
+                          title="Lihat Detail"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -298,20 +298,20 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
       {/* Approve Modal */}
       {modal.type === 'approve' && modal.request && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-up">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-up text-left">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
                 <CheckCircle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-sans font-black text-lg text-[#001e40]">Approve Registration</h3>
-                <p className="text-xs text-slate-500">Confirm student account approval</p>
+                <h3 className="font-sans font-black text-lg text-[#001e40]">Setujui Registrasi</h3>
+                <p className="text-xs text-slate-500">Konfirmasi persetujuan akun mahasiswa</p>
               </div>
             </div>
 
             <div className="bg-slate-50 rounded-xl p-4 mb-6 text-xs space-y-2">
               <div className="flex justify-between">
-                <span className="text-slate-500 font-semibold">Name</span>
+                <span className="text-slate-500 font-semibold">Nama</span>
                 <span className="font-bold text-slate-800">{modal.request.name}</span>
               </div>
               <div className="flex justify-between">
@@ -333,7 +333,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                 onClick={() => setModal({ type: null, request: null })}
                 className="px-5 py-2.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 onClick={handleApprove}
@@ -343,10 +343,10 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                 {processing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Processing...
+                    Memproses...
                   </>
                 ) : (
-                  <>Approve Registration</>
+                  <>Setujui Registrasi</>
                 )}
               </button>
             </div>
@@ -357,21 +357,21 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
       {/* Reject Modal */}
       {modal.type === 'reject' && modal.request && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-up">
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl border border-slate-200 animate-scale-up text-left">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center">
                 <XCircle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-sans font-black text-lg text-[#001e40]">Reject Registration</h3>
-                <p className="text-xs text-slate-500">Provide a reason for the student</p>
+                <h3 className="font-sans font-black text-lg text-[#001e40]">Tolak Registrasi</h3>
+                <p className="text-xs text-slate-500">Berikan alasan penolakan untuk mahasiswa</p>
               </div>
             </div>
 
             <div className="space-y-4 mb-6">
               <div className="bg-slate-50 rounded-xl p-4 text-xs">
                 <div className="flex justify-between mb-1">
-                  <span className="text-slate-500 font-semibold">Name</span>
+                  <span className="text-slate-500 font-semibold">Nama</span>
                   <span className="font-bold text-slate-800">{modal.request.name}</span>
                 </div>
                 <div className="flex justify-between">
@@ -382,12 +382,12 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Rejection Reason (optional)
+                  Alasan Penolakan (opsional)
                 </label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="e.g., Incomplete documentation, invalid NIM"
+                  placeholder="Contoh: Dokumen tidak lengkap, NIM tidak valid"
                   rows={3}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:ring-2 focus:ring-[#001e40]/10 focus:border-[#001e40] outline-none transition-all resize-none"
                 />
@@ -402,7 +402,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                 }}
                 className="px-5 py-2.5 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                Cancel
+                Batal
               </button>
               <button
                 onClick={handleReject}
@@ -412,10 +412,10 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                 {processing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Processing...
+                    Memproses...
                   </>
                 ) : (
-                  <>Reject Registration</>
+                  <>Tolak Registrasi</>
                 )}
               </button>
             </div>
@@ -426,7 +426,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
       {/* Detail Modal */}
       {modal.type === 'detail' && modal.request && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl border border-slate-200 animate-scale-up">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-6 shadow-2xl border border-slate-200 animate-scale-up text-left">
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
               <div className="w-10 h-10 bg-[#001e40] text-[#feb234] rounded-xl flex items-center justify-center font-bold text-sm">
                 {modal.request.name.charAt(0).toUpperCase()}
@@ -438,7 +438,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
-              <div className="bg-slate1545 rounded-xl p-3">
+              <div className="bg-slate-50 rounded-xl p-3">
                 <p className="text-slate-400 font-semibold mb-1">NIM</p>
                 <p className="font-bold text-slate-800">{modal.request.nim}</p>
               </div>
@@ -469,10 +469,10 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                 {modal.request.status === 'pending' && <Clock className="w-3 h-3" />}
                 {modal.request.status === 'approved' && <CheckCircle className="w-3 h-3" />}
                 {modal.request.status === 'rejected' && <XCircle className="w-3 h-3" />}
-                {modal.request.status}
+                {modal.request.status === 'pending' ? 'Menunggu' : modal.request.status === 'approved' ? 'Disetujui' : 'Ditolak'}
               </span>
               <span className="text-xs text-slate-400">
-                Submitted on{' '}
+                Diajukan pada{' '}
                 {new Date(modal.request.created_at).toLocaleDateString('id-ID', {
                   day: '2-digit',
                   month: 'long',
@@ -486,7 +486,7 @@ export default function RegistrationQueue({ onRefresh }: RegistrationQueueProps)
                 onClick={() => setModal({ type: null, request: null })}
                 className="px-5 py-2.5 bg-[#001e40] hover:bg-[#1f477b] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
-                Close
+                Tutup
               </button>
             </div>
           </div>

@@ -36,45 +36,43 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
     setIsLoading(true);
 
     try {
-      // Step 1: Find the student profile by NIM
-      const { data: profileData, error: profileError } = await supabase
-        .from('mahasiswa_profiles')
-        .select('user_id, major, semester')
-        .eq('nim', nim)
-        .single();
+      // Step 1: Fetch the student's email, name, role, major, and semester via secure RPC by NIM
+      const { data: loginInfoList, error: loginInfoError } = await supabase
+        .rpc('get_student_login_info', { p_nim: nim });
 
-      if (profileError || !profileData) {
-        setError('NIM tidak ditemukan. Silakan periksa kembali NIM Anda.');
+      const loginInfo = loginInfoList && loginInfoList.length > 0 ? loginInfoList[0] : null;
+
+      if (loginInfoError || !loginInfo) {
+        // Fall back to checking registration requests if they just signed up
+        const { data: reqData, error: reqError } = await supabase
+          .rpc('get_registration_status', { p_query: nim });
+
+        const firstRequest = reqData && reqData.length > 0 ? reqData[0] : null;
+
+        if (!reqError && firstRequest) {
+          if (firstRequest.status === 'pending') {
+            setError('Pendaftaran akun Anda sedang ditinjau oleh Admin. Harap tunggu persetujuan.');
+          } else if (firstRequest.status === 'rejected') {
+            setError(`Pendaftaran akun Anda ditolak oleh Admin. Alasan: ${firstRequest.rejection_reason || 'Tidak ada alasan yang diberikan.'}`);
+          } else {
+            setError('NIM tidak ditemukan. Silakan periksa kembali NIM Anda.');
+          }
+        } else {
+          setError('NIM tidak ditemukan. Silakan periksa kembali NIM Anda.');
+        }
         setIsLoading(false);
         return;
       }
 
-      const profile: MahasiswaProfile = profileData as unknown as MahasiswaProfile;
-
-      // Step 2: Fetch the user's email and verify role from the database
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('email, role, name, avatar_url')
-        .eq('id', profile.user_id)
-        .single();
-
-      if (userError || !userData) {
-        setError('Data pengguna tidak ditemukan. Hubungi admin.');
-        setIsLoading(false);
-        return;
-      }
-
-      const userDb: UserData = userData as unknown as UserData;
-
-      // Step 3: Ensure the user is a student
-      if (userDb.role !== 'mahasiswa') {
+      // Step 2: Ensure the user is a student
+      if (loginInfo.role !== 'mahasiswa') {
         setError('Akses ditolak. Portal ini hanya untuk mahasiswa.');
         setIsLoading(false);
         return;
       }
 
-      // Step 4: Authenticate via Supabase Auth
-      const { user, error: authError } = await AuthService.signIn(userDb.email, password);
+      // Step 3: Authenticate via Supabase Auth
+      const { user, error: authError } = await AuthService.signIn(loginInfo.email, password);
 
       if (authError || !user) {
         setError(authError || 'NIM atau password salah. Silakan periksa kembali.');
@@ -82,17 +80,17 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
         return;
       }
 
-      // Step 5: Build session from REAL database data
+      // Step 4: Build session
       onLoginSuccess({
         id: user.id,
         username: nim,
         role: 'mahasiswa',
-        name: userDb.name || user.name,
+        name: loginInfo.name || user.name,
         nimOrNip: nim,
-        avatarUrl: userDb.avatar_url || user.avatarUrl,
-        email: userDb.email,
-        major: profile.major,
-        semester: profile.semester,
+        avatarUrl: loginInfo.avatar_url || user.avatarUrl,
+        email: loginInfo.email,
+        major: loginInfo.major,
+        semester: loginInfo.semester,
       });
 
       setIsLoading(false);

@@ -95,8 +95,9 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           return;
         }
 
-        if (user.role !== 'administrator' && user.role !== 'superadmin' && user.role !== 'admin') {
-          setError('Access denied. Admin privileges required.');
+        const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator'];
+        if (!allowedRoles.includes(user.role)) {
+          setError('Akses ditolak. Peran admin/staf diperlukan.');
           setIsLoading(false);
           return;
         }
@@ -105,6 +106,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           id: user.id,
           username: user.email,
           role: user.role === 'superadmin' ? 'superadmin' : 'admin',
+          roles: user.roles || [user.role],
           name: user.name,
           nimOrNip: 'ADMIN-' + user.id.slice(0, 8),
           avatarUrl: user.avatarUrl,

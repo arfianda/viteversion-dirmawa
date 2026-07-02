@@ -2,6 +2,7 @@ export interface UserSession {
   id: string;
   username: string;
   role: 'mahasiswa' | 'admin' | 'superadmin';
+  roles?: string[];
   name: string;
   nimOrNip?: string;
   avatarUrl?: string;
@@ -15,6 +16,9 @@ export interface AlumniRecord {
   graduationYear: number;
   status: 'Valid' | 'Invalid NIM';
   email?: string;
+  employmentStatus?: 'Bekerja' | 'Wirausaha' | 'Melanjutkan Studi' | 'Belum Bekerja';
+  company?: string;
+  position?: string;
 }
 
 export interface UkmRecord {
@@ -28,6 +32,7 @@ export interface UkmRecord {
   updatedAt: string;
   description: string;
   leaderName?: string;
+  instagramUrl?: string;
 }
 
 export interface ScholarshipRecord {
@@ -60,6 +65,7 @@ export interface AdminRecord {
   name: string;
   email: string;
   role: 'Super Admin' | 'Admin' | 'Editor';
+  roles?: string[];
   lastActive: string;
   avatarInitials: string;
 }

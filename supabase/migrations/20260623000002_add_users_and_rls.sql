@@ -132,63 +132,6 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- Seed administrator: abcd@upb.ac.id
-INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change_token_new, email_change_token_current, recovery_token, phone_change_token, email_change, phone_change, reauthentication_token)
-VALUES (
-  '00000000-0000-0000-0000-000000000000'::uuid,
-  '00000000-0000-0000-0000-000000000002'::uuid,
-  'authenticated',
-  'authenticated',
-  'abcd@upb.ac.id',
-  crypt('password123', gen_salt('bf')),
-  now(),
-  '{"provider": "email", "providers": ["email"]}'::jsonb,
-  '{"name": "Dr. ABCD", "role": "administrator"}'::jsonb,
-  now(),
-  now(),
-  '', '', '', '', '',
-  '', '', ''
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Seed administrator: efgh@upb.ac.id
-INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change_token_new, email_change_token_current, recovery_token, phone_change_token, email_change, phone_change, reauthentication_token)
-VALUES (
-  '00000000-0000-0000-0000-000000000000'::uuid,
-  '00000000-0000-0000-0000-000000000003'::uuid,
-  'authenticated',
-  'authenticated',
-  'efgh@upb.ac.id',
-  crypt('password123', gen_salt('bf')),
-  now(),
-  '{"provider": "email", "providers": ["email"]}'::jsonb,
-  '{"name": "EFGH, M.Kom", "role": "administrator"}'::jsonb,
-  now(),
-  now(),
-  '', '', '', '', '',
-  '', '', ''
-)
-ON CONFLICT (id) DO NOTHING;
-
--- Seed administrator: asdf@upb.ac.id
-INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change_token_new, email_change_token_current, recovery_token, phone_change_token, email_change, phone_change, reauthentication_token)
-VALUES (
-  '00000000-0000-0000-0000-000000000000'::uuid,
-  '00000000-0000-0000-0000-000000000004'::uuid,
-  'authenticated',
-  'authenticated',
-  'asdf@upb.ac.id',
-  crypt('password123', gen_salt('bf')),
-  now(),
-  '{"provider": "email", "providers": ["email"]}'::jsonb,
-  '{"name": "ASDF", "role": "administrator"}'::jsonb,
-  now(),
-  now(),
-  '', '', '', '', '',
-  '', '', ''
-)
-ON CONFLICT (id) DO NOTHING;
-
 -- Seed student: budi@upb.ac.id
 INSERT INTO auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, email_change_token_new, email_change_token_current, recovery_token, phone_change_token, email_change, phone_change, reauthentication_token)
 VALUES (
@@ -216,9 +159,6 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO public.users (id, email, name, role)
 VALUES 
   ('00000000-0000-0000-0000-000000000001'::uuid, 'arfiandafirsta@gmail.com', 'Arfianda', 'superadmin'),
-  ('00000000-0000-0000-0000-000000000002'::uuid, 'abcd@upb.ac.id', 'Dr. ABCD', 'administrator'),
-  ('00000000-0000-0000-0000-000000000003'::uuid, 'efgh@upb.ac.id', 'EFGH, M.Kom', 'administrator'),
-  ('00000000-0000-0000-0000-000000000004'::uuid, 'asdf@upb.ac.id', 'ASDF', 'administrator'),
   ('00000000-0000-0000-0000-000000000005'::uuid, 'budi@upb.ac.id', 'Budi Santoso', 'mahasiswa')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,

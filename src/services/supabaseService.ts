@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews, ScholarshipApplication } from '../types';
+import { Scholarship, UKM, Achievement, AlumniRecord, StudentNews, ScholarshipApplication, Appointment } from '../types';
 import { NewsArticle, UkmRecord, ScholarshipRecord, AlumniRecord as AdminAlumniRecord } from '../admin/types';
 
 // Registration request types
@@ -350,6 +350,7 @@ export const SupabaseService = {
       logoImage: row.logo_image_url || '',
       vision: row.vision || '',
       activeMembers: row.active_members || 0,
+      instagramUrl: row.instagram_url || '',
       mission: (row.ukpm_missions || []).map((m: any) => m.mission),
       schedule: (row.ukpm_schedules || []).map((s: any) => ({ day: s.day, time: s.time, activity: s.activity })),
       gallery: (row.ukpm_gallery || []).map((g: any) => g.image_url),
@@ -375,7 +376,8 @@ export const SupabaseService = {
       coverUrl: row.cover_image_url || undefined,
       updatedAt: row.updated_at ? new Date(row.updated_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 24, 2023',
       description: row.description || '',
-      leaderName: row.leader_name || undefined
+      leaderName: row.leader_name || undefined,
+      instagramUrl: row.instagram_url || undefined
     }));
   },
 
@@ -391,7 +393,8 @@ export const SupabaseService = {
       logo_image_url: u.logoImage,
       vision: u.vision,
       active_members: u.activeMembers,
-      leader_name: u.contacts && u.contacts[0] ? u.contacts[0].name : ''
+      leader_name: u.contacts && u.contacts[0] ? u.contacts[0].name : '',
+      instagram_url: u.instagramUrl || null
     };
 
     if (isNew) {
@@ -470,7 +473,8 @@ export const SupabaseService = {
       logo_image_url: ur.logoUrl,
       cover_image_url: ur.coverUrl,
       description: ur.description,
-      leader_name: ur.leaderName
+      leader_name: ur.leaderName,
+      instagram_url: ur.instagramUrl || null
     };
 
     if (isNew) {
@@ -674,7 +678,32 @@ export const SupabaseService = {
   },
 
   async saveAdminAlumniRecordsBulk(records: Omit<AdminAlumniRecord, 'id'>[]): Promise<void> {
-    const payloads = records.map(ar => ({
+    // 1. Fetch all existing NIMs from database to prevent duplicate insertions
+    const { data: existing, error: fetchError } = await supabase
+      .from('alumni_records')
+      .select('nim');
+    if (fetchError) throw fetchError;
+    
+    const existingNims = new Set(existing ? existing.map((x: any) => String(x.nim || '').trim()) : []);
+
+    // 2. Filter records to avoid duplicate NIMs within the batch and matching existing DB records
+    const seenBatchNims = new Set<string>();
+    const uniqueNewRecords = records.filter(ar => {
+      const cleanNim = String(ar.nim || '').trim();
+      if (!cleanNim) return false;
+      if (existingNims.has(cleanNim) || seenBatchNims.has(cleanNim)) {
+        return false;
+      }
+      seenBatchNims.add(cleanNim);
+      return true;
+    });
+
+    if (uniqueNewRecords.length === 0) {
+      console.log('No new alumni records to insert (all duplicates skipped).');
+      return;
+    }
+
+    const payloads = uniqueNewRecords.map(ar => ({
       id: crypto.randomUUID(),
       name: ar.name,
       nim: ar.nim,
@@ -682,9 +711,9 @@ export const SupabaseService = {
       graduation_year: ar.graduationYear,
       nim_status: ar.status,
       email: ar.email || '',
-      status: 'Bekerja' as any,
-      company: '',
-      position: ''
+      status: ar.employmentStatus || 'Bekerja',
+      company: ar.company || '',
+      position: ar.position || ''
     }));
 
     const { error } = await supabase
@@ -733,26 +762,14 @@ export const SupabaseService = {
       throw new Error("Admin session required for approval");
     }
 
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Supabase URL or anon key not configured");
-    }
-
-    const response = await fetch(`${supabaseUrl}/functions/v1/approve-registration`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ id, admin_id: adminId }),
+    const { error } = await supabase.rpc('approve_registration_request', {
+      p_request_id: id,
+      p_admin_id: adminId
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to approve registration");
+    if (error) {
+      throw new Error(error.message || "Failed to approve registration");
     }
-    return;
   },
 
   async rejectRegistrationRequest(id: string, reason?: string): Promise<void> {
@@ -945,4 +962,144 @@ export const SupabaseService = {
       .eq('id', id);
     if (error) throw error;
   },
+
+  // ==========================================
+  // MEMBER REPORTS MANAGEMENT
+  // ==========================================
+  async createMemberReport(ukmId: string, reportedCount: number): Promise<void> {
+    const reportId = crypto.randomUUID();
+    const { error } = await supabase
+      .from('member_reports')
+      .insert({
+        id: reportId,
+        ukm_id: ukmId,
+        reported_count: reportedCount,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    if (error) throw error;
+  },
+
+  async getPendingMemberReports(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('member_reports')
+      .select('*, ukms(name)')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getPendingMemberReportForUkm(ukmId: string): Promise<any> {
+    const { data, error } = await supabase
+      .from('member_reports')
+      .select('*')
+      .eq('ukm_id', ukmId)
+      .eq('status', 'pending')
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  },
+
+  async approveMemberReport(reportId: string, ukmId: string, count: number): Promise<void> {
+    // 1. Update report status to approved
+    const { error: reportError } = await supabase
+      .from('member_reports')
+      .update({ status: 'approved', updated_at: new Date().toISOString() })
+      .eq('id', reportId);
+    if (reportError) throw reportError;
+
+    // 2. Update active_members in ukms table
+    const { error: ukmError } = await supabase
+      .from('ukms')
+      .update({ active_members: count, updated_at: new Date().toISOString() })
+      .eq('id', ukmId);
+    if (ukmError) throw ukmError;
+  },
+
+  async rejectMemberReport(reportId: string): Promise<void> {
+    const { error } = await supabase
+      .from('member_reports')
+      .update({ status: 'rejected', updated_at: new Date().toISOString() })
+      .eq('id', reportId);
+    if (error) throw error;
+  },
+
+  async getSystemSetting(key: string): Promise<string> {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+    if (error) throw error;
+    return data ? data.value : 'false';
+  },
+
+  async setSystemSetting(key: string, value: string): Promise<void> {
+    const { error } = await supabase
+      .from('system_settings')
+      .upsert({ key, value });
+    if (error) throw error;
+  },
+
+  // ==========================================
+  // APPOINTMENTS MANAGEMENT & ROLES UPDATE
+  // ==========================================
+  async getAppointments(): Promise<Appointment[]> {
+    const { data, error } = await supabase
+      .from('appointments')
+      .select('*')
+      .order('requested_date', { ascending: true })
+      .order('requested_time', { ascending: true });
+    if (error) throw error;
+    return (data || []) as Appointment[];
+  },
+
+  async createAppointment(appointment: Omit<Appointment, 'id'>): Promise<Appointment> {
+    const { data, error } = await supabase
+      .from('appointments')
+      .insert({
+        ...appointment,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data as Appointment;
+  },
+
+  async updateAppointment(id: string, updates: Partial<Appointment>): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async deleteAppointment(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  async updateUserRoles(userId: string, roles: string[]): Promise<void> {
+    const primaryRole = roles.length > 0 ? roles[0] : 'operator';
+    const { error } = await supabase
+      .from('users')
+      .update({
+        roles,
+        role: primaryRole,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+    if (error) throw error;
+  }
 };
+
