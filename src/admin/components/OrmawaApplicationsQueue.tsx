@@ -15,9 +15,10 @@ import { OrmawaService, OrmawaApplication } from '../../services/ormawaService';
 
 interface OrmawaApplicationsQueueProps {
   reviewerId: string;
+  onRefresh?: () => void;
 }
 
-export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicationsQueueProps) {
+export default function OrmawaApplicationsQueue({ reviewerId, onRefresh }: OrmawaApplicationsQueueProps) {
   const [applications, setApplications] = useState<OrmawaApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -54,6 +55,7 @@ export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicatio
       alert(`Ormawa "${app.name}" disetujui! Akun admin khusus telah digenerate.`);
       setSelectedApp(null);
       await fetchApps();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menyetujui pengajuan: ' + e.message);
@@ -74,6 +76,7 @@ export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicatio
       setRejectionReason('');
       setShowRejectForm(false);
       await fetchApps();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menolak pengajuan: ' + e.message);

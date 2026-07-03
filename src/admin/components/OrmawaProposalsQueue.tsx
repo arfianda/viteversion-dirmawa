@@ -18,7 +18,11 @@ const formatRupiah = (num: number) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
 };
 
-export default function OrmawaProposalsQueue() {
+interface OrmawaProposalsQueueProps {
+  onRefresh?: () => void;
+}
+
+export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueueProps) {
   const [activeSubTab, setActiveSubTab] = useState<'proposals' | 'lpjs'>('proposals');
   const [proposals, setProposals] = useState<OrmawaProposal[]>([]);
   const [lpjs, setLpjs] = useState<OrmawaLpj[]>([]);
@@ -133,6 +137,7 @@ export default function OrmawaProposalsQueue() {
       alert(`Proposal berhasil dilanjutkan ke tahapan: ${nextStep.nextStatus}`);
       setSelectedProposal(null);
       await fetchData();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal memproses proposal: ' + e.message);
@@ -153,6 +158,7 @@ export default function OrmawaProposalsQueue() {
       setRejectionNotes('');
       setShowRejectForm(false);
       await fetchData();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menolak proposal: ' + e.message);
@@ -171,6 +177,7 @@ export default function OrmawaProposalsQueue() {
       alert(`LPJ berhasil dilanjutkan ke tahapan: ${nextStep.nextStatus}`);
       setSelectedLpj(null);
       await fetchData();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal memproses LPJ: ' + e.message);
@@ -191,6 +198,7 @@ export default function OrmawaProposalsQueue() {
       setRejectionNotes('');
       setShowRejectForm(false);
       await fetchData();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menolak LPJ: ' + e.message);

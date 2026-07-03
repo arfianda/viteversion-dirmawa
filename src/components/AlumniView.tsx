@@ -18,6 +18,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ArrowUpDown,
+  ExternalLink,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -42,50 +43,7 @@ import {
   SortingState,
 } from "@tanstack/react-table";
 
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-
-// Zod Schema for tracer questionnaire standard validation matching PRD specs
-const tracerSchema = z
-  .object({
-    name: z
-      .string()
-      .min(2, { message: "Nama lengkap wajib diisi (minimal 2 karakter)" }),
-    graduationYear: z
-      .string()
-      .min(1, { message: "Tahun wisuda wajib dipilih" }),
-    major: z.string().min(1, { message: "Silakan pilih Program Studi" }),
-    status: z.enum(["Bekerja", "Wirausaha", "Lanjut Studi", "Mencari Kerja"]),
-    company: z.string().optional(),
-    position: z.string().optional(),
-  })
-  .superRefine((data, ctx) => {
-    if (data.status !== "Mencari Kerja") {
-      if (!data.company || data.company.trim() === "") {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["company"],
-          message:
-            data.status === "Lanjut Studi"
-              ? "Nama universitas kelanjutan studi wajib diisi"
-              : "Nama instansi/perusahaan tempat kerja wajib diisi",
-        });
-      }
-      if (
-        data.status !== "Lanjut Studi" &&
-        (!data.position || data.position.trim() === "")
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ["position"],
-          message: "Posisi atau jabatan pekerjaan saat ini wajib diisi",
-        });
-      }
-    }
-  });
-
-type TracerFormValues = z.infer<typeof tracerSchema>;
 
 interface AlumniProps {
   alumniList: AlumniRecord[];
@@ -96,7 +54,6 @@ export default function AlumniView({ alumniList, setAlumniList }: AlumniProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedStatus, setSelectedStatus] = React.useState<string>("semua");
   const [selectedMajor, setSelectedMajor] = React.useState<string>("semua");
-  const [submitSuccess, setSubmitSuccess] = React.useState(false);
 
   // Majors list
   const majors = [
@@ -116,27 +73,6 @@ export default function AlumniView({ alumniList, setAlumniList }: AlumniProps) {
     "Lanjut Studi",
     "Mencari Kerja",
   ];
-
-  // React Hook Form + Zod setup
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-    reset,
-  } = useForm<TracerFormValues>({
-    resolver: zodResolver(tracerSchema),
-    defaultValues: {
-      name: "",
-      graduationYear: "2024",
-      major: "Teknik Informatika",
-      status: "Bekerja",
-      company: "",
-      position: "",
-    },
-  });
-
-  const watchStatus = watch("status");
 
   // Filter list statically before presenting to the data-table engine
   const filteredAlumni = React.useMemo(() => {
@@ -328,28 +264,6 @@ export default function AlumniView({ alumniList, setAlumniList }: AlumniProps) {
     },
   });
 
-  // Tracer questionnaire robust submit action
-  const handleTracerSubmit = (data: TracerFormValues) => {
-    const newAlumni: AlumniRecord = {
-      id: (alumniList.length + 1).toString(),
-      name: data.name,
-      graduationYear: Number(data.graduationYear),
-      major: data.major,
-      status: data.status,
-      company:
-        data.status !== "Mencari Kerja" && data.company ? data.company : "-",
-      position:
-        data.status !== "Mencari Kerja" && data.position ? data.position : "-",
-    };
-
-    setAlumniList([newAlumni, ...alumniList]);
-    setSubmitSuccess(true);
-    setTimeout(() => {
-      setSubmitSuccess(false);
-      reset();
-    }, 4000);
-  };
-
   return (
     <div className="space-y-12">
       {/* Header title - Light, Elegant, High-contrast */}
@@ -362,7 +276,7 @@ export default function AlumniView({ alumniList, setAlumniList }: AlumniProps) {
         </h1>
         <p className="text-sm sm:text-base text-slate-505 max-w-2xl mx-auto font-sans leading-relaxed">
           Menganalisis keterserapan industri kerja, memvisualisasikan daya saing
-          lulusan, serta mewadahi pengisian kuesioner pelacakan karir terpadu
+          lulusan, serta mengarahkan alumni untuk mengisi kuesioner pelacakan karir terpadu pada portal Tracer Study resmi
           (Tracer Study).
         </p>
       </div>
@@ -740,227 +654,41 @@ export default function AlumniView({ alumniList, setAlumniList }: AlumniProps) {
           </div>
         </div>
 
-        {/* TRACER SUBMISSION FORM with clean light typography */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl space-y-6 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-yellow-500/5 blur-2xl pointer-events-none" />
-          <div className="space-y-2">
-            <div className="flex items-center space-x-2 text-[#001e40]">
-              <FileText size={20} className="text-[#feb234]" />
-              <h3 className="font-sans font-black text-lg text-[#001e40] tracking-tight">
-                Kuesioner Tracer Study
+        {/* TRACER CALL TO ACTION CARD */}
+        <div className="lg:col-span-2 bg-gradient-to-br from-[#001e40] to-[#002d61] p-6 sm:p-8 rounded-3xl text-white space-y-6 shadow-md relative overflow-hidden flex flex-col justify-between min-h-[320px]">
+          <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#feb234]/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-10 h-10 rounded-xl bg-[#feb234]/15 text-[#feb234] flex items-center justify-center animate-none cursor-default">
+                <FileText size={20} />
+              </div>
+              <h3 className="font-sans font-black text-lg text-white tracking-tight">
+                Portal Tracer Study UPB
               </h3>
             </div>
-            <p className="text-xs text-slate-505 leading-relaxed font-sans">
-              Silakan sumbangkan partisipasi data Anda dengan mengisi tracer
-              karir untuk membantu pemetaan mutu almamater UPB pada SIMKATMAWA
-              Kemendikbud.
+            
+            <p className="text-xs text-slate-300 leading-relaxed font-sans">
+              Tracer Study merupakan survei pelacakan alumni yang dilakukan untuk memetakan lulusan Universitas Pelita Bangsa. Partisipasi Anda sangat berharga bagi pemetaan mutu institusi, akreditasi kampus, serta evaluasi kurikulum akademik SIMKATMAWA Kemendikbud.
             </p>
+            
+            <div className="p-4 bg-white/5 border border-white/10 rounded-xl flex items-start gap-3 select-none">
+              <span className="text-lg">💡</span>
+              <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+                Pengisian Tracer Study asli dilakukan di platform resmi universitas. Klik tombol di bawah ini untuk menuju halaman pengisian Tracer Study yang sesungguhnya.
+              </p>
+            </div>
           </div>
 
-          {submitSuccess ? (
-            <div className="p-4 bg-yellow-500/10 border border-yellow-300 text-[#feb234] text-xs leading-relaxed rounded-xl font-sans animate-fade-in">
-              <span className="font-bold block mb-1">
-                ✓ Berhasil Melaporkan Karir!
-              </span>
-              Terima kasih atas kontribusi luhur Anda. Data kelulusan karir Anda
-              berhasil masuk ke dalam database dinamis simulasi kemahasiswaan
-              Universitas Pelita Bangsa.
-            </div>
-          ) : (
-            <form
-              onSubmit={handleSubmit(handleTracerSubmit)}
-              className="space-y-4 font-sans text-xs"
-            >
-              {/* Full Name */}
-              <div className="space-y-1">
-                <label
-                  className="text-slate-700 block font-bold"
-                  htmlFor="fullName"
-                >
-                  Nama Lengkap Alumni
-                </label>
-                <input
-                  id="fullName"
-                  type="text"
-                  {...register("name")}
-                  className={`w-full bg-slate-50 border rounded-lg px-3.5 py-2 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white text-xs ${
-                    errors.name
-                      ? "border-red-500/80 focus:border-red-500"
-                      : "border-slate-200 focus:border-[#001e40]"
-                  }`}
-                  placeholder="Contoh: Sarah Amanda"
-                />
-                {errors.name && (
-                  <span className="text-red-500 text-[10px] font-sans block mt-1">
-                    {errors.name.message}
-                  </span>
-                )}
-              </div>
-
-              {/* Graduation Year & Major */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label
-                    className="text-slate-700 block font-bold"
-                    htmlFor="graduationYear"
-                  >
-                    Tahun Wisuda
-                  </label>
-                  <select
-                    id="graduationYear"
-                    {...register("graduationYear")}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                  >
-                    <option value="2024">Wisuda 2025</option>
-                    <option value="2024">Wisuda 2024</option>
-                    <option value="2023">Wisuda 2023</option>
-                    <option value="2022">Wisuda 2022</option>
-                    <option value="2021">Wisuda 2021</option>
-                    <option value="2020">Wisuda 2020</option>
-                  </select>
-                  {errors.graduationYear && (
-                    <span className="text-red-500 text-[10px] font-sans block mt-1">
-                      {errors.graduationYear.message}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <label
-                    className="text-slate-700 block font-bold"
-                    htmlFor="major"
-                  >
-                    Program Studi
-                  </label>
-                  <select
-                    id="major"
-                    {...register("major")}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                  >
-                    <option value="Teknik Informatika">
-                      Teknik Informatika
-                    </option>
-                    <option value="Sistem Informasi">Sistem Informasi</option>
-                    <option value="Manajemen">Manajemen</option>
-                    <option value="Teknik Industri">Teknik Industri</option>
-                    <option value="Akuntansi">Akuntansi</option>
-                  </select>
-                  {errors.major && (
-                    <span className="text-red-500 text-[10px] font-sans block mt-1">
-                      {errors.major.message}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Status */}
-              <div className="space-y-1">
-                <label
-                  className="text-slate-700 block font-bold"
-                  htmlFor="careerStatus"
-                >
-                  Status Alumni Saat Ini
-                </label>
-                <select
-                  id="careerStatus"
-                  {...register("status")}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                >
-                  <option value="Bekerja">
-                    Bekerja (Karyawan/PNS/TNI-Polri)
-                  </option>
-                  <option value="Wirausaha">
-                    Wirausaha (Pemilik Usaha/Startup)
-                  </option>
-                  <option value="Lanjut Studi">
-                    Lanjut Studi (Magister/S2)
-                  </option>
-                  <option value="Mencari Kerja">
-                    Mencari Kerja / Sedang Transisi
-                  </option>
-                </select>
-                {errors.status && (
-                  <span className="text-red-500 text-[10px] font-sans block mt-1">
-                    {errors.status.message}
-                  </span>
-                )}
-              </div>
-
-              {/* Company & Position (Conditional display based on watchStatus) */}
-              {watchStatus !== "Mencari Kerja" && (
-                <div className="grid grid-cols-2 gap-3 animate-fade-in duration-300 cursor-default">
-                  <div className="space-y-1 animate-fade-in">
-                    <label
-                      className="text-slate-700 block font-bold"
-                      htmlFor="company"
-                    >
-                      {watchStatus === "Lanjut Studi"
-                        ? "Nama Universitas S2"
-                        : "Nama Instansi / Usaha"}
-                    </label>
-                    <input
-                      id="company"
-                      type="text"
-                      {...register("company")}
-                      className={`w-full bg-slate-50 border rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:bg-white text-xs ${
-                        errors.company
-                          ? "border-red-500/80 focus:border-red-500"
-                          : "border-slate-200 focus:border-[#001e40]"
-                      }`}
-                      placeholder={
-                        watchStatus === "Lanjut Studi"
-                          ? "Contoh: ITB / Universitas Indonesia"
-                          : "Contoh: PT Tokopedia"
-                      }
-                    />
-                    {errors.company && (
-                      <span className="text-red-500 text-[10px] font-sans block mt-1 leading-normal">
-                        {errors.company.message}
-                      </span>
-                    )}
-                  </div>
-                  <div className="space-y-1 animate-fade-in">
-                    <label
-                      className="text-slate-700 block font-bold"
-                      htmlFor="position"
-                    >
-                      {watchStatus === "Lanjut Studi"
-                        ? "Program Konsentrasi"
-                        : "Jabatan / Posisi"}
-                    </label>
-                    <input
-                      id="position"
-                      type="text"
-                      {...register("position")}
-                      className={`w-full bg-slate-50 border rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:bg-white text-xs ${
-                        errors.position
-                          ? "border-red-500/80 focus:border-red-500"
-                          : "border-slate-200 focus:border-[#001e40]"
-                      }`}
-                      placeholder={
-                        watchStatus === "Lanjut Studi"
-                          ? "Contoh: S2 Sains Komputer"
-                          : "Contoh: Senior Developer"
-                      }
-                    />
-                    {errors.position && (
-                      <span className="text-red-500 text-[10px] font-sans block mt-1 leading-normal">
-                        {errors.position.message}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full py-3 bg-[#001e40] hover:bg-[#002d61] text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center space-x-2"
-              >
-                <Send size={13} className="text-[#feb234]" />
-                <span>Kirim Data Karir Saya</span>
-              </button>
-            </form>
-          )}
+          <a
+            href="https://tracerstudy.pelitabangsa.ac.id"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] font-sans font-black text-xs uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-300 flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            <span>Buka Website Tracer Study</span>
+            <ExternalLink size={14} className="stroke-[2.5]" />
+          </a>
         </div>
       </div>
     </div>

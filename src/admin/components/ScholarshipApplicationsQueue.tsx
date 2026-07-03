@@ -8,7 +8,11 @@ interface ModalState {
   application: ScholarshipApplication | null;
 }
 
-export default function ScholarshipApplicationsQueue() {
+interface ScholarshipApplicationsQueueProps {
+  onRefresh?: () => void;
+}
+
+export default function ScholarshipApplicationsQueue({ onRefresh }: ScholarshipApplicationsQueueProps) {
   const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +57,7 @@ export default function ScholarshipApplicationsQueue() {
       await SupabaseService.updateScholarshipApplicationStatus(modal.application.id, 'approved');
       setModal({ type: null, application: null });
       await fetchData();
+      if (onRefresh) onRefresh();
     } catch (err: any) {
       setError('Failed to approve: ' + (err.message || 'Unknown error'));
     } finally {
@@ -68,6 +73,7 @@ export default function ScholarshipApplicationsQueue() {
       setModal({ type: null, application: null });
       setRejectionReason('');
       await fetchData();
+      if (onRefresh) onRefresh();
     } catch (err: any) {
       setError('Failed to reject: ' + (err.message || 'Unknown error'));
     } finally {

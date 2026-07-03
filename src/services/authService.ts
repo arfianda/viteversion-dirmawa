@@ -7,6 +7,7 @@ export interface AuthUser {
   name: string;
   role: 'administrator' | 'superadmin' | 'admin' | 'mahasiswa' | 'alumni' | 'admin_ormawa' | 'direktur' | 'staf_beasiswa' | 'staf_ormawa' | 'staf_alumni' | 'staf_depan';
   roles?: string[];
+  isApproved?: boolean;
   nim?: string;
   avatarUrl?: string;
 }
@@ -33,7 +34,7 @@ export const AuthService = {
       // Fetch user profile from public.users table
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('id, email, name, role, roles, phone, avatar_url')
+        .select('id, email, name, role, roles, is_approved, phone, avatar_url')
         .eq('id', data.user.id)
         .single();
 
@@ -50,6 +51,7 @@ export const AuthService = {
             name: userName,
             role: userRole as AuthUser['role'],
             roles: userRoles,
+            isApproved: false,
             nim: data.user.user_metadata?.nim,
             avatarUrl: data.user.user_metadata?.avatar_url,
           },
@@ -64,6 +66,7 @@ export const AuthService = {
           name: profile.name,
           role: profile.role as AuthUser['role'],
           roles: profile.roles || [profile.role],
+          isApproved: profile.is_approved,
           nim: undefined, // Will be in mahasiswa_profiles or alumni_profiles
           avatarUrl: profile.avatar_url || undefined,
         },
@@ -95,7 +98,7 @@ export const AuthService = {
       // Fetch user profile
       const { data: profile } = await supabase
         .from('users')
-        .select('id, email, name, role, roles, phone, avatar_url')
+        .select('id, email, name, role, roles, is_approved, phone, avatar_url')
         .eq('id', session.user.id)
         .single();
 
@@ -106,6 +109,7 @@ export const AuthService = {
           name: session.user.user_metadata?.name || 'User',
           role: session.user.user_metadata?.role || 'mahasiswa',
           roles: session.user.user_metadata?.roles || [session.user.user_metadata?.role || 'mahasiswa'],
+          isApproved: false,
         };
       }
 
@@ -115,6 +119,7 @@ export const AuthService = {
         name: profile.name,
         role: profile.role as AuthUser['role'],
         roles: profile.roles || [profile.role],
+        isApproved: profile.is_approved,
         avatarUrl: profile.avatar_url || undefined,
       };
     } catch {
@@ -131,7 +136,7 @@ export const AuthService = {
         // Fetch profile on sign in
         const { data: profile } = await supabase
           .from('users')
-          .select('id, email, name, role, roles, phone, avatar_url')
+          .select('id, email, name, role, roles, is_approved, phone, avatar_url')
           .eq('id', session.user.id)
           .single();
 
@@ -142,6 +147,7 @@ export const AuthService = {
             name: profile.name,
             role: profile.role as AuthUser['role'],
             roles: profile.roles || [profile.role],
+            isApproved: profile.is_approved,
             avatarUrl: profile.avatar_url || undefined,
           });
         } else {
@@ -151,6 +157,7 @@ export const AuthService = {
             name: session.user.user_metadata?.name || 'User',
             role: session.user.user_metadata?.role || 'mahasiswa',
             roles: session.user.user_metadata?.roles || [session.user.user_metadata?.role || 'mahasiswa'],
+            isApproved: false,
           });
         }
       } else if (event === 'SIGNED_OUT') {
@@ -248,13 +255,13 @@ export const AuthService = {
     const role = await this.getUserRole(userId);
     if (!role) return false;
 
-    const roleHierarchy: Record<UserRole, number> = {
+    const roleHierarchy: Record<string, number> = {
       operator: 1,
       admin: 2,
       superadmin: 3,
     };
 
-    return roleHierarchy[role] >= roleHierarchy[requiredRole];
+    return (roleHierarchy[role] || 0) >= (roleHierarchy[requiredRole] || 0);
   },
 
   /**

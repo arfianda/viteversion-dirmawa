@@ -5,8 +5,8 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { StudentNews } from '../types';
+import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
+import { StudentNews, Achievement } from '../types';
 
 interface HomeViewProps {
   setCurrentTab: (tab: string) => void;
@@ -15,9 +15,10 @@ interface HomeViewProps {
   ukmsCount: number;
   alumniCount: number;
   achievementsCount: number;
+  achievements: Achievement[];
 }
 
-export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCount, alumniCount, achievementsCount }: HomeViewProps) {
+export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCount, alumniCount, achievementsCount, achievements }: HomeViewProps) {
   const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
@@ -411,6 +412,96 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
           </div>
         </div>
 
+      </section>
+
+      {/* 4.5. MAHASISWA BERPRESTASI - Premium Grid or Slider */}
+      <section className="space-y-6">
+        <div className="flex justify-between items-end border-b border-slate-200 pb-3">
+          <div className="space-y-1 text-left">
+            <div className="flex items-center space-x-2 text-[#feb234]">
+              <div className="w-6 h-0.5 bg-[#feb234]" />
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider">Apresiasi & Karya</span>
+            </div>
+            <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Mahasiswa Berprestasi</h2>
+          </div>
+          <button
+            onClick={() => setCurrentTab('achievements')}
+            className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1"
+          >
+            <span>Lihat Semua Prestasi</span>
+            <ArrowRight size={12} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {achievements.slice(0, 3).map((ach) => {
+            const levelColors = {
+              'Internasional': 'from-amber-500 to-purple-600 text-white',
+              'Nasional': 'from-blue-600 to-indigo-600 text-white',
+              'Regional': 'from-emerald-500 to-teal-600 text-white',
+            };
+            const levelClass = levelColors[ach.level] || 'from-slate-500 to-slate-650 text-white';
+
+            return (
+              <div key={ach.id} className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between group hover:shadow-md transition-all duration-300">
+                <div className="relative h-48 overflow-hidden bg-slate-100">
+                  <img
+                    src={ach.image || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=600&auto=format&fit=crop'}
+                    alt={ach.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  
+                  {/* Level Badge */}
+                  <span className={`absolute top-4 left-4 bg-gradient-to-r ${levelClass} px-2.5 py-0.5 rounded-full text-[9px] font-sans font-black uppercase tracking-wider`}>
+                    {ach.level}
+                  </span>
+                  
+                  {/* Rank Title Overlay */}
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center gap-1.5 text-white">
+                    <Trophy size={14} className="text-[#feb234]" />
+                    <span className="text-xs font-bold font-sans text-white uppercase tracking-wide bg-black/35 px-2 py-0.5 rounded backdrop-blur-sm">
+                      {ach.rank}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-5 flex-grow flex flex-col justify-between space-y-4 text-left">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-[#feb234] uppercase tracking-widest block font-mono">
+                      {ach.category}
+                    </span>
+                    <h3 className="font-sans font-extrabold text-[#001e40] text-sm leading-snug line-clamp-2 min-h-[40px] group-hover:text-[#feb234] transition-colors">
+                      {ach.title}
+                    </h3>
+                    <p className="text-xs text-slate-505 font-sans line-clamp-2 leading-relaxed">
+                      {ach.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-[#191c1e] line-clamp-1">{ach.studentName}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">{ach.major} ({ach.year})</p>
+                    </div>
+                    <button
+                      onClick={() => setCurrentTab('achievements')}
+                      className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-[#feb234]/10 text-slate-400 group-hover:text-[#feb234] flex items-center justify-center transition-all animate-none cursor-pointer"
+                      title="Lihat detail prestasi"
+                    >
+                      <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {achievements.length === 0 && (
+            <div className="col-span-3 text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-500 font-medium text-xs">
+              Belum ada data prestasi mahasiswa.
+            </div>
+          )}
+        </div>
       </section>
 
       {/* 5. MINAT BAKAT (Olahraga, Seni, Akademik) */}

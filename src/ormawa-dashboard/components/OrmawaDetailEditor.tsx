@@ -462,7 +462,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
                       required
                       value={cont.name} 
                       onChange={(e) => handleContactChange(idx, 'name', e.target.value)}
-                      placeholder="Budi Santoso"
+                      placeholder="Arfianda"
                       className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
                     />
                   </div>

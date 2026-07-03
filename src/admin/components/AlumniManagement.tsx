@@ -568,7 +568,7 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Budi Santoso"
+                  placeholder="Contoh: Arfianda"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"

@@ -248,17 +248,33 @@ export default function OrmawaPortal() {
                   <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl py-3 z-50 animate-fade-in font-sans text-xs">
                     <div className="px-4 pb-2 border-b border-slate-100 flex justify-between items-center">
                       <span className="font-extrabold text-[#001e40]">Notifikasi</span>
-                      {unreadNotificationsCount > 0 && (
-                        <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold text-[9px]">
-                          {unreadNotificationsCount} Baru
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setNotifications(notifications.map(n => ({ ...n, unread: false })))}
+                          className="text-[10px] font-bold text-slate-450 hover:underline cursor-pointer"
+                        >
+                          Tandai Dibaca
+                        </button>
+                        {unreadNotificationsCount > 0 && (
+                          <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold text-[9px]">
+                            {unreadNotificationsCount} Baru
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="max-h-64 overflow-y-auto pt-1.5">
                       {notifications.map((notif) => (
-                        <div key={notif.id} className={`px-4 py-3 hover:bg-slate-50/80 transition-colors flex items-start gap-2.5 ${notif.unread ? 'bg-blue-50/10' : ''}`}>
+                        <div
+                          key={notif.id}
+                          onClick={() => {
+                            if (notif.unread) {
+                              setNotifications(notifications.map(item => item.id === notif.id ? { ...item, unread: false } : item));
+                            }
+                          }}
+                          className={`px-4 py-3 hover:bg-slate-50/80 transition-colors flex items-start gap-2.5 cursor-pointer ${notif.unread ? 'bg-blue-50/10' : ''}`}
+                        >
                           <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${notif.unread ? 'bg-blue-600' : 'bg-transparent'}`}></div>
-                          <p className="text-[11px] text-slate-650 leading-relaxed font-medium">{notif.text}</p>
+                          <p className={`text-[11px] leading-relaxed ${notif.unread ? 'text-slate-800 font-bold' : 'text-slate-400 font-medium'}`}>{notif.text}</p>
                         </div>
                       ))}
                     </div>
