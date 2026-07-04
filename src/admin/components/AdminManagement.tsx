@@ -8,6 +8,7 @@ interface AdminManagementProps {
   onRemoveAdmin: (id: string) => void;
   onUpdateAdminRole: (id: string, role: 'Super Admin' | 'Admin' | 'Editor') => void;
   onUpdateAdminRoles?: (id: string, roles: string[]) => void;
+  onUpdateAdminApproval?: (id: string, isApproved: boolean) => void;
 }
 
 const AVAILABLE_BADGES = [
@@ -19,7 +20,7 @@ const AVAILABLE_BADGES = [
   { value: 'staf_depan', label: 'Staf Depan', color: 'bg-teal-50 text-teal-700 border-teal-200' },
 ];
 
-export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onUpdateAdminRole, onUpdateAdminRoles }: AdminManagementProps) {
+export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onUpdateAdminRole, onUpdateAdminRoles, onUpdateAdminApproval }: AdminManagementProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeAdminOptions, setActiveAdminOptions] = useState<string | null>(null);
   const [roleSelectorAdminId, setRoleSelectorAdminId] = useState<string | null>(null);
@@ -118,6 +119,7 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                     <th className="px-5 py-4 pl-6">Nama &amp; Email</th>
                     <th className="px-5 py-4">Peran Badges</th>
                     <th className="px-5 py-4">Terakhir Aktif</th>
+                    <th className="px-5 py-4">Status</th>
                     <th className="px-5 py-4 text-right pr-6">Aksi</th>
                   </tr>
                 </thead>
@@ -198,6 +200,15 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                       <td className="px-5 py-4 text-[#737780] text-xs font-semibold">
                         {admin.lastActive}
                       </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          admin.isApproved
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {admin.isApproved ? 'Aktif / Disetujui' : 'Menunggu'}
+                        </span>
+                      </td>
                       <td className="px-5 py-4 text-right pr-6 relative">
                         <button
                           onClick={() => setActiveAdminOptions(activeAdminOptions === admin.id ? null : admin.id)}
@@ -209,6 +220,33 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                         {/* Dropdown Menu Option Context */}
                         {activeAdminOptions === admin.id && (
                           <div className="absolute right-6 top-12 bg-white border border-[#c3c6d1] shadow-xl rounded-xl p-1 z-30 min-w-[150px] text-left">
+                            {admin.isApproved === false && onUpdateAdminApproval && (
+                              <button
+                                onClick={() => {
+                                  onUpdateAdminApproval(admin.id, true);
+                                  setActiveAdminOptions(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-emerald-50 font-semibold text-emerald-700 text-left transition-colors cursor-pointer"
+                              >
+                                <Check size={14} className="stroke-[3]" />
+                                Setujui Staf
+                              </button>
+                            )}
+                            {admin.isApproved === true && admin.email !== 'arfiandafirsta@gmail.com' && onUpdateAdminApproval && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Nonaktifkan akses untuk ${admin.name}?`)) {
+                                    onUpdateAdminApproval(admin.id, false);
+                                  }
+                                  setActiveAdminOptions(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-50 font-semibold text-[#ba1a1a] text-left transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                                Nonaktifkan Staf
+                              </button>
+                            )}
+                            <hr className="my-1 border-slate-100" />
                             <button
                               onClick={() => {
                                 setRoleSelectorAdminId(admin.id);

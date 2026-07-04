@@ -291,6 +291,7 @@ export default function App() {
               ukmsCount={ukms.length}
               alumniCount={alumni.length}
               achievementsCount={achievements.length}
+              achievements={achievements}
             />
           )}
 

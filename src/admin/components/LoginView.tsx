@@ -11,12 +11,22 @@ interface LoginViewProps {
 export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [signupMessage, setSignupMessage] = useState<string | null>(null);
+
+  const handleRoleToggle = (role: string) => {
+    if (selectedRoles.includes(role)) {
+      setSelectedRoles(selectedRoles.filter(r => r !== role));
+    } else {
+      setSelectedRoles([...selectedRoles, role]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,14 +36,24 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
     try {
       if (isSignup) {
+        if (email !== 'arfiandafirsta@gmail.com' && selectedRoles.length === 0) {
+          setError('Silakan pilih minimal satu peran.');
+          setIsLoading(false);
+          return;
+        }
+
+        const primaryRole = email === 'arfiandafirsta@gmail.com' ? 'superadmin' : (selectedRoles[0] || 'staf_depan');
+        const rolesList = email === 'arfiandafirsta@gmail.com' ? ['superadmin'] : selectedRoles;
+
         // Sign up new user
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              name: email.split('@')[0],
-              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
+              name: name.trim() || email.split('@')[0],
+              role: primaryRole,
+              roles: rolesList,
             },
           },
         });
@@ -45,24 +65,25 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         }
 
         if (data?.user) {
-          // Create profile in public.users with superadmin role for arfiandafirsta@gmail.com
+          // Create profile in public.users
           const { error: profileError } = await supabase
             .from('users')
             .insert({
               id: data.user.id,
               email,
-              name: email.split('@')[0],
-              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
+              name: name.trim() || email.split('@')[0],
+              role: primaryRole,
+              roles: rolesList,
             });
 
           if (profileError) {
             console.error('Profile creation error:', profileError);
-            setError('Failed to create user profile: ' + profileError.message);
+            setError('Gagal membuat profil pengguna: ' + profileError.message);
             setIsLoading(false);
             return;
           }
 
-          setSignupMessage('Account created! You can now sign in.');
+          setSignupMessage('Akun berhasil dibuat! Silakan masuk.');
           setIsSignup(false);
           setIsLoading(false);
           return;
@@ -102,11 +123,18 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           return;
         }
 
+        if (user.isApproved === false && user.role !== 'superadmin') {
+          setError('Akun Anda belum disetujui oleh Super Admin. Silakan hubungi admin utama untuk aktivasi.');
+          setIsLoading(false);
+          return;
+        }
+
         onLoginSuccess({
           id: user.id,
           username: user.email,
           role: user.role === 'superadmin' ? 'superadmin' : 'admin',
           roles: user.roles || [user.role],
+          isApproved: user.isApproved,
           name: user.name,
           nimOrNip: 'ADMIN-' + user.id.slice(0, 8),
           avatarUrl: user.avatarUrl,
@@ -164,6 +192,25 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
           {/* Login Form */}
           <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+            {isSignup && (
+              <div className="flex flex-col gap-1.5 animate-fade-in">
+                <label className="font-semibold text-sm text-[#191c1e]" htmlFor="name">
+                  Nama Lengkap
+                </label>
+                <div className="relative">
+                  <input
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] text-[#191c1e] text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#001e40] focus:border-[#001e40] transition-all placeholder:text-[#737780]/60 font-medium"
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Arfianda"
+                    required={isSignup}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Input Group: Email */}
             <div className="flex flex-col gap-1.5">
               <label className="font-semibold text-sm text-[#191c1e]" htmlFor="email">
@@ -212,6 +259,36 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                 </button>
               </div>
             </div>
+
+            {isSignup && (
+              <div className="flex flex-col gap-2 bg-[#f8fafc] border border-slate-100 p-4 rounded-xl animate-fade-in text-left">
+                <label className="font-bold text-[10px] text-[#001e40] uppercase tracking-wider">
+                  Pilih Peran Yang Diajukan
+                </label>
+                <p className="text-[10px] text-[#737780] font-semibold leading-relaxed mb-1">
+                  Pilih satu atau beberapa peran staf Dirmawa.
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { key: 'direktur', label: 'Direktur Dirmawa' },
+                    { key: 'staf_beasiswa', label: 'Staf Beasiswa' },
+                    { key: 'staf_ormawa', label: 'Staf Ormawa / Kemahasiswaan' },
+                    { key: 'staf_alumni', label: 'Staf Alumni / Karir' },
+                    { key: 'staf_depan', label: 'Staf Depan / Front Staff' },
+                  ].map((roleItem) => (
+                    <label key={roleItem.key} className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-[#43474f] hover:text-[#191c1e] transition-all py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedRoles.includes(roleItem.key)}
+                        onChange={() => handleRoleToggle(roleItem.key)}
+                        className="w-4 h-4 rounded border-[#c3c6d1] text-[#001e40] focus:ring-[#001e40] bg-white cursor-pointer"
+                      />
+                      <span>{roleItem.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Helper Row */}
             <div className="flex items-center justify-between mt-1">

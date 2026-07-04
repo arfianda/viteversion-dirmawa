@@ -101,6 +101,11 @@ export default function AdminPortal() {
   const [studentsCount, setStudentsCount] = useState<number>(0);
   const [newStudentsCount, setNewStudentsCount] = useState<number>(0);
   const [pendingRegistrationsCount, setPendingRegistrationsCount] = useState<number>(0);
+  const [pendingMemberReportsCount, setPendingMemberReportsCount] = useState<number>(0);
+  const [pendingScholarshipAppsCount, setPendingScholarshipAppsCount] = useState<number>(0);
+  const [pendingOrmawaAppsCount, setPendingOrmawaAppsCount] = useState<number>(0);
+  const [pendingOrmawaPropsCount, setPendingOrmawaPropsCount] = useState<number>(0);
+  const [pendingAdminsCount, setPendingAdminsCount] = useState<number>(0);
   const [alumniCount, setAlumniCount] = useState<number>(0);
   const [verifiedAlumniCount, setVerifiedAlumniCount] = useState<number>(0);
   const [isUnderConstruction, setIsUnderConstruction] = useState<boolean>(false);
@@ -119,7 +124,13 @@ export default function AdminPortal() {
         dbStudentsCount,
         dbNewStudentsCount,
         dbPendingRegistrations,
-        dbAlumniStats
+        dbAlumniStats,
+        mrCountRes,
+        saCountRes,
+        oaCountRes,
+        propCountRes,
+        lpjCountRes,
+        adminCountRes
       ] = await Promise.all([
         SupabaseService.getAdminNewsArticles(),
         SupabaseService.getAdminUkmRecords(),
@@ -128,7 +139,16 @@ export default function AdminPortal() {
         SupabaseService.getStudentsCount(),
         SupabaseService.getNewStudentsCountThisMonth(),
         SupabaseService.getPendingRegistrationsCount(),
-        SupabaseService.getAlumniStats()
+        SupabaseService.getAlumniStats(),
+        supabase.from('member_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('scholarship_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('ormawa_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('ormawa_proposals').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
+        supabase.from('ormawa_lpjs').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
+        supabase.from('users')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_approved', false)
+          .in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan'])
       ]);
       setNews(dbNews);
       setUkms(dbUkms);
@@ -140,11 +160,17 @@ export default function AdminPortal() {
       setAlumniCount(dbAlumniStats.total);
       setVerifiedAlumniCount(dbAlumniStats.verified);
 
+      setPendingMemberReportsCount(mrCountRes.count || 0);
+      setPendingScholarshipAppsCount(saCountRes.count || 0);
+      setPendingOrmawaAppsCount(oaCountRes.count || 0);
+      setPendingOrmawaPropsCount((propCountRes.count || 0) + (lpjCountRes.count || 0));
+      setPendingAdminsCount(adminCountRes.count || 0);
+
       // Load administrators list from Supabase
       const { data: dbUsers, error: usersError } = await supabase
         .from('users')
-        .select('id, name, email, role, created_at')
-        .in('role', ['superadmin', 'admin', 'administrator', 'operator']);
+        .select('id, name, email, role, roles, is_approved, created_at')
+        .in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']);
       
       if (!usersError && dbUsers) {
         const dbAdmins: AdminRecord[] = dbUsers.map((u: any) => {
@@ -158,6 +184,8 @@ export default function AdminPortal() {
             name: u.name,
             email: u.email,
             role: displayRole,
+            roles: u.roles || [u.role],
+            isApproved: u.is_approved,
             avatarInitials: initials,
             lastActive: u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : 'Today'
           };
@@ -567,6 +595,22 @@ export default function AdminPortal() {
     }
   };
 
+  const handleUpdateAdminApproval = async (id: string, isApproved: boolean) => {
+    if (!session) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_approved: isApproved })
+        .eq('id', id);
+      if (error) throw error;
+      setAdmins(admins.map(item => item.id === id ? { ...item, isApproved } : item));
+      setPendingAdminsCount(prev => isApproved ? Math.max(0, prev - 1) : prev + 1);
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal memperbarui status persetujuan admin: ' + (err.message || String(err)));
+    }
+  };
+
   // Dynamic quick creation from Sidebar Header
   const handleCreateNewClick = () => {
     if (activeTab === 'alumni') {
@@ -624,8 +668,8 @@ export default function AdminPortal() {
     { id: 'ormawa-apps', label: 'Antrian Pengajuan Ormawa', icon: UserPlus },
     { id: 'ormawa-props', label: 'Proposal & LPJ Ormawa', icon: Newspaper },
     { id: 'appointments', label: 'Janji Temu Direktur', icon: Calendar },
-    { id: 'settings', label: 'Kontrol Akses', icon: Shield },
-    { id: 'registrations', label: 'Registrasi Staf/Admin', icon: UserPlus },
+    { id: 'settings', label: 'Kontrol Akses & Staf', icon: Shield },
+    { id: 'registrations', label: 'Registrasi Mahasiswa', icon: UserPlus },
   ];
 
   const visibleNavItems = NAVIGATION_ITEMS.filter(item => {
@@ -817,6 +861,7 @@ export default function AdminPortal() {
             onRemoveAdmin={handleRemoveAdmin}
             onUpdateAdminRole={handleUpdateAdminRole}
             onUpdateAdminRoles={handleUpdateAdminRoles}
+            onUpdateAdminApproval={handleUpdateAdminApproval}
           />
         );
       case 'appointments':
@@ -824,13 +869,13 @@ export default function AdminPortal() {
       case 'registrations':
         return <RegistrationQueue onRefresh={loadDbData} />;
       case 'ormawa-apps':
-        return <OrmawaApplicationsQueue reviewerId={session.id} />;
+        return <OrmawaApplicationsQueue reviewerId={session.id} onRefresh={loadDbData} />;
       case 'ormawa-props':
-        return <OrmawaProposalsQueue />;
+        return <OrmawaProposalsQueue onRefresh={loadDbData} />;
       case 'scholarship-apps':
-        return <ScholarshipApplicationsQueue />;
+        return <ScholarshipApplicationsQueue onRefresh={loadDbData} />;
       case 'member-reports':
-        return <MemberReportsQueue />;
+        return <MemberReportsQueue onRefresh={loadDbData} />;
       case 'system-control':
         return (
           <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6 shadow-sm max-w-2xl font-sans text-left">
@@ -881,7 +926,27 @@ export default function AdminPortal() {
     }
   };
 
+  const getItemBadgeCount = (itemId: string) => {
+    switch (itemId) {
+      case 'registrations':
+        return pendingRegistrationsCount;
+      case 'member-reports':
+        return pendingMemberReportsCount;
+      case 'scholarship-apps':
+        return pendingScholarshipAppsCount;
+      case 'ormawa-apps':
+        return pendingOrmawaAppsCount;
+      case 'ormawa-props':
+        return pendingOrmawaPropsCount;
+      case 'settings':
+        return pendingAdminsCount;
+      default:
+        return 0;
+    }
+  };
+
   const unreadNotificationCount = notifications.filter(n => n.unread).length;
+  const totalNotificationsCount = unreadNotificationCount;
 
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-[#191c1e] font-sans flex relative overflow-x-hidden w-full">
@@ -936,11 +1001,11 @@ export default function AdminPortal() {
               >
                 <Icon size={16} className={isActive ? 'text-[#291800]' : 'text-white/60'} />
                 <span className="flex-1">{item.label}</span>
-                {item.id === 'registrations' && pendingRegistrationsCount > 0 && (
+                {getItemBadgeCount(item.id) > 0 && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
                     isActive ? 'bg-[#291800] text-[#feb234]' : 'bg-red-500 text-white'
                   }`}>
-                    {pendingRegistrationsCount}
+                    {getItemBadgeCount(item.id)}
                   </span>
                 )}
               </button>
@@ -1024,8 +1089,10 @@ export default function AdminPortal() {
                 title="Notifications"
               >
                 <Bell size={18} />
-                {unreadNotificationCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-white"></span>
+                {totalNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1.5 bg-red-600 rounded-full border border-white flex items-center justify-center text-[8px] font-black text-white leading-none">
+                    {totalNotificationsCount}
+                  </span>
                 )}
               </button>
 
@@ -1046,7 +1113,19 @@ export default function AdminPortal() {
                   </div>
                   <div className="space-y-2 max-h-[220px] overflow-y-auto">
                     {notifications.map(n => (
-                      <div key={n.id} className={`p-2 rounded-xl text-xs font-medium leading-normal border ${n.unread ? 'bg-slate-50 border-[#feb234]/15 font-semibold' : 'text-[#737780] border-transparent'}`}>
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          if (n.unread) {
+                            setNotifications(notifications.map(item => item.id === n.id ? { ...item, unread: false } : item));
+                          }
+                        }}
+                        className={`p-2 rounded-xl text-xs font-medium leading-normal border transition-colors cursor-pointer hover:bg-slate-100/80 ${
+                          n.unread
+                            ? 'bg-slate-50 border-[#feb234]/15 font-semibold text-[#191c1e]'
+                            : 'text-[#737780] border-transparent'
+                        }`}
+                      >
                         {n.text}
                       </div>
                     ))}
@@ -1191,11 +1270,11 @@ export default function AdminPortal() {
                     >
                       <Icon size={16} />
                       <span className="flex-1">{item.label}</span>
-                      {item.id === 'registrations' && pendingRegistrationsCount > 0 && (
+                      {getItemBadgeCount(item.id) > 0 && (
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
                           isActive ? 'bg-[#291800] text-[#feb234]' : 'bg-red-500 text-white'
                         }`}>
-                          {pendingRegistrationsCount}
+                          {getItemBadgeCount(item.id)}
                         </span>
                       )}
                     </button>

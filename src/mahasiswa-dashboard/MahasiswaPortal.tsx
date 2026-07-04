@@ -259,7 +259,12 @@ export default function MahasiswaPortal() {
                     {notifications.map(n => (
                       <div 
                         key={n.id} 
-                        className={`p-2.5 rounded-xl border leading-relaxed ${
+                        onClick={() => {
+                          if (n.unread) {
+                            setNotifications(notifications.map(item => item.id === n.id ? { ...item, unread: false } : item));
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border leading-relaxed cursor-pointer hover:bg-slate-100/80 transition-colors ${
                           n.unread ? 'bg-slate-55 border-amber-100 text-slate-700 font-bold' : 'text-slate-500 border-transparent'
                         }`}
                       >
