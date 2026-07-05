@@ -528,7 +528,8 @@ export const SupabaseService = {
       category: row.category as any,
       year: row.year,
       description: row.description || '',
-      image: row.image_url || ''
+      image: row.image_url || '',
+      status: row.status
     }));
   },
 
@@ -543,7 +544,8 @@ export const SupabaseService = {
       category: a.category,
       year: a.year,
       description: a.description,
-      image_url: a.image || 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop'
+      image_url: a.image || 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop',
+      status: a.status || 'Menunggu Verifikasi'
     };
 
     if (isNew) {

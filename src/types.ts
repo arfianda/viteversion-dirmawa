@@ -45,6 +45,7 @@ export interface Achievement {
   year: number;
   description: string;
   image: string;
+  status?: 'Disetujui' | 'Menunggu Verifikasi' | 'Ditolak';
 }
 
 export interface AlumniRecord {

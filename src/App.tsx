@@ -290,8 +290,8 @@ export default function App() {
               news={news}
               ukmsCount={ukms.length}
               alumniCount={alumni.length}
-              achievementsCount={achievements.length}
-              achievements={achievements}
+              achievementsCount={achievements.filter(a => a.status === 'Disetujui').length}
+              achievements={achievements.filter(a => a.status === 'Disetujui')}
             />
           )}
 
@@ -311,7 +311,7 @@ export default function App() {
 
           {currentTab === 'achievements' && (
             <AchievementView 
-              achievements={achievements} 
+              achievements={achievements.filter(a => a.status === 'Disetujui')} 
             />
           )}
 

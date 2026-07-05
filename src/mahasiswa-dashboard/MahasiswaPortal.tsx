@@ -101,6 +101,10 @@ export default function MahasiswaPortal() {
     return <MahasiswaLogin onLoginSuccess={handleLoginSuccess} onRegister={() => setShowRegister(true)} />;
   }
 
+  const avatarUrl = (session.avatarUrl && !session.avatarUrl.includes('unsplash.com'))
+    ? session.avatarUrl
+    : 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'ukm', label: 'UKM Saya', icon: Users },
@@ -113,13 +117,13 @@ export default function MahasiswaPortal() {
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <MahasiswaDashboardOverview studentName={session.name} onNavigate={(tab) => setActiveTab(tab)} />;
+        return <MahasiswaDashboardOverview session={session} onNavigate={(tab) => setActiveTab(tab)} />;
       case 'ukm':
-        return <MahasiswaUkmSaya />;
+        return <MahasiswaUkmSaya session={session} />;
       case 'beasiswa':
-        return <MahasiswaBeasiswaSaya />;
+        return <MahasiswaBeasiswaSaya session={session} />;
       case 'prestasi':
-        return <MahasiswaPengajuanPrestasi />;
+        return <MahasiswaPengajuanPrestasi session={session} />;
       case 'ajukan-ormawa':
         return <MahasiswaAjukanOrmawa studentId={session.id} studentName={session.name} studentNim={session.nimOrNip || ''} />;
       case 'settings':
@@ -149,7 +153,7 @@ export default function MahasiswaPortal() {
           <img 
             alt="Student Profile" 
             className="w-11 h-11 rounded-full object-cover border border-slate-200" 
-            src={session.avatarUrl} 
+            src={avatarUrl} 
           />
           <div className="overflow-hidden">
             <p className="font-bold text-xs text-[#001e40] truncate leading-tight">{session.name}</p>
@@ -291,7 +295,7 @@ export default function MahasiswaPortal() {
               </div>
               <img 
                 alt="Avatar" 
-                src={session.avatarUrl} 
+                src={avatarUrl} 
                 onClick={handleSignOut}
                 title="Klik untuk Logout"
                 className="w-8 h-8 rounded-full border border-slate-200 object-cover cursor-pointer hover:opacity-85 transition-opacity"

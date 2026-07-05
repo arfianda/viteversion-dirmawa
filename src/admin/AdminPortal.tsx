@@ -86,11 +86,23 @@ export default function AdminPortal() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const [notifications, setNotifications] = useState([
-    { id: '1', text: 'New Alumni upload spreadsheet parsed successfully.', unread: true },
-    { id: '2', text: 'Critical scholarship "Beasiswa Prestasi Akademik" closes soon!', unread: true },
-    { id: '3', text: 'System-wide SIA database sync triggered successfully.', unread: false }
-  ]);
+  interface NotificationItem {
+    id: string;
+    text: string;
+    unread: boolean;
+    tab?: string;
+    createdAt: string;
+  }
+
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   // Main interactive state tables
   const [alumni, setAlumni] = useState<AlumniRecord[]>([]);
@@ -168,9 +180,9 @@ export default function AdminPortal() {
 
       // Load administrators list from Supabase
       const { data: dbUsers, error: usersError } = await supabase
-        .from('users')
-        .select('id, name, email, role, roles, is_approved, created_at')
-        .in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']);
+         .from('users')
+         .select('id, name, email, role, roles, is_approved, created_at')
+         .in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']);
       
       if (!usersError && dbUsers) {
         const dbAdmins: AdminRecord[] = dbUsers.map((u: any) => {
@@ -193,6 +205,138 @@ export default function AdminPortal() {
         setAdmins(dbAdmins);
       }
 
+      // Fetch details for notifications
+      const [
+        regDetails,
+        userDetails,
+        scholarshipDetails,
+        ormawaDetails,
+        proposalDetails,
+        lpjDetails,
+        memberReportDetails
+      ] = await Promise.all([
+        supabase.from('registration_requests').select('id, name, nim, created_at').eq('status', 'pending'),
+        supabase.from('users').select('id, name, role, created_at').eq('is_approved', false).in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']),
+        supabase.from('scholarship_applications').select('id, name, nim, created_at').eq('status', 'pending'),
+        supabase.from('ormawa_applications').select('id, name, leader_name, created_at').eq('status', 'pending'),
+        supabase.from('ormawa_proposals').select('id, title, status, created_at').not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
+        supabase.from('ormawa_lpjs').select('id, title, status, created_at').not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
+        supabase.from('member_reports').select('id, ukm_id, reported_count, created_at').eq('status', 'pending')
+      ]);
+
+      const regList = regDetails.data || [];
+      const userList = userDetails.data || [];
+      const scholarshipList = scholarshipDetails.data || [];
+      const ormawaList = ormawaDetails.data || [];
+      const proposalList = proposalDetails.data || [];
+      const lpjList = lpjDetails.data || [];
+      const memberReportList = memberReportDetails.data || [];
+
+      let storedReadIds: string[] = [];
+      try {
+        storedReadIds = JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+      } catch {}
+
+      // Build notification items dynamically
+      const activeRoles = session?.roles || [session?.role || ''];
+      const isSuper = activeRoles.includes('superadmin');
+      
+      const allowedTabs: string[] = ['dashboard'];
+      if (activeRoles.includes('staf_beasiswa') || isSuper) {
+        allowedTabs.push('scholarships', 'scholarship-apps');
+      }
+      if (activeRoles.includes('staf_ormawa') || isSuper) {
+        allowedTabs.push('ukm', 'member-reports', 'ormawa-apps', 'ormawa-props');
+      }
+      if (activeRoles.includes('staf_alumni') || isSuper) {
+        allowedTabs.push('alumni');
+      }
+      if (activeRoles.includes('staf_depan') || isSuper) {
+        allowedTabs.push('appointments', 'ukm', 'ormawa-props');
+      }
+      if (isSuper) {
+        allowedTabs.push('settings', 'registrations');
+      }
+
+      const mappedNotifications: NotificationItem[] = [];
+
+      regList.forEach((r: any) => {
+        mappedNotifications.push({
+          id: `reg-${r.id}`,
+          text: `Registrasi Mahasiswa Baru: ${r.name} (${r.nim})`,
+          unread: !storedReadIds.includes(`reg-${r.id}`),
+          tab: 'registrations',
+          createdAt: r.created_at || new Date().toISOString()
+        });
+      });
+
+      userList.forEach((u: any) => {
+        mappedNotifications.push({
+          id: `user-${u.id}`,
+          text: `Persetujuan Staf Baru: ${u.name} (${u.role})`,
+          unread: !storedReadIds.includes(`user-${u.id}`),
+          tab: 'settings',
+          createdAt: u.created_at || new Date().toISOString()
+        });
+      });
+
+      scholarshipList.forEach((sa: any) => {
+        mappedNotifications.push({
+          id: `scholarship-${sa.id}`,
+          text: `Pengajuan Beasiswa: ${sa.name} (${sa.nim})`,
+          unread: !storedReadIds.includes(`scholarship-${sa.id}`),
+          tab: 'scholarship-apps',
+          createdAt: sa.created_at || new Date().toISOString()
+        });
+      });
+
+      ormawaList.forEach((oa: any) => {
+        mappedNotifications.push({
+          id: `ormawa-${oa.id}`,
+          text: `Pengajuan Ormawa Baru: ${oa.name} oleh ${oa.leader_name}`,
+          unread: !storedReadIds.includes(`ormawa-${oa.id}`),
+          tab: 'ormawa-apps',
+          createdAt: oa.created_at || new Date().toISOString()
+        });
+      });
+
+      proposalList.forEach((op: any) => {
+        mappedNotifications.push({
+          id: `proposal-${op.id}`,
+          text: `Proposal Baru: "${op.title}" menunggu review`,
+          unread: !storedReadIds.includes(`proposal-${op.id}`),
+          tab: 'ormawa-props',
+          createdAt: op.created_at || new Date().toISOString()
+        });
+      });
+
+      lpjList.forEach((lpj: any) => {
+        mappedNotifications.push({
+          id: `lpj-${lpj.id}`,
+          text: `LPJ Baru: "${lpj.title}" menunggu review`,
+          unread: !storedReadIds.includes(`lpj-${lpj.id}`),
+          tab: 'ormawa-props',
+          createdAt: lpj.created_at || new Date().toISOString()
+        });
+      });
+
+      memberReportList.forEach((mr: any) => {
+        mappedNotifications.push({
+          id: `member-${mr.id}`,
+          text: `Laporan Anggota UKM Baru (ID: ${mr.ukm_id})`,
+          unread: !storedReadIds.includes(`member-${mr.id}`),
+          tab: 'member-reports',
+          createdAt: mr.created_at || new Date().toISOString()
+        });
+      });
+
+      // Filter by permissions and sort by date descending
+      const filteredAndSorted = mappedNotifications
+        .filter(n => allowedTabs.includes(n.tab || ''))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      setNotifications(filteredAndSorted);
+
       // Load under_construction status from Supabase
       try {
         const dbUc = await SupabaseService.getSystemSetting('under_construction');
@@ -207,6 +351,43 @@ export default function AdminPortal() {
 
   useEffect(() => {
     loadDbData();
+
+    // Set up real-time postgres subscriptions to refresh dashboard stats and notifications on database changes
+    const channel = supabase
+      .channel('admin-dashboard-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registration_requests' }, () => {
+        console.log('Realtime change in registration_requests');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        console.log('Realtime change in users');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scholarship_applications' }, () => {
+        console.log('Realtime change in scholarship_applications');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ormawa_applications' }, () => {
+        console.log('Realtime change in ormawa_applications');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ormawa_proposals' }, () => {
+        console.log('Realtime change in ormawa_proposals');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ormawa_lpjs' }, () => {
+        console.log('Realtime change in ormawa_lpjs');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_reports' }, () => {
+        console.log('Realtime change in member_reports');
+        loadDbData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Verify Supabase session asynchronously in the background on mount
@@ -1105,30 +1286,63 @@ export default function AdminPortal() {
                   <div className="flex justify-between items-center border-b border-[#eceef1] pb-2 mb-2">
                     <span className="text-xs font-bold text-[#001e40]">Campus Alerts</span>
                     <button
-                      onClick={() => setNotifications(notifications.map(n => ({ ...n, unread: false })))}
+                      onClick={() => {
+                        let currentReadIds: string[] = [];
+                        try {
+                          currentReadIds = JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+                        } catch {}
+                        
+                        const allIds = notifications.map(n => n.id);
+                        const newReadIds = Array.from(new Set([...currentReadIds, ...allIds]));
+                        localStorage.setItem('admin_read_notifications', JSON.stringify(newReadIds));
+                        setReadNotificationIds(newReadIds);
+                        
+                        setNotifications(prev => prev.map(item => ({ ...item, unread: false })));
+                      }}
                       className="text-[10px] font-semibold text-[#737780] hover:underline cursor-pointer"
                     >
                       Clear All
                     </button>
                   </div>
                   <div className="space-y-2 max-h-[220px] overflow-y-auto">
-                    {notifications.map(n => (
-                      <div
-                        key={n.id}
-                        onClick={() => {
-                          if (n.unread) {
-                            setNotifications(notifications.map(item => item.id === n.id ? { ...item, unread: false } : item));
-                          }
-                        }}
-                        className={`p-2 rounded-xl text-xs font-medium leading-normal border transition-colors cursor-pointer hover:bg-slate-100/80 ${
-                          n.unread
-                            ? 'bg-slate-50 border-[#feb234]/15 font-semibold text-[#191c1e]'
-                            : 'text-[#737780] border-transparent'
-                        }`}
-                      >
-                        {n.text}
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-6 text-xs text-[#737780] font-medium">
+                        Tidak ada notifikasi baru.
                       </div>
-                    ))}
+                    ) : (
+                      notifications.map(n => (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (n.unread) {
+                              let currentReadIds: string[] = [];
+                              try {
+                                currentReadIds = JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+                              } catch {}
+                              
+                              if (!currentReadIds.includes(n.id)) {
+                                const newReadIds = [...currentReadIds, n.id];
+                                localStorage.setItem('admin_read_notifications', JSON.stringify(newReadIds));
+                                setReadNotificationIds(newReadIds);
+                                
+                                setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, unread: false } : item));
+                              }
+                            }
+                            if (n.tab) {
+                              setActiveTab(n.tab);
+                            }
+                            setShowNotifications(false);
+                          }}
+                          className={`p-2 rounded-xl text-xs font-medium leading-normal border transition-colors cursor-pointer hover:bg-slate-100/80 ${
+                            n.unread
+                              ? 'bg-slate-50 border-[#feb234]/15 font-semibold text-[#191c1e]'
+                              : 'text-[#737780] border-transparent'
+                          }`}
+                        >
+                          {n.text}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
