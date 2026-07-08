@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UserCheck, Shield, ChevronLeft, ChevronRight, MoreVertical, Plus, Trash2, Key, Check } from 'lucide-react';
 import { AdminRecord } from '../types';
 
@@ -357,8 +358,8 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
       </div>
 
       {/* Add Admin Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
             <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Berikan Akses Administrator Baru</h3>
             <form onSubmit={handleCreateSubmit} className="space-y-4 animate-fade-in block">
@@ -430,7 +431,8 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

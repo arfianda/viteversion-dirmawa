@@ -20,6 +20,7 @@ import { UserSession, UKM, Beasiswa } from '../types/mahasiswa';
 import MahasiswaLogin from './components/MahasiswaLogin';
 import MahasiswaRegister from './components/MahasiswaRegister';
 import MahasiswaDashboardOverview from './components/MahasiswaDashboardOverview';
+import MahasiswaCompleteProfile from './components/MahasiswaCompleteProfile';
 import MahasiswaUkmSaya from './components/MahasiswaUkmSaya';
 import MahasiswaBeasiswaSaya from './components/MahasiswaBeasiswaSaya';
 import MahasiswaPengajuanPrestasi from './components/MahasiswaPengajuanPrestasi';
@@ -61,7 +62,27 @@ export default function MahasiswaPortal() {
     const checkActiveAuth = async () => {
       try {
         const activeUser = await AuthService.getSession();
-        if (activeUser && activeUser.role !== 'mahasiswa') {
+        if (activeUser && activeUser.role === 'mahasiswa') {
+          // If returning from Google SSO, session might not be in localStorage yet
+          setSession((prev) => {
+            if (!prev) {
+              const newSession: UserSession = {
+                id: activeUser.id,
+                username: activeUser.nim || activeUser.email,
+                role: 'mahasiswa',
+                name: activeUser.name,
+                nimOrNip: activeUser.nim || '',
+                avatarUrl: activeUser.avatarUrl,
+                email: activeUser.email,
+                major: '',
+                semester: 0,
+              };
+              localStorage.setItem('upb_mahasiswa_session', JSON.stringify(newSession));
+              return newSession;
+            }
+            return prev;
+          });
+        } else if (activeUser && activeUser.role !== 'mahasiswa') {
           localStorage.removeItem('upb_mahasiswa_session');
           setSession(null);
         }
@@ -99,6 +120,16 @@ export default function MahasiswaPortal() {
       return <MahasiswaRegister onRegistered={() => setShowRegister(false)} onBackToLogin={() => setShowRegister(false)} />;
     }
     return <MahasiswaLogin onLoginSuccess={handleLoginSuccess} onRegister={() => setShowRegister(true)} />;
+  }
+
+  // ENFORCE ONBOARDING
+  if (!session.nimOrNip) {
+    return (
+      <MahasiswaCompleteProfile 
+        session={session} 
+        onProfileCompleted={(updated) => handleUpdateSession(updated)} 
+      />
+    );
   }
 
   const avatarUrl = (session.avatarUrl && !session.avatarUrl.includes('unsplash.com'))

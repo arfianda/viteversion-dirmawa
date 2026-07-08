@@ -109,12 +109,22 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
               <ArrowLeft className="w-4 h-4" />
               Kembali ke Login
             </button>
-            <h2 className="font-sans font-black text-3xl text-[#001e40] tracking-tight mb-1.5">
-              Daftar Akun Mahasiswa
-            </h2>
-            <p className="text-sm text-slate-500 font-medium">
-              Isi data diri Anda. Akun akan aktif setelah disetujui admin.
-            </p>
+            <div className="mb-6">
+              <h2 className="font-sans font-black text-2xl md:text-3xl text-[#001e40] tracking-tight mb-2">
+                Pendaftaran Mahasiswa
+              </h2>
+              <p className="text-sm text-slate-500 font-medium">
+                Lengkapi data di bawah ini untuk mengajukan akses portal.
+              </p>
+            </div>
+
+            {/* Security Notice */}
+            <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-4 flex gap-3 text-sm text-slate-600 font-medium">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+              <p>
+                Pendaftaran manual memerlukan <strong className="text-slate-800">Persetujuan Admin</strong> atau verifikasi untuk mencegah pendaftaran palsu/bot. Untuk proses yang instan, gunakan tombol Google SSO di halaman masuk.
+              </p>
+            </div>
           </div>
 
           {error && (
@@ -123,7 +133,7 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">NIM</label>

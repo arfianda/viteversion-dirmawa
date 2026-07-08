@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FileText, 
   FileCheck2, 
@@ -348,8 +349,8 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
       )}
 
       {/* DETAIL MODAL PROPOSAL */}
-      {selectedProposal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {selectedProposal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in text-xs text-slate-700">
             <div className="bg-[#001e40] p-5 text-white flex justify-between items-center border-b border-[#002d61]">
               <div>
@@ -492,12 +493,13 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* DETAIL MODAL LPJ */}
-      {selectedLpj && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      {selectedLpj && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in text-xs text-slate-700">
             <div className="bg-purple-650 p-5 text-white flex justify-between items-center border-b border-purple-700">
               <div>
@@ -642,7 +644,8 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

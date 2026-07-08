@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, PlusCircle, Eye, Edit2, Ban, RefreshCw, CheckCircle, Users, Trash2, Upload } from 'lucide-react';
 import { UkmRecord } from '../types';
 
@@ -333,8 +334,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
       </div>
 
       {/* Add UKM Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
             <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Daftarkan Organisasi Kemahasiswaan Baru (UKM)</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -376,11 +377,11 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Subtipe</label>
+                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Tipe / Fokus</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Olahraga &amp; Rekreasi"
+                    placeholder="Contoh: Olahraga Lapangan"
                     value={newType}
                     onChange={(e) => setNewType(e.target.value)}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -389,11 +390,11 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua Organisasi</label>
                 <input
                   type="text"
                   required
-                  placeholder="Nama ketua mahasiswa"
+                  placeholder="Contoh: Budi Santoso"
                   value={newLeader}
                   onChange={(e) => setNewLeader(e.target.value)}
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -427,10 +428,10 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Deskripsi</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Deskripsi Singkat UKM</label>
                 <textarea
-                  rows={3}
                   required
+                  rows={2}
                   placeholder="Jelaskan tujuan organisasi, jadwal kegiatan, prestasi..."
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
@@ -455,12 +456,13 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit UKM Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showEditModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
             <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Edit Organisasi Kemahasiswaan (UKM)</h3>
             <form onSubmit={handleEditSubmit} className="space-y-4">
@@ -502,11 +504,11 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Subtipe</label>
+                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Tipe / Fokus</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Olahraga &amp; Rekreasi"
+                    placeholder="Contoh: Olahraga Lapangan"
                     value={editType}
                     onChange={(e) => setEditType(e.target.value)}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -515,11 +517,11 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua Organisasi</label>
                 <input
                   type="text"
                   required
-                  placeholder="Nama ketua mahasiswa"
+                  placeholder="Contoh: Budi Santoso"
                   value={editLeader}
                   onChange={(e) => setEditLeader(e.target.value)}
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -585,8 +587,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
       )}
 
       {/* Detail Modal */}
-      {showDetailModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setShowDetailModal(null)}>
+      {showDetailModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in" onClick={() => setShowDetailModal(null)}>
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-4 mb-4 border-b border-[#eceef1] pb-4">
               <div className="w-16 h-16 rounded-xl bg-[#f2f4f7] border border-[#c3c6d1]/40 flex items-center justify-center overflow-hidden shrink-0">
@@ -641,7 +643,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

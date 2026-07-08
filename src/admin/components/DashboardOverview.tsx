@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Users, Shield, Award, Newspaper, BookOpen, Plus, Megaphone, Sparkles, PlusCircle, Check, X, AlertCircle, ArrowRight } from 'lucide-react';
 import { NewsArticle } from '../types';
 
@@ -87,6 +88,7 @@ export default function DashboardOverview({
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ type: 'scholarship' | 'user' | 'registration'; data: any } | null>(null);
 
   const isSuper = userRoles.includes('superadmin');
   const isScholarshipStaff = userRoles.includes('staf_beasiswa') || isSuper;
@@ -216,12 +218,8 @@ export default function DashboardOverview({
                                 Tolak
                               </button>
                               <button
-                                onClick={async () => {
-                                  if (confirm(`Apakah Anda yakin ingin menyetujui beasiswa untuk ${app.name}?`)) {
-                                    setProcessingId(app.id);
-                                    await onApproveScholarship(app.id);
-                                    setProcessingId(null);
-                                  }
+                                onClick={() => {
+                                  setConfirmAction({ type: 'scholarship', data: app });
                                 }}
                                 disabled={processingId !== null}
                                 className="flex-1 bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-1.5 rounded-lg text-[10px] transition-colors flex items-center justify-center gap-1 cursor-pointer"
@@ -272,12 +270,8 @@ export default function DashboardOverview({
                         </span>
                       </div>
                       <button
-                        onClick={async () => {
-                          if (confirm(`Setujui akses admin untuk ${usr.name}?`)) {
-                            setProcessingId(usr.id);
-                            await onApproveUser(usr.id);
-                            setProcessingId(null);
-                          }
+                        onClick={() => {
+                          setConfirmAction({ type: 'user', data: usr });
                         }}
                         disabled={processingId !== null}
                         className="bg-[#001e40] hover:bg-[#1f477b] text-white font-bold p-2 rounded-lg text-xs transition-colors cursor-pointer"
@@ -312,12 +306,8 @@ export default function DashboardOverview({
                         </span>
                       </div>
                       <button
-                        onClick={async () => {
-                          if (confirm(`Setujui registrasi mahasiswa ${reg.name}?`)) {
-                            setProcessingId(reg.id);
-                            await onApproveRegistration(reg.id);
-                            setProcessingId(null);
-                          }
+                        onClick={() => {
+                          setConfirmAction({ type: 'registration', data: reg });
                         }}
                         disabled={processingId !== null}
                         className="bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold p-2 rounded-lg text-xs transition-colors cursor-pointer"
@@ -548,8 +538,8 @@ export default function DashboardOverview({
       </div>
 
       {/* Modal Tinjau Berkas */}
-      {selectedReviewApp && (
-        <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/70 backdrop-blur-sm p-4 md:py-10">
+      {selectedReviewApp && createPortal(
+        <div className="fixed inset-0 z-[100] flex justify-center items-center bg-black/50 backdrop-blur-sm p-4 md:py-10">
           <div className="bg-white border border-slate-200 w-full max-w-5xl h-[640px] max-h-[90vh] rounded-3xl shadow-2xl flex flex-col transition-all duration-300">
             {/* Modal Header */}
             <div className="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
@@ -691,13 +681,8 @@ export default function DashboardOverview({
                           Tolak
                         </button>
                         <button
-                          onClick={async () => {
-                            if (confirm(`Apakah Anda yakin ingin menyetujui beasiswa untuk ${selectedReviewApp.name}?`)) {
-                              setProcessingId(selectedReviewApp.id);
-                              await onApproveScholarship(selectedReviewApp.id);
-                              setSelectedReviewApp(null);
-                              setProcessingId(null);
-                            }
+                          onClick={() => {
+                            setConfirmAction({ type: 'scholarship', data: selectedReviewApp });
                           }}
                           disabled={processingId !== null}
                           className="flex-1 bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
@@ -739,7 +724,103 @@ export default function DashboardOverview({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Custom Confirmation Modal */}
+      {confirmAction && createPortal(
+        <div className="fixed inset-0 z-[100] flex justify-center items-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white border border-slate-200 w-full max-w-md rounded-3xl shadow-2xl p-6 space-y-6 animate-scale-in text-center text-slate-800">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-emerald-100 text-emerald-600">
+              <Check size={24} />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="font-sans font-black text-lg text-[#001e40]">
+                {confirmAction.type === 'scholarship' && 'Setujui Pengajuan Beasiswa'}
+                {confirmAction.type === 'user' && 'Setujui Akun Staf'}
+                {confirmAction.type === 'registration' && 'Setujui Registrasi Mahasiswa'}
+              </h3>
+              <p className="text-xs text-slate-500 font-medium">
+                {confirmAction.type === 'scholarship' && 'Apakah Anda yakin ingin menyetujui pengajuan beasiswa untuk mahasiswa berikut?'}
+                {confirmAction.type === 'user' && 'Apakah Anda yakin ingin menyetujui akses dan peran staf berikut?'}
+                {confirmAction.type === 'registration' && 'Apakah Anda yakin ingin menyetujui registrasi akun mahasiswa baru berikut?'}
+              </p>
+              
+              <div className="bg-[#f8fafc] border border-slate-200/60 rounded-2xl p-4 text-left space-y-3 mt-4">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Nama Lengkap</span>
+                  <p className="font-bold text-[#001e40] text-sm mt-0.5">{confirmAction.data.name}</p>
+                </div>
+                
+                {confirmAction.type === 'scholarship' && (
+                  <>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">NIM</span>
+                      <p className="font-bold text-slate-800 text-xs mt-0.5">{confirmAction.data.nim}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Beasiswa</span>
+                      <p className="font-bold text-slate-800 text-xs mt-0.5">{confirmAction.data.scholarship_id}</p>
+                    </div>
+                  </>
+                )}
+                
+                {confirmAction.type === 'user' && (
+                  <>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Email</span>
+                      <p className="font-bold text-slate-800 text-xs mt-0.5">{confirmAction.data.email}</p>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Peran Staf</span>
+                      <p className="font-bold text-slate-800 text-xs mt-0.5 uppercase">{confirmAction.data.role}</p>
+                    </div>
+                  </>
+                )}
+
+                {confirmAction.type === 'registration' && (
+                  <div>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">NIM</span>
+                    <p className="font-bold text-slate-800 text-xs mt-0.5">{confirmAction.data.nim}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                onClick={async () => {
+                  const { type, data } = confirmAction;
+                  setConfirmAction(null);
+                  setProcessingId(data.id);
+                  
+                  if (type === 'scholarship') {
+                    await onApproveScholarship(data.id);
+                    setSelectedReviewApp(null);
+                  } else if (type === 'user') {
+                    await onApproveUser(data.id);
+                  } else if (type === 'registration') {
+                    await onApproveRegistration(data.id);
+                  }
+                  
+                  setProcessingId(null);
+                }}
+                className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold py-2.5 px-4 rounded-xl text-xs transition-colors cursor-pointer"
+              >
+                Setujui
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

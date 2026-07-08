@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle, RefreshCw, Download, Database, Users, Plus, Check, Trash2 } from 'lucide-react';
 import { AlumniRecord } from '../types';
 import * as XLSX from 'xlsx';
@@ -558,8 +559,8 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
       </div>
 
       {/* Add Alumni Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40">
             <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Tambah Data Alumni</h3>
             <form onSubmit={handleAddSubmit} className="space-y-4">
@@ -580,30 +581,23 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: 1122334455"
+                  placeholder="Contoh: 312110001"
                   value={newNim}
                   onChange={(e) => setNewNim(e.target.value)}
-                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40] font-mono"
+                  className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
                 />
-                <span className="text-[10px] text-[#737780] font-semibold mt-1 block">
-                  NIM biasanya divalidasi berupa 8-11 digit angka.
-                </span>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Program Studi (Prodi)</label>
-                <select
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Program Studi</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Teknik Informatika"
                   value={newProdi}
                   onChange={(e) => setNewProdi(e.target.value)}
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
-                >
-                  <option value="Teknik Informatika">Teknik Informatika</option>
-                  <option value="Sistem Informasi">Sistem Informasi</option>
-                  <option value="Manajemen">Manajemen</option>
-                  <option value="Akuntansi">Akuntansi</option>
-                  <option value="Teknik Sipil">Teknik Sipil</option>
-                  <option value="Teknik Industri">Teknik Industri</option>
-                </select>
+                />
               </div>
 
               <div>
@@ -638,7 +632,8 @@ export default function AlumniManagement({ alumni, onAddAlumni, onBulkAddAlumni,
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

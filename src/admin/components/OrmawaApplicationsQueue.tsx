@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Check, 
   X, 
@@ -361,7 +362,8 @@ export default function OrmawaApplicationsQueue({ reviewerId, onRefresh }: Ormaw
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
