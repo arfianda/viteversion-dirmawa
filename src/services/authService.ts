@@ -18,8 +18,9 @@ export const AuthService = {
    */
   async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
+      const resolvedEmail = email.includes('@') ? email : `${email.trim()}@upb.ac.id`;
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: resolvedEmail,
         password,
       });
 

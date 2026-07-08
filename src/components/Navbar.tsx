@@ -332,14 +332,17 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
                       {/* Dashboard Option */}
                       <button
                         onClick={() => {
+                          const adminRoles = [
+                            'superadmin', 'admin', 'administrator', 'operator', 
+                            'direktur', 'staf_beasiswa', 'staf_ormawa', 
+                            'staf_alumni', 'staf_depan'
+                          ];
                           if (currentUser.role === 'mahasiswa') {
                             window.location.hash = '#/mahasiswa';
-                          } else if (
-                            currentUser.role === 'superadmin' ||
-                            currentUser.role === 'admin' ||
-                            currentUser.role === 'administrator'
-                          ) {
+                          } else if (adminRoles.includes(currentUser.role)) {
                             window.location.hash = '#/admin';
+                          } else if (currentUser.role === 'admin_ormawa') {
+                            window.location.hash = '#/ormawa';
                           } else {
                             window.location.hash = '#/home';
                           }

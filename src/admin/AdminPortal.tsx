@@ -121,6 +121,9 @@ export default function AdminPortal() {
   const [alumniCount, setAlumniCount] = useState<number>(0);
   const [verifiedAlumniCount, setVerifiedAlumniCount] = useState<number>(0);
   const [isUnderConstruction, setIsUnderConstruction] = useState<boolean>(false);
+  const [pendingScholarshipApps, setPendingScholarshipApps] = useState<any[]>([]);
+  const [pendingUserApprovals, setPendingUserApprovals] = useState<any[]>([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState<any[]>([]);
   
   // News Editor helper
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
@@ -217,7 +220,7 @@ export default function AdminPortal() {
       ] = await Promise.all([
         supabase.from('registration_requests').select('id, name, nim, created_at').eq('status', 'pending'),
         supabase.from('users').select('id, name, role, created_at').eq('is_approved', false).in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']),
-        supabase.from('scholarship_applications').select('id, name, nim, created_at').eq('status', 'pending'),
+        supabase.from('scholarship_applications').select('id, name, nim, major, gpa, document_url, phone, created_at, scholarships(title)').eq('status', 'pending'),
         supabase.from('ormawa_applications').select('id, name, leader_name, created_at').eq('status', 'pending'),
         supabase.from('ormawa_proposals').select('id, title, status, created_at').not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
         supabase.from('ormawa_lpjs').select('id, title, status, created_at').not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
@@ -231,6 +234,10 @@ export default function AdminPortal() {
       const proposalList = proposalDetails.data || [];
       const lpjList = lpjDetails.data || [];
       const memberReportList = memberReportDetails.data || [];
+
+      setPendingScholarshipApps(scholarshipList);
+      setPendingUserApprovals(userList);
+      setPendingRegistrations(regList);
 
       let storedReadIds: string[] = [];
       try {
@@ -792,6 +799,52 @@ export default function AdminPortal() {
     }
   };
 
+  const handleApproveScholarshipDirect = async (id: string) => {
+    try {
+      await SupabaseService.updateScholarshipApplicationStatus(id, 'approved');
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menyetujui beasiswa: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleRejectScholarshipDirect = async (id: string, reason: string) => {
+    try {
+      await SupabaseService.updateScholarshipApplicationStatus(id, 'rejected', reason);
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menolak beasiswa: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleApproveRegistrationDirect = async (id: string) => {
+    if (!session) return;
+    try {
+      await SupabaseService.approveRegistrationRequest(id, session.id);
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menyetujui registrasi mahasiswa: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleApproveUserDirect = async (id: string) => {
+    if (!session) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_approved: true })
+        .eq('id', id);
+      if (error) throw error;
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menyetujui akun staf/admin: ' + (err.message || String(err)));
+    }
+  };
+
   // Dynamic quick creation from Sidebar Header
   const handleCreateNewClick = () => {
     if (activeTab === 'alumni') {
@@ -910,6 +963,14 @@ export default function AdminPortal() {
             alumniCount={alumniCount}
             verifiedAlumniCount={verifiedAlumniCount}
             news={news}
+            userRoles={session.roles || [session.role]}
+            pendingScholarships={pendingScholarshipApps}
+            pendingRegistrations={pendingRegistrations}
+            pendingUserApprovals={pendingUserApprovals}
+            onApproveScholarship={handleApproveScholarshipDirect}
+            onRejectScholarship={handleRejectScholarshipDirect}
+            onApproveRegistration={handleApproveRegistrationDirect}
+            onApproveUser={handleApproveUserDirect}
             onNavigate={(tab) => setActiveTab(tab)}
             onQuickAction={handleQuickAction}
           />

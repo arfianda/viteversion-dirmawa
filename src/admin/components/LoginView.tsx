@@ -202,6 +202,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] text-[#191c1e] text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#001e40] focus:border-[#001e40] transition-all placeholder:text-[#737780]/60 font-medium"
                     id="name"
                     type="text"
+                    autoComplete="off"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Arfianda"
@@ -214,7 +215,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             {/* Input Group: Email */}
             <div className="flex flex-col gap-1.5">
               <label className="font-semibold text-sm text-[#191c1e]" htmlFor="email">
-                Email Address
+                Email Address / Username
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#737780] pointer-events-none">
@@ -223,10 +224,10 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                 <input
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] text-[#191c1e] text-sm rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#001e40] focus:border-[#001e40] transition-all placeholder:text-[#737780]/60 font-medium"
                   id="email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@pelitabangsa.ac.id"
+                  placeholder="admin@pelitabangsa.ac.id atau ukmseni_upb"
                   required
                 />
               </div>

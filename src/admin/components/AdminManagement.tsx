@@ -367,6 +367,7 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   placeholder="Contoh: Prof. Dr. John Doe, M.T."
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
