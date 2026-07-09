@@ -22,7 +22,8 @@ import {
   ExternalLink,
   X,
   Trash2,
-  ClipboardList
+  ClipboardList,
+  Trophy
 } from 'lucide-react';
 
 import { UserSession, AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle, AdminRecord } from './types';
@@ -45,6 +46,7 @@ import LoginView from './components/LoginView';
 import AdminOnboarding from './components/AdminOnboarding';
 import DashboardOverview from './components/DashboardOverview';
 import AlumniManagement from './components/AlumniManagement';
+import AchievementsManagement from './components/AchievementsManagement';
 import UkmDirectory from './components/UkmDirectory';
 import ScholarshipsManagement from './components/ScholarshipsManagement';
 import NewsEditor from './components/NewsEditor';
@@ -114,6 +116,7 @@ export default function AdminPortal() {
 
   // Main interactive state tables
   const [alumni, setAlumni] = useState<AlumniRecord[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
   const [ukms, setUkms] = useState<UkmRecord[]>([]);
   const [scholarships, setScholarships] = useState<ScholarshipRecord[]>([]);
   const [news, setNews] = useState<NewsArticle[]>([]);
@@ -138,7 +141,7 @@ export default function AdminPortal() {
 
   // Load data from Supabase with individual query isolation to prevent one failure from blocking all others
   const loadDbData = async () => {
-    const handleQuery = async (promise: Promise<any>, fallback: any, label: string) => {
+    const handleQuery = async (promise: any, fallback: any, label: string) => {
       try {
         return await promise;
       } catch (e) {
@@ -153,6 +156,7 @@ export default function AdminPortal() {
         dbUkms,
         dbScholarships,
         dbAlumni,
+        dbAchievements,
         dbStudentsCount,
         dbNewStudentsCount,
         dbPendingRegistrations,
@@ -168,6 +172,7 @@ export default function AdminPortal() {
         handleQuery(SupabaseService.getAdminUkmRecords(), [], 'UkmRecords'),
         handleQuery(SupabaseService.getAdminScholarshipRecords(), [], 'ScholarshipRecords'),
         handleQuery(SupabaseService.getAdminAlumniRecords(), [], 'AlumniRecords'),
+        handleQuery(SupabaseService.getAchievements(), [], 'Achievements'),
         handleQuery(SupabaseService.getStudentsCount(), 0, 'StudentsCount'),
         handleQuery(SupabaseService.getNewStudentsCountThisMonth(), 0, 'NewStudentsCountThisMonth'),
         handleQuery(SupabaseService.getPendingRegistrationsCount(), 0, 'PendingRegistrationsCount'),
@@ -184,6 +189,7 @@ export default function AdminPortal() {
       setUkms(dbUkms);
       setScholarships(dbScholarships);
       setAlumni(dbAlumni);
+      setAchievements(dbAchievements);
       setStudentsCount(dbStudentsCount);
       setNewStudentsCount(dbNewStudentsCount);
       setPendingRegistrationsCount(dbPendingRegistrations);
@@ -938,6 +944,36 @@ export default function AdminPortal() {
     }
   };
 
+  const handleUpdateAchievementStatus = async (id: string, status: 'Disetujui' | 'Ditolak') => {
+    try {
+      const { error } = await supabase
+        .from('achievements')
+        .update({ status })
+        .eq('id', id);
+      if (error) throw error;
+      
+      setAchievements(achievements.map(a => a.id === id ? { ...a, status } : a));
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal memperbarui status prestasi: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleDeleteAchievement = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('achievements')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      
+      setAchievements(achievements.filter(a => a.id !== id));
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menghapus prestasi: ' + (err.message || String(err)));
+    }
+  };
+
   const handleAddAdmin = async (newAdmin: Omit<AdminRecord, 'id' | 'avatarInitials' | 'lastActive'>) => {
     if (!session) return;
     try {
@@ -1129,6 +1165,7 @@ export default function AdminPortal() {
     { id: 'dashboard', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'news', label: 'Berita & Pengumuman', icon: Newspaper },
     { id: 'alumni', label: 'Hub Data Alumni', icon: Award },
+    { id: 'achievements', label: 'Verifikasi Prestasi', icon: Trophy },
     { id: 'ukm', label: 'UKM & Ormawa', icon: Users },
     { id: 'member-reports', label: 'Verifikasi Anggota', icon: ClipboardList },
     { id: 'scholarships', label: 'Portal Beasiswa', icon: BookOpen },
@@ -1154,8 +1191,8 @@ export default function AdminPortal() {
     }
 
     if (rolesList.includes('direktur')) {
-      // Direktur sees news, alumni, ukm, scholarships, and appointments
-      return ['dashboard', 'news', 'alumni', 'ukm', 'scholarships', 'appointments'].includes(item.id);
+      // Direktur sees news, alumni, ukm, scholarships, achievements, and appointments
+      return ['dashboard', 'news', 'alumni', 'achievements', 'ukm', 'scholarships', 'appointments'].includes(item.id);
     }
 
     // Otherwise check specific staff roles
@@ -1164,13 +1201,13 @@ export default function AdminPortal() {
       allowedTabs.push('scholarships', 'scholarship-apps');
     }
     if (rolesList.includes('staf_ormawa')) {
-      allowedTabs.push('ukm', 'member-reports', 'ormawa-apps', 'ormawa-props');
+      allowedTabs.push('ukm', 'member-reports', 'ormawa-apps', 'ormawa-props', 'news');
     }
     if (rolesList.includes('staf_alumni')) {
-      allowedTabs.push('alumni');
+      allowedTabs.push('alumni', 'achievements');
     }
     if (rolesList.includes('staf_depan')) {
-      allowedTabs.push('appointments', 'ukm', 'ormawa-props');
+      allowedTabs.push('appointments', 'ukm', 'ormawa-props', 'news');
     }
 
     return allowedTabs.includes(item.id);
@@ -1269,6 +1306,14 @@ export default function AdminPortal() {
             onBulkAddAlumni={handleBulkAddAlumni}
             onDeleteAlumni={handleDeleteAlumni}
             readOnly={isReadOnly}
+          />
+        );
+      case 'achievements':
+        return (
+          <AchievementsManagement
+            achievements={achievements}
+            onUpdateStatus={handleUpdateAchievementStatus}
+            onDeleteAchievement={handleDeleteAchievement}
           />
         );
       case 'ukm':

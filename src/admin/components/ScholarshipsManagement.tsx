@@ -607,7 +607,8 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* FAQs Panel */}

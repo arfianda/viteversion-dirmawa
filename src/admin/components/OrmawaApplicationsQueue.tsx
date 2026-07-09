@@ -211,7 +211,7 @@ export default function OrmawaApplicationsQueue({ reviewerId, onRefresh }: Ormaw
       </section>
 
       {/* Detail Modal Overlay */}
-      {selectedApp && (
+      {selectedApp && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-fade-in text-xs text-slate-700">
             <div className="bg-[#001e40] p-5 text-white flex justify-between items-center border-b border-[#002d61]">

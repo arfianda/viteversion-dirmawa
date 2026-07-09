@@ -325,7 +325,8 @@ export default function App() {
 
           {currentTab === 'achievements' && (
             <AchievementView 
-              achievements={achievements.filter(a => a.status === 'Disetujui')} 
+              achievements={achievements.filter(a => !a.status || a.status === 'Disetujui')} 
+              setCurrentTab={setCurrentTab}
             />
           )}
 

@@ -46,7 +46,14 @@ export default function MahasiswaPortal() {
     }
     return null;
   });
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const savedTab = sessionStorage.getItem('mahasiswa_active_tab');
+    if (savedTab) {
+      sessionStorage.removeItem('mahasiswa_active_tab');
+      return savedTab;
+    }
+    return 'dashboard';
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

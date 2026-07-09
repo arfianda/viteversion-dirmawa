@@ -74,11 +74,10 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
     return () => clearInterval(interval);
   }, [isPaused, heroSlides.length]);
 
-  // Stats matching the exact values of your stitch mockups: 50+ Unit Kegiatan Mahasiswa, 15k+ Jaringan Alumni, 500+ Prestasi Gemilang
   const stats = [
-    { value: ukmsCount ? `${ukmsCount}+` : '50+', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
-    { value: alumniCount ? (alumniCount >= 1000 ? `${(alumniCount/1000).toFixed(0)}k+` : `${alumniCount}+`) : '15k+', label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
-    { value: achievementsCount ? `${achievementsCount}+` : '500+', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
+    { value: ukmsCount > 0 ? `${ukmsCount}+` : '0', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
+    { value: alumniCount >= 1000 ? `${(alumniCount/1000).toFixed(1)}k+` : (alumniCount > 0 ? `${alumniCount}+` : '0'), label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
+    { value: achievementsCount > 0 ? `${achievementsCount}+` : '0', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
   ];
 
   const handleServiceClick = (id: string) => {
@@ -332,24 +331,36 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
           {/* News listing matching stitch */}
           <div className="space-y-4">
             {newsAndAnnouncements.slice(0, 3).map((item) => (
-              <div key={item.id} className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
+              <div 
+                key={item.id} 
+                onClick={() => setSelectedNews(item)}
+                className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-md transition cursor-pointer group text-left animate-none"
+              >
                 <div
-                  className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
+                  className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0 transition-transform group-hover:scale-[1.02]"
                   style={{ backgroundImage: `url('${item.image || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop'}')` } as React.CSSProperties}
                 />
-                <div className="space-y-2 flex-grow">
-                  <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
-                    {item.category}
-                  </span>
-                  <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
-                    {item.summary}
-                  </p>
-                  <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
-                    <Calendar size={10} />
-                    <span>{item.date}</span>
+                <div className="space-y-2 flex-grow flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
+                      {item.category}
+                    </span>
+                    <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight group-hover:text-[#feb234] transition-colors line-clamp-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
+                      {item.summary}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-sans pt-1">
+                    <div className="flex items-center space-x-1">
+                      <Calendar size={10} />
+                      <span>{item.date}</span>
+                    </div>
+                    <span className="text-[#feb234] font-bold group-hover:underline flex items-center space-x-0.5">
+                      <span>Baca Selengkapnya</span>
+                      <ArrowRight size={10} />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -404,8 +415,14 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
             )}
 
             <button
-              onClick={() => handleServiceClick(latestAgenda ? 'news' : 'alumni-data')}
-              className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition"
+              onClick={() => {
+                if (latestAgenda) {
+                  setSelectedNews(latestAgenda);
+                } else {
+                  handleServiceClick('alumni-data');
+                }
+              }}
+              className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition cursor-pointer"
             >
               Lihat Detail
             </button>
@@ -424,13 +441,24 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
             </div>
             <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Mahasiswa Berprestasi</h2>
           </div>
-          <button
-            onClick={() => setCurrentTab('achievements')}
-            className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1"
-          >
-            <span>Lihat Semua Prestasi</span>
-            <ArrowRight size={12} />
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => {
+                sessionStorage.setItem('mahasiswa_active_tab', 'prestasi');
+                setCurrentTab('mahasiswa');
+              }}
+              className="text-xs font-sans font-bold text-[#001e40] hover:text-[#002d61] bg-[#feb234] hover:bg-[#ffddb2] px-3 py-1.5 rounded-lg flex items-center space-x-1 shadow-sm transition cursor-pointer"
+            >
+              <span>Laporkan Prestasi</span>
+            </button>
+            <button
+              onClick={() => setCurrentTab('achievements')}
+              className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1 cursor-pointer"
+            >
+              <span>Lihat Semua</span>
+              <ArrowRight size={12} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -532,6 +560,88 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
           Jelajahi Semua UKM
         </button>
       </section>
+
+      {/* 4.6. DETAIL MODAL NEWS / ANNOUNCEMENT */}
+      {selectedNews && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#001e40]/60 backdrop-blur-sm animate-fade-in overflow-y-auto text-slate-800"
+          onClick={() => setSelectedNews(null)}
+        >
+          <div 
+            className="bg-white border border-slate-200 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-up"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Image Header */}
+            {selectedNews.image && (
+              <div 
+                className="h-56 sm:h-64 w-full bg-cover bg-center relative flex-shrink-0"
+                style={{ backgroundImage: `url('${selectedNews.image}')` } as React.CSSProperties}
+              >
+                <button 
+                  onClick={() => setSelectedNews(null)}
+                  className="absolute top-4 right-4 bg-black/70 hover:bg-black text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow hover:scale-105 transition cursor-pointer z-10"
+                >
+                  ✕
+                </button>
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
+                <div className="absolute bottom-6 left-6 space-y-1 z-10 pr-6">
+                  <span className="bg-[#feb234] text-[#001e40] font-sans text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-sm">
+                    {selectedNews.category}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!selectedNews.image && (
+              <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center flex-shrink-0 text-left">
+                <span className="bg-[#feb234] text-[#001e40] font-sans text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-sm">
+                  {selectedNews.category}
+                </span>
+                <button 
+                  onClick={() => setSelectedNews(null)}
+                  className="text-slate-400 hover:text-slate-650 transition cursor-pointer text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable Content */}
+            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-left">
+              <div className="space-y-2">
+                <h2 className="font-sans font-black text-xl sm:text-2xl text-[#001e40] leading-tight">
+                  {selectedNews.title}
+                </h2>
+                <div className="flex items-center text-xs text-slate-400 font-sans space-x-1">
+                  <Calendar size={12} />
+                  <span>Diterbitkan pada: {selectedNews.date}</span>
+                </div>
+              </div>
+
+              <div className="text-sm text-slate-600 leading-relaxed font-sans space-y-4">
+                <p className="font-bold text-slate-800 border-l-4 border-[#feb234] pl-4 italic">
+                  {selectedNews.summary}
+                </p>
+                <div 
+                  className="prose max-w-none text-slate-600 space-y-4"
+                  dangerouslySetInnerHTML={{ __html: selectedNews.description || '' }}
+                />
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
+              <span className="text-[10px] font-sans font-bold text-slate-400 uppercase">Informasi Kemahasiswaan UPB</span>
+              <button
+                onClick={() => setSelectedNews(null)}
+                className="bg-[#001e40] hover:bg-[#002d61] text-white font-sans font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer shadow-sm"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -583,7 +583,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Detail Modal */}

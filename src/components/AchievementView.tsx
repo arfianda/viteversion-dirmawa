@@ -9,9 +9,10 @@ import { Search, Award, Calendar, ExternalLink, Trophy, Filter, ArrowUpRight, Sh
 
 interface AchievementViewProps {
   achievements: Achievement[];
+  setCurrentTab: (tab: string) => void;
 }
 
-export default function AchievementView({ achievements }: AchievementViewProps) {
+export default function AchievementView({ achievements, setCurrentTab }: AchievementViewProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<string>('semua');
   const [selectedLevel, setSelectedLevel] = React.useState<string>('semua');
@@ -229,10 +230,10 @@ export default function AchievementView({ achievements }: AchievementViewProps) 
         </div>
         <button 
           onClick={() => {
-            const el = document.getElementById('admin');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
+            sessionStorage.setItem('mahasiswa_active_tab', 'prestasi');
+            setCurrentTab('mahasiswa');
           }}
-          className="bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] text-xs font-sans font-black px-5 py-3.5 rounded-xl uppercase tracking-wider w-full lg:w-auto shadow-md transition-all active:scale-95"
+          className="bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] text-xs font-sans font-black px-5 py-3.5 rounded-xl uppercase tracking-wider w-full lg:w-auto shadow-md transition-all active:scale-95 cursor-pointer"
         >
           Laporkan Prestasi Saya
         </button>
