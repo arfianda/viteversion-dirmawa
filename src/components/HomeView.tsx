@@ -379,53 +379,43 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
             <h2 className="font-sans font-extrabold text-xl text-[#001e40]">Agenda Mendatang</h2>
           </div>
 
-          <div className="bg-[#001e40] p-6 rounded-2xl text-white space-y-5 shadow-md">
-            <div className="flex items-center space-x-2 text-[#feb234]">
-              <Calendar size={16} />
-              <span className="font-mono text-xs uppercase tracking-wider font-extrabold">
-                {latestAgenda ? 'Agenda Terdekat' : 'Hari Ini'}
-              </span>
+          <div className="bg-[#001e40] p-6 rounded-2xl text-white space-y-5 shadow-md flex flex-col justify-between min-h-[250px] text-left">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 text-[#feb234]">
+                <Calendar size={16} />
+                <span className="font-mono text-xs uppercase tracking-wider font-extrabold">
+                  Agenda Terdekat
+                </span>
+              </div>
+
+              {latestAgenda ? (
+                <div className="space-y-3">
+                  <h3 className="font-sans font-black text-lg text-white leading-tight line-clamp-2">
+                    {latestAgenda.title}
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed font-sans line-clamp-3">
+                    {latestAgenda.summary}
+                  </p>
+                  <div className="space-y-1 pt-1 text-[11px] text-slate-350 font-mono">
+                    <p>📅 Tanggal: {latestAgenda.date}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1 py-8 text-center text-slate-400">
+                  <p className="font-sans font-bold text-xs">Belum ada agenda terdekat.</p>
+                  <p className="text-[10px] text-slate-500 font-medium leading-relaxed">Agenda mendatang akan ditampilkan di sini jika sudah dipublikasikan.</p>
+                </div>
+              )}
             </div>
 
-            {latestAgenda ? (
-              <div className="space-y-3">
-                <h3 className="font-sans font-black text-lg text-white leading-tight">
-                  {latestAgenda.title}
-                </h3>
-                <p className="text-xs text-slate-350 leading-relaxed font-sans line-clamp-3">
-                  {latestAgenda.summary}
-                </p>
-                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
-                  <p>📅 Tanggal: {latestAgenda.date}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <h3 className="font-sans font-black text-lg text-white leading-tight">
-                  Job Fair &amp; Career Expo 2026
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Aula Gedung B, Kampus Cikarang.
-                </p>
-                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
-                  <p>⌚ 09.00 - 16.00 WIB</p>
-                  <p>📍 Auditorium Lt. 3</p>
-                </div>
-              </div>
+            {latestAgenda && (
+              <button
+                onClick={() => setSelectedNews(latestAgenda)}
+                className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition cursor-pointer"
+              >
+                Lihat Detail
+              </button>
             )}
-
-            <button
-              onClick={() => {
-                if (latestAgenda) {
-                  setSelectedNews(latestAgenda);
-                } else {
-                  handleServiceClick('alumni-data');
-                }
-              }}
-              className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition cursor-pointer"
-            >
-              Lihat Detail
-            </button>
           </div>
         </div>
 
