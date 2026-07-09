@@ -42,6 +42,7 @@ const generateUUID = () => {
 };
 
 import LoginView from './components/LoginView';
+import AdminOnboarding from './components/AdminOnboarding';
 import DashboardOverview from './components/DashboardOverview';
 import AlumniManagement from './components/AlumniManagement';
 import UkmDirectory from './components/UkmDirectory';
@@ -86,6 +87,13 @@ export default function AdminPortal() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
+  // SSO & Onboarding states
+  const [ssoUser, setSsoUser] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [isOnboardingLoading, setIsOnboardingLoading] = useState<boolean>(false);
+  const [pendingApprovalMessage, setPendingApprovalMessage] = useState<string | null>(null);
+
   interface NotificationItem {
     id: string;
     text: string;
@@ -128,8 +136,17 @@ export default function AdminPortal() {
   // News Editor helper
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
 
-  // Load data from Supabase
+  // Load data from Supabase with individual query isolation to prevent one failure from blocking all others
   const loadDbData = async () => {
+    const handleQuery = async (promise: Promise<any>, fallback: any, label: string) => {
+      try {
+        return await promise;
+      } catch (e) {
+        console.error(`[AdminPortal] Failed to load query "${label}":`, e);
+        return fallback;
+      }
+    };
+
     try {
       const [
         dbNews,
@@ -147,24 +164,22 @@ export default function AdminPortal() {
         lpjCountRes,
         adminCountRes
       ] = await Promise.all([
-        SupabaseService.getAdminNewsArticles(),
-        SupabaseService.getAdminUkmRecords(),
-        SupabaseService.getAdminScholarshipRecords(),
-        SupabaseService.getAdminAlumniRecords(),
-        SupabaseService.getStudentsCount(),
-        SupabaseService.getNewStudentsCountThisMonth(),
-        SupabaseService.getPendingRegistrationsCount(),
-        SupabaseService.getAlumniStats(),
-        supabase.from('member_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('scholarship_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('ormawa_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('ormawa_proposals').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
-        supabase.from('ormawa_lpjs').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
-        supabase.from('users')
-          .select('id', { count: 'exact', head: true })
-          .eq('is_approved', false)
-          .in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan'])
+        handleQuery(SupabaseService.getAdminNewsArticles(), [], 'NewsArticles'),
+        handleQuery(SupabaseService.getAdminUkmRecords(), [], 'UkmRecords'),
+        handleQuery(SupabaseService.getAdminScholarshipRecords(), [], 'ScholarshipRecords'),
+        handleQuery(SupabaseService.getAdminAlumniRecords(), [], 'AlumniRecords'),
+        handleQuery(SupabaseService.getStudentsCount(), 0, 'StudentsCount'),
+        handleQuery(SupabaseService.getNewStudentsCountThisMonth(), 0, 'NewStudentsCountThisMonth'),
+        handleQuery(SupabaseService.getPendingRegistrationsCount(), 0, 'PendingRegistrationsCount'),
+        handleQuery(SupabaseService.getAlumniStats(), { total: 0, verified: 0 }, 'AlumniStats'),
+        handleQuery(supabase.from('member_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'), { count: 0 }, 'MemberReportsCount'),
+        handleQuery(supabase.from('scholarship_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'), { count: 0 }, 'ScholarshipAppsCount'),
+        handleQuery(supabase.from('ormawa_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'), { count: 0 }, 'OrmawaAppsCount'),
+        handleQuery(supabase.from('ormawa_proposals').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'), { count: 0 }, 'OrmawaProposalsCount'),
+        handleQuery(supabase.from('ormawa_lpjs').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'), { count: 0 }, 'OrmawaLpjsCount'),
+        handleQuery(supabase.from('users').select('id', { count: 'exact', head: true }).eq('is_approved', false).in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']), { count: 0 }, 'UsersApprovalsCount')
       ]);
+
       setNews(dbNews);
       setUkms(dbUkms);
       setScholarships(dbScholarships);
@@ -175,11 +190,11 @@ export default function AdminPortal() {
       setAlumniCount(dbAlumniStats.total);
       setVerifiedAlumniCount(dbAlumniStats.verified);
 
-      setPendingMemberReportsCount(mrCountRes.count || 0);
-      setPendingScholarshipAppsCount(saCountRes.count || 0);
-      setPendingOrmawaAppsCount(oaCountRes.count || 0);
-      setPendingOrmawaPropsCount((propCountRes.count || 0) + (lpjCountRes.count || 0));
-      setPendingAdminsCount(adminCountRes.count || 0);
+      setPendingMemberReportsCount(mrCountRes?.count || 0);
+      setPendingScholarshipAppsCount(saCountRes?.count || 0);
+      setPendingOrmawaAppsCount(oaCountRes?.count || 0);
+      setPendingOrmawaPropsCount((propCountRes?.count || 0) + (lpjCountRes?.count || 0));
+      setPendingAdminsCount(adminCountRes?.count || 0);
 
       // Load administrators list from Supabase
       const { data: dbUsers, error: usersError } = await supabase
@@ -356,9 +371,57 @@ export default function AdminPortal() {
     }
   };
 
+  // Load database data whenever session changes
   useEffect(() => {
-    loadDbData();
+    if (session) {
+      console.log("Loading database data for session:", session.username);
+      loadDbData();
+    }
+  }, [session]);
 
+  // Verify active Supabase Auth session on mount to prevent local storage desync or missed initial events
+  useEffect(() => {
+    async function verify() {
+      const { data: { session: sbSession } } = await supabase.auth.getSession();
+      if (!sbSession) {
+        console.log("No active Supabase session found. Clearing local storage session...");
+        setSession(null);
+        localStorage.removeItem('upb_affairs_session');
+      } else {
+        console.log("Active Supabase session found on mount. Checking profile...");
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('id, email, name, role, roles, is_approved, avatar_url')
+            .eq('id', sbSession.user.id)
+            .single();
+
+          if (!profileError && profile) {
+            const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator', 'operator'];
+            if (allowedRoles.includes(profile.role) && (profile.is_approved || profile.role === 'superadmin')) {
+              const userSession: UserSession = {
+                id: profile.id,
+                username: profile.email,
+                role: profile.role as any,
+                roles: profile.roles || [profile.role],
+                isApproved: profile.is_approved,
+                name: profile.name,
+                nimOrNip: 'ADMIN-' + profile.id.slice(0, 8),
+                avatarUrl: profile.avatar_url || undefined
+              };
+              console.log("Mount session verification successful. Logging in:", userSession.username);
+              handleLoginSuccess(userSession);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to verify mount session profile:", err);
+        }
+      }
+    }
+    verify();
+  }, []);
+
+  useEffect(() => {
     // Set up real-time postgres subscriptions to refresh dashboard stats and notifications on database changes
     const channel = supabase
       .channel('admin-dashboard-changes')
@@ -397,32 +460,190 @@ export default function AdminPortal() {
     };
   }, []);
 
-  // Verify Supabase session asynchronously in the background on mount
+  // Monitor auth state changes dynamically
   useEffect(() => {
-    async function verifySession() {
-      try {
-        const { data: { session: sbSession } } = await supabase.auth.getSession();
-        if (!sbSession) {
-          handleSignOut();
-          return;
-        }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, sbSession) => {
+      console.log("Auth state change in AdminPortal:", event, sbSession?.user?.email);
+      
+      if (event === 'SIGNED_IN' && sbSession?.user) {
+        // Fetch profile
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('id, email, name, role, roles, is_approved, avatar_url')
+            .eq('id', sbSession.user.id)
+            .single();
 
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role, roles')
-          .eq('id', sbSession.user.id)
-          .single();
+          if (profileError || !profile) {
+            // Profile does not exist yet!
+            const email = sbSession.user.email || '';
+            
+            // Check if it's the owner/Super Admin
+            if (email === 'arfiandafirsta@gmail.com') {
+              console.log("Auto-provisioning Super Admin:", email);
+              const { error: insertError } = await supabase
+                .from('users')
+                .insert({
+                  id: sbSession.user.id,
+                  email: email,
+                  name: sbSession.user.user_metadata?.name || 'Arfianda',
+                  role: 'superadmin',
+                  roles: ['superadmin'],
+                  is_approved: true
+                });
 
-        const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator'];
-        if (!profile || !allowedRoles.includes(profile.role)) {
-          handleSignOut();
+               if (insertError) {
+                 console.error("Failed to auto-provision Super Admin:", insertError);
+                 setPendingApprovalMessage("Gagal membuat profil Super Admin: " + insertError.message);
+                 return;
+               }
+
+               // Sync JWT metadata for Super Admin
+               console.log("Syncing Super Admin JWT metadata...");
+               const { error: updateError } = await supabase.auth.updateUser({
+                 data: {
+                   role: 'superadmin',
+                   roles: ['superadmin']
+                 }
+               });
+               if (!updateError) {
+                 console.log("Refreshing session for Super Admin...");
+                 await supabase.auth.refreshSession();
+               }
+
+               // Set active session
+              const userSession: UserSession = {
+                id: sbSession.user.id,
+                username: email,
+                role: 'superadmin',
+                roles: ['superadmin'],
+                isApproved: true,
+                name: sbSession.user.user_metadata?.name || 'Arfianda',
+                nimOrNip: 'ADMIN-' + sbSession.user.id.slice(0, 8),
+                avatarUrl: sbSession.user.user_metadata?.avatar_url
+              };
+              handleLoginSuccess(userSession);
+            } else {
+              // Not Super Admin, show Onboarding Form
+              setSsoUser(sbSession.user);
+              setShowOnboarding(true);
+            }
+          } else {
+            // Profile exists!
+            const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator', 'operator'];
+            
+            if (!allowedRoles.includes(profile.role)) {
+              setPendingApprovalMessage("Akses ditolak. Peran Anda (" + profile.role + ") tidak memiliki akses Admin.");
+              await supabase.auth.signOut();
+              return;
+            }
+
+            if (!profile.is_approved && profile.role !== 'superadmin') {
+              setPendingApprovalMessage("Akun Anda belum disetujui oleh Super Admin. Silakan hubungi admin utama untuk aktivasi.");
+              return;
+            }
+
+            // Synchronize JWT metadata with the database profile if they are out of sync
+            const currentMetadataRole = sbSession.user.user_metadata?.role;
+            const currentMetadataRoles = sbSession.user.user_metadata?.roles;
+            const hasCorrectRoles = currentMetadataRoles && 
+              currentMetadataRoles.length === profile.roles?.length && 
+              currentMetadataRoles.every((r: string) => profile.roles.includes(r));
+
+            if (currentMetadataRole !== profile.role || !hasCorrectRoles) {
+              console.log("Synchronizing user auth metadata with database profile...");
+              const { error: updateError } = await supabase.auth.updateUser({
+                data: {
+                  role: profile.role,
+                  roles: profile.roles
+                }
+              });
+              if (!updateError) {
+                console.log("Refreshing session to obtain new JWT token...");
+                await supabase.auth.refreshSession();
+              }
+            }
+
+            // Approved and allowed, set active session
+            const userSession: UserSession = {
+              id: profile.id,
+              username: profile.email,
+              role: profile.role === 'superadmin' ? 'superadmin' : 'admin',
+              roles: profile.roles || [profile.role],
+              isApproved: profile.is_approved,
+              name: profile.name,
+              nimOrNip: 'ADMIN-' + profile.id.slice(0, 8),
+              avatarUrl: profile.avatar_url || undefined
+            };
+            handleLoginSuccess(userSession);
+          }
+        } catch (e: any) {
+          console.error("Error processing sign in:", e);
         }
-      } catch (err) {
-        console.error("Session verification failed:", err);
+      } else if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setSsoUser(null);
+        setShowOnboarding(false);
+        setPendingApprovalMessage(null);
+        localStorage.removeItem('upb_affairs_session');
       }
-    }
-    verifySession();
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const handleOnboardingSubmit = async (name: string, roles: string[]) => {
+    if (!ssoUser) return;
+    setIsOnboardingLoading(true);
+    setOnboardingError(null);
+    try {
+      const primaryRole = roles.includes('superadmin') ? 'superadmin' : roles[0] || 'staf_depan';
+      
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: ssoUser.id,
+          email: ssoUser.email,
+          name: name,
+          role: primaryRole,
+          roles: roles,
+          is_approved: false
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Sync JWT metadata for the newly registered staff
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          role: primaryRole,
+          roles: roles
+        }
+      });
+      if (!updateError) {
+        console.log("Refreshing session for onboarded staff...");
+        await supabase.auth.refreshSession();
+      }
+
+      setShowOnboarding(false);
+      setPendingApprovalMessage("Pendaftaran akun berhasil diajukan! Silakan hubungi Super Admin untuk menyetujui akun Anda.");
+    } catch (err: any) {
+      console.error("Onboarding submission failed:", err);
+      setOnboardingError(err.message || "Gagal menyimpan data diri. Silakan coba lagi.");
+    } finally {
+      setIsOnboardingLoading(false);
+    }
+  };
+
+  const handleOnboardingSignOut = async () => {
+    await supabase.auth.signOut();
+    setShowOnboarding(false);
+    setSsoUser(null);
+    setPendingApprovalMessage(null);
+  };
 
   // Click outside handler to dismiss dropdown menus and avoid flickering during native confirm dialogs
   useEffect(() => {
@@ -449,11 +670,24 @@ export default function AdminPortal() {
     setSession(userSession);
     setActiveTab('dashboard');
     localStorage.setItem('upb_affairs_session', JSON.stringify(userSession));
+    sessionStorage.removeItem('pending_portal');
+    
+    // Clean up query params from URL to prevent infinite loading/redirects
+    if (window.location.search.includes('portal=admin')) {
+      const cleanUrl = window.location.pathname + '#/admin';
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setSession(null);
     localStorage.removeItem('upb_affairs_session');
+    sessionStorage.removeItem('pending_portal');
+    
+    // Clear search and hash to return to public landing page
+    window.location.search = '';
+    window.location.hash = '';
   };
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -942,7 +1176,59 @@ export default function AdminPortal() {
     return allowedTabs.includes(item.id);
   });
 
+  if (pendingApprovalMessage) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fc] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans text-[#191c1e] w-full">
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center">
+          <div className="w-[800px] h-[800px] rounded-full bg-[#001e40]/5 blur-3xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        </div>
+
+        <main className="w-full max-w-[440px] z-10 flex flex-col items-center animate-fade-in">
+          <div className="w-full bg-white rounded-2xl shadow-xl shadow-[#001e40]/5 border border-[#c3c6d1]/30 p-8 flex flex-col gap-6">
+            <div className="flex flex-col items-center text-center gap-2 mb-2">
+              <div className="w-16 h-16 rounded-xl bg-[#f2f4f7] flex items-center justify-center mb-1 overflow-hidden border border-[#c3c6d1]/30">
+                <img
+                  alt="UPB Logo"
+                  className="w-full h-full object-cover"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3jVZ0gnP1io7hv_EKmsUA0s0v7P43UjpVBwguh_r3QVt5Dm4tz2mfh0vT9aWln58W1_fZxHlbY16eWk5VKX1jgZBnaH200pA6g1VCPL8I43xCoLGsruIGqBGEGNaLkFtNy1FAH1xOAXyzcn6YIat9XO541xj6DQUzdkHICC1Jb4ngg7898WTlID-ob-hpyTWybxVzdskYbABFEGf_fwFWdIsx-NvILmzz3pxBUjLwfX7jsXe5vh9iYxsbUldDq-FskdT4Ykg80n0"
+                />
+              </div>
+              <h1 className="font-headline font-bold text-xl text-[#001e40] leading-snug">
+                Status Pengajuan Akses
+              </h1>
+              <p className="font-semibold text-xs text-[#001e40] uppercase tracking-widest bg-[#001e40]/5 px-3 py-1 rounded-full">
+                Persetujuan Staf
+              </p>
+            </div>
+
+            <div className="bg-amber-50 text-amber-800 text-sm p-4 rounded-xl border border-amber-200 text-center font-medium leading-relaxed">
+              {pendingApprovalMessage}
+            </div>
+
+            <button
+              onClick={handleOnboardingSignOut}
+              className="w-full bg-[#001e40] hover:bg-[#1f477b] text-white font-semibold text-sm rounded-xl py-3.5 transition-colors shadow-lg shadow-[#001e40]/10 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              Kembali ke Login
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!session) {
+    if (showOnboarding && ssoUser) {
+      return (
+        <AdminOnboarding
+          email={ssoUser.email || ''}
+          onSubmit={handleOnboardingSubmit}
+          onSignOut={handleOnboardingSignOut}
+          isLoading={isOnboardingLoading}
+          error={onboardingError}
+        />
+      );
+    }
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 

@@ -31,15 +31,21 @@ import { SupabaseService } from './services/supabaseService';
 export default function App() {
   //  ALL useState hooks FIRST (before any conditional returns)
   const checkIsAdminPortal = () => {
-    return window.location.search.includes('portal=admin') || window.location.hash === '#/admin';
+    return window.location.search.includes('portal=admin') || 
+           window.location.hash === '#/admin' ||
+           sessionStorage.getItem('pending_portal') === 'admin';
   };
 
   const checkIsMahasiswaPortal = () => {
-    return window.location.search.includes('portal=mahasiswa') || window.location.hash === '#/mahasiswa';
+    return window.location.search.includes('portal=mahasiswa') || 
+           window.location.hash === '#/mahasiswa' ||
+           sessionStorage.getItem('pending_portal') === 'mahasiswa';
   };
 
   const checkIsOrmawaPortal = () => {
-    return window.location.search.includes('portal=ormawa') || window.location.hash === '#/ormawa';
+    return window.location.search.includes('portal=ormawa') || 
+           window.location.hash === '#/ormawa' ||
+           sessionStorage.getItem('pending_portal') === 'ormawa';
   };
 
   const [isAdminPortal, setIsAdminPortal] = React.useState<boolean>(checkIsAdminPortal);
@@ -47,6 +53,14 @@ export default function App() {
   const [isOrmawaPortal, setIsOrmawaPortal] = React.useState<boolean>(checkIsOrmawaPortal);
   const getInitialTab = () => {
     const hash = window.location.hash;
+    const search = window.location.search;
+    const pendingPortal = sessionStorage.getItem('pending_portal');
+    
+    // Prioritize query parameters to keep the active portal context on Google SSO redirects
+    if (search.includes('portal=admin') || pendingPortal === 'admin') return 'admin';
+    if (search.includes('portal=mahasiswa') || pendingPortal === 'mahasiswa') return 'mahasiswa';
+    if (search.includes('portal=ormawa') || pendingPortal === 'ormawa') return 'ormawa';
+
     if (hash === '#/admin') return 'admin';
     if (hash === '#/mahasiswa') return 'mahasiswa';
     if (hash === '#/ormawa') return 'ormawa';
@@ -83,15 +97,9 @@ export default function App() {
   React.useEffect(() => {
     const updatePortalState = () => {
       const hash = window.location.hash;
-      setIsAdminPortal(
-        window.location.search.includes('portal=admin') || hash === '#/admin'
-      );
-      setIsMahasiswaPortal(
-        window.location.search.includes('portal=mahasiswa') || hash === '#/mahasiswa'
-      );
-      setIsOrmawaPortal(
-        window.location.search.includes('portal=ormawa') || hash === '#/ormawa'
-      );
+      setIsAdminPortal(checkIsAdminPortal());
+      setIsMahasiswaPortal(checkIsMahasiswaPortal());
+      setIsOrmawaPortal(checkIsOrmawaPortal());
 
       // Sync hash to currentTab
       if (hash === '#/panduan/kode-etik') {
@@ -144,6 +152,12 @@ export default function App() {
 
   // Sync tab state to URL hash
   React.useEffect(() => {
+    // If the hash contains Supabase OAuth token details, DO NOT overwrite it.
+    // Let the Supabase Auth library parse it first.
+    if (window.location.hash.includes('access_token=') || window.location.hash.includes('error=')) {
+      return;
+    }
+
     let expectedHash = '';
     switch (currentTab) {
       case 'home': expectedHash = '#/home'; break;
@@ -290,8 +304,8 @@ export default function App() {
               news={news}
               ukmsCount={ukms.length}
               alumniCount={alumni.length}
-              achievementsCount={achievements.filter(a => a.status === 'Disetujui').length}
-              achievements={achievements.filter(a => a.status === 'Disetujui')}
+              achievementsCount={achievements.filter(a => !a.status || a.status === 'Disetujui').length}
+              achievements={achievements.filter(a => !a.status || a.status === 'Disetujui')}
             />
           )}
 

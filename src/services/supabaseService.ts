@@ -613,7 +613,10 @@ export const SupabaseService = {
       prodi: row.major,
       graduationYear: row.graduation_year,
       status: (row.nim_status || 'Valid') as any,
-      email: row.email || undefined
+      email: row.email || undefined,
+      employmentStatus: row.status as any,
+      company: row.company || '',
+      position: row.position || ''
     }));
   },
 

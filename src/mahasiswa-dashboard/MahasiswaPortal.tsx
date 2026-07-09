@@ -27,6 +27,7 @@ import MahasiswaPengajuanPrestasi from './components/MahasiswaPengajuanPrestasi'
 import MahasiswaSettings from './components/MahasiswaSettings';
 import MahasiswaAjukanOrmawa from './components/MahasiswaAjukanOrmawa';
 import { AuthService } from '../services/authService';
+import { supabase } from '../services/supabaseClient';
 
 export default function MahasiswaPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -82,7 +83,13 @@ export default function MahasiswaPortal() {
             }
             return prev;
           });
-        } else if (activeUser && activeUser.role !== 'mahasiswa') {
+
+          // Clean up query params from URL to prevent infinite loading/redirects
+          if (window.location.search.includes('portal=mahasiswa')) {
+            const cleanUrl = window.location.pathname + '#/mahasiswa';
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
+        } else {
           localStorage.removeItem('upb_mahasiswa_session');
           setSession(null);
         }
@@ -97,12 +104,23 @@ export default function MahasiswaPortal() {
     setSession(userSession);
     setActiveTab('dashboard');
     localStorage.setItem('upb_mahasiswa_session', JSON.stringify(userSession));
+    sessionStorage.removeItem('pending_portal');
+    
+    // Clean up query params from URL to prevent infinite loading/redirects
+    if (window.location.search.includes('portal=mahasiswa')) {
+      const cleanUrl = window.location.pathname + '#/mahasiswa';
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setSession(null);
     localStorage.removeItem('upb_mahasiswa_session');
-    // Clear hash to return to landing page
+    sessionStorage.removeItem('pending_portal');
+    
+    // Clear search and hash to return to landing page
+    window.location.search = '';
     window.location.hash = '';
   };
 

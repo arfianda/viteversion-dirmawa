@@ -103,6 +103,7 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
 
   const handleGoogleSSO = async () => {
     try {
+      sessionStorage.setItem('pending_portal', 'mahasiswa');
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -110,7 +111,7 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: window.location.origin + window.location.pathname + '#/mahasiswa'
+          redirectTo: window.location.origin + window.location.pathname + '?portal=mahasiswa'
         }
       });
       if (error) {
