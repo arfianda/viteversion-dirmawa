@@ -2,7 +2,7 @@
 
 **Status Pelaksanaan:**
 - [ ] Belum Dilaksanakan
-- [ ] Sudah Dilaksanakan
+- [x] Sudah Dilaksanakan
 
 ---
 

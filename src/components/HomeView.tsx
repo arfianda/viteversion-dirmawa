@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
 import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
 import { StudentNews, Achievement } from '../types';
@@ -552,7 +553,7 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
       </section>
 
       {/* 4.6. DETAIL MODAL NEWS / ANNOUNCEMENT */}
-      {selectedNews && (
+      {selectedNews && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#001e40]/60 backdrop-blur-sm animate-fade-in overflow-y-auto text-slate-800"
           onClick={() => setSelectedNews(null)}
@@ -608,12 +609,12 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
                 </div>
               </div>
 
-              <div className="text-sm text-slate-600 leading-relaxed font-sans space-y-4">
+              <div className="text-sm text-slate-650 leading-relaxed font-sans space-y-4">
                 <p className="font-bold text-slate-800 border-l-4 border-[#feb234] pl-4 italic">
                   {selectedNews.summary}
                 </p>
                 <div 
-                  className="prose max-w-none text-slate-600 space-y-4"
+                  className="prose max-w-none text-slate-605 space-y-4"
                   dangerouslySetInnerHTML={{ __html: selectedNews.description || '' }}
                 />
               </div>
@@ -630,7 +631,8 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

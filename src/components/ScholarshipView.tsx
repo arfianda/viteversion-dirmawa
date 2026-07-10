@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Scholarship } from '../types';
 import { Search, Calendar, Landmark, CheckCircle, Info, PhoneCall, ChevronDown, ChevronUp, AlertCircle, Sparkles, FileText, Upload } from 'lucide-react';
 import { SupabaseService } from '../services/supabaseService';
@@ -366,9 +367,9 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
       </div>
 
       {/* Details requirements overlay */}
-      {selectedScholarship && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white border border-slate-250 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      {selectedScholarship && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setSelectedScholarship(null)}>
+          <div className="bg-white border border-slate-250 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div 
               className="h-44 w-full bg-cover bg-center relative"
               style={{ backgroundImage: `url('${selectedScholarship.bannerImage}')`, referrerPolicy: 'no-referrer' } as React.CSSProperties}
@@ -383,12 +384,12 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
             </div>
 
             <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-800">
-              <div className="space-y-1">
+              <div className="space-y-1 text-left">
                 <span className="text-xs font-mono font-bold uppercase text-[#feb234]">{selectedScholarship.provider}</span>
                 <h3 className="font-sans font-black text-2xl text-[#001e40] leading-tight">{selectedScholarship.title}</h3>
               </div>
 
-              <div className="space-y-3 font-sans">
+              <div className="space-y-3 font-sans text-left">
                 <span className="text-sm font-bold text-[#001e40] block uppercase border-b border-slate-100 pb-1.5">Persyaratan Berkas</span>
                 <ul className="space-y-2.5 text-xs text-slate-650 list-inside list-disc">
                   {selectedScholarship.requirements.map((req, index) => (
@@ -397,7 +398,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                 </ul>
               </div>
 
-              <div className="space-y-3 font-sans">
+              <div className="space-y-3 font-sans text-left">
                 <span className="text-sm font-bold text-[#001e40] block uppercase border-b border-slate-100 pb-1.5">Kelengkapan Manfaat &amp; Subsidi</span>
                 <ul className="space-y-2.5 text-xs text-slate-650">
                   {selectedScholarship.benefits.map((benefit, index) => (
@@ -409,7 +410,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                 </ul>
               </div>
 
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center space-x-3 text-xs text-slate-500 leading-relaxed font-sans">
+              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex items-center space-x-3 text-xs text-slate-500 leading-relaxed font-sans text-left">
                 <Info size={18} className="text-[#feb234] flex-shrink-0" />
                 <span>
                   Batas akhir formulir online ditutup pada <strong className="text-slate-800">{selectedScholarship.registrationDeadline}</strong>. Seluruh berkas scan wajib digabungkan dalam format PDF berstandar.
@@ -448,13 +449,14 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Scholarship application form modal */}
-      {showApplyModal && selectedScholarship && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto">
-          <div className="bg-white border border-slate-250 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+      {showApplyModal && selectedScholarship && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto" onClick={() => setShowApplyModal(false)}>
+          <div className="bg-white border border-slate-250 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
               <h3 className="font-sans font-black text-lg text-[#001e40]">Formulir Pendaftaran Beasiswa</h3>
               <button 
@@ -466,33 +468,25 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
             </div>
             
             <form onSubmit={handleApplySubmit} className="p-6 space-y-4 font-sans text-xs">
-              <div className="bg-[#feb234]/10 border border-[#feb234]/20 p-3 rounded-xl text-slate-800 flex flex-col gap-1">
+              <div className="bg-[#feb234]/10 border border-[#feb234]/20 p-3 rounded-xl text-slate-800 flex flex-col gap-1 text-left">
                 <span className="font-bold text-[#001e40]">{selectedScholarship.title}</span>
-                <span className="text-[10px] text-slate-500 font-semibold">{selectedScholarship.provider}</span>
+                <span className="text-[10px] text-slate-500 font-medium">Penyelenggara: {selectedScholarship.provider}</span>
               </div>
 
-              {submitError && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl font-semibold flex items-center gap-2">
-                  <AlertCircle size={14} className="shrink-0" />
-                  <span>{submitError}</span>
-                </div>
-              )}
-
               {submitSuccess ? (
-                <div className="p-4 bg-emerald-50 border border-emerald-250 text-emerald-800 rounded-xl font-bold flex flex-col items-center justify-center gap-2 text-center py-6">
-                  <CheckCircle size={32} className="text-emerald-600" />
-                  <span>Pendaftaran Beasiswa Berhasil Terkirim!</span>
-                  <span className="text-[10px] font-normal text-emerald-600">Mengarahkan kembali...</span>
+                <div className="p-4 bg-yellow-500/10 border border-yellow-350 text-[#feb234] leading-relaxed rounded-xl font-bold text-center animate-fade-in">
+                  ✓ Berkas Pendaftaran Berhasil Dikirim!
+                  <span className="block font-medium text-[10px] text-slate-400 mt-1">Status pengajuan dapat Anda pantau berkala pada Dasbor Akun Mahasiswa Anda.</span>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 text-left">
                     <div className="space-y-1">
                       <label className="text-slate-700 block font-bold">Nama Lengkap</label>
                       <input
                         type="text"
                         disabled
-                        value={studentSession?.name || ''}
+                        value={studentSession?.name || 'Dewa Wicaksana'}
                         className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-500 cursor-not-allowed"
                       />
                     </div>
@@ -507,7 +501,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                     </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-left">
                     <label className="text-slate-700 block font-bold">Program Studi</label>
                     <input
                       type="text"
@@ -517,7 +511,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 text-left">
                     <div className="space-y-1">
                       <label className="text-slate-700 block font-bold">Indeks Prestasi Kumulatif (IPK) *</label>
                       <input
@@ -540,12 +534,12 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                         placeholder="0812xxxxxxxx"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 focus:outline-none focus:border-[#001e40] focus:bg-white"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-850 focus:outline-none focus:border-[#001e40] focus:bg-white"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 text-left">
                     <label className="text-slate-700 block font-bold">Dokumen Pendukung (CV &amp; Transkrip Nilai) *</label>
                     <div className="border-2 border-dashed border-slate-250 p-4 rounded-xl flex flex-col items-center justify-center gap-2 bg-slate-50 hover:bg-slate-100/50 transition-colors">
                       <Upload size={24} className="text-slate-450" />
@@ -565,7 +559,8 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
               )}
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

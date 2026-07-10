@@ -36,6 +36,9 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
   // Gallery list state
   const [gallery, setGallery] = useState<string[]>([]);
 
+  // Requirements list state
+  const [requirements, setRequirements] = useState<string[]>([]);
+
   // Images state
   const [logoImage, setLogoImage] = useState('');
   const [coverImage, setCoverImage] = useState('');
@@ -85,6 +88,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
         setLogoImage(ukm.logo_image_url || '');
         setCoverImage(ukm.cover_image_url || '');
         setInstagramUrl(ukm.instagram_url || '');
+        setRequirements(ukm.requirements || []);
       } catch (e: any) {
         console.error('Failed to load UKM details:', e);
         setErrorMsg('Gagal memuat profil organisasi.');
@@ -131,6 +135,15 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
   };
   const removeGallery = (idx: number) => setGallery(gallery.filter((_, i) => i !== idx));
 
+  // Requirements functions
+  const addRequirement = () => setRequirements([...requirements, '']);
+  const handleRequirementChange = (idx: number, val: string) => {
+    const updated = [...requirements];
+    updated[idx] = val;
+    setRequirements(updated);
+  };
+  const removeRequirement = (idx: number) => setRequirements(requirements.filter((_, i) => i !== idx));
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -139,6 +152,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
 
     const activeMissions = missions.filter(m => m.trim() !== '');
     const activeGallery = gallery.filter(g => g.trim() !== '');
+    const activeRequirements = requirements.filter(r => r.trim() !== '');
 
     try {
       await OrmawaService.updateUkmDetails(ukmId, {
@@ -148,6 +162,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
         schedule: schedules,
         contacts,
         gallery: activeGallery,
+        requirements: activeRequirements,
         logoImage,
         coverImage,
         instagramUrl
@@ -451,7 +466,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
                       required
                       value={cont.role} 
                       onChange={(e) => handleContactChange(idx, 'role', e.target.value)}
-                      placeholder="Ketua Umum"
+                      placeholder="Contoh: Ketua Umum"
                       className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
                     />
                   </div>
@@ -462,7 +477,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
                       required
                       value={cont.name} 
                       onChange={(e) => handleContactChange(idx, 'name', e.target.value)}
-                      placeholder="Arfianda"
+                      placeholder="Nama Lengkap"
                       className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
                     />
                   </div>
@@ -481,6 +496,50 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
                     type="button"
                     onClick={() => removeContact(idx)}
                     className="absolute right-3 top-[34px] p-2 text-red-500 hover:text-red-750 hover:bg-red-50 rounded-lg cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Syarat Keanggotaan */}
+        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Syarat Keanggotaan</h3>
+            <button
+              type="button"
+              onClick={addRequirement}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Tambah Syarat</span>
+            </button>
+          </div>
+
+          {requirements.length === 0 ? (
+            <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada syarat keanggotaan terdaftar.</p>
+          ) : (
+            <div className="space-y-3 font-sans text-xs">
+              {requirements.map((req, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <span className="w-5 h-5 rounded-full bg-[#feb234]/20 flex items-center justify-center font-bold text-[10px] text-[#001e40] shrink-0">
+                    {idx + 1}
+                  </span>
+                  <input 
+                    type="text"
+                    required
+                    value={req}
+                    onChange={(e) => handleRequirementChange(idx, e.target.value)}
+                    placeholder="Contoh: Mahasiswa aktif semester 1 - 4"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeRequirement(idx)}
+                    className="p-2 text-red-500 hover:text-red-750 hover:bg-red-55/10 rounded-lg cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

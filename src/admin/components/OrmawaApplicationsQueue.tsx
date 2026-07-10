@@ -53,7 +53,9 @@ export default function OrmawaApplicationsQueue({ reviewerId, onRefresh }: Ormaw
     setIsProcessing(true);
     try {
       await OrmawaService.reviewApplication(app.id, 'approved', undefined, reviewerId);
-      alert(`Ormawa "${app.name}" disetujui! Akun admin khusus telah digenerate.`);
+      const generatedEmail = `admin.${app.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@upb.ac.id`;
+      const defaultPassword = 'password123';
+      alert(`Ormawa "${app.name}" disetujui!\n\nKredensial Login Admin Ormawa:\nEmail: ${generatedEmail}\nPassword: ${defaultPassword}\n\nSilakan salin dan berikan kredensial ini kepada ketua/perwakilan ormawa.`);
       setSelectedApp(null);
       await fetchApps();
       if (onRefresh) onRefresh();

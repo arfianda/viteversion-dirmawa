@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { UKM } from '../types';
 import { Search, Calendar, Phone, CheckCircle, Users, Compass, Sparkles, Instagram } from 'lucide-react';
 
@@ -185,9 +186,9 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
       </div>
 
       {/* UKM Detail Drawer / Modal Cover overlay with beautiful Light Theme */}
-      {activeUkm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white border border-slate-250 w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      {activeUkm && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setSelectedUkmId(null)}>
+          <div className="bg-white border border-slate-250 w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             
             {/* Modal Cover Image header */}
             <div 
@@ -292,6 +293,25 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
                 </div>
               </div>
 
+              {/* Photo Gallery */}
+              {activeUkm.gallery && activeUkm.gallery.length > 0 && (
+                <div className="space-y-3 pt-4 border-t border-slate-100 font-sans">
+                  <span className="text-xs font-bold text-[#feb234] uppercase tracking-wider block">Galeri Foto Kegiatan</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {activeUkm.gallery.map((imgUrl, i) => (
+                      <div key={i} className="aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm group relative">
+                        <img 
+                          src={imgUrl} 
+                          alt={`Galeri ${activeUkm.name}`} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Contacts contact details info */}
               <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-3 pt-6">
                 <span className="text-xs font-bold text-[#001e40] uppercase tracking-wider block">Hubungi Pengurus UKM</span>
@@ -335,13 +355,14 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* JOIN UKM MODEL popup layout inside Light Theme */}
-      {joinUkmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white border border-slate-250 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-8 space-y-6">
+      {joinUkmId && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setJoinUkmId(null)}>
+          <div className="bg-white border border-slate-250 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-8 space-y-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-start">
               <div className="space-y-1 text-slate-800">
                 <div className="font-mono text-[10px] font-bold text-[#feb234] uppercase tracking-wider">FORMULIR PENDAFTARAN</div>
@@ -438,7 +459,8 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

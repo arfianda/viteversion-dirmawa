@@ -23,6 +23,7 @@ import OrmawaDashboardOverview from './components/OrmawaDashboardOverview';
 import OrmawaDetailEditor from './components/OrmawaDetailEditor';
 import OrmawaMemberManagement from './components/OrmawaMemberManagement';
 import OrmawaProposalsManagement from './components/OrmawaProposalsManagement';
+import OrmawaLogin from './components/OrmawaLogin';
 
 export default function OrmawaPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -83,22 +84,7 @@ export default function OrmawaPortal() {
   const unreadNotificationsCount = notifications.filter(n => n.unread).length;
 
   if (!session) {
-    // Redirect to public or trigger login. Since routing is handled in App.tsx, we can just render a simple notice
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center font-sans">
-        <ShieldAlert className="w-16 h-16 text-amber-500 mb-4 animate-bounce" />
-        <h3 className="font-extrabold text-[#001e40] text-xl">Sesi Habis / Akses Ditolak</h3>
-        <p className="text-slate-500 mt-2 text-sm max-w-sm">
-          Silakan masuk melalui portal administrasi dengan menggunakan akun admin ormawa Anda.
-        </p>
-        <button 
-          onClick={() => { window.location.hash = '#/admin'; }}
-          className="mt-5 px-6 py-2.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] font-black rounded-xl text-xs uppercase transition shadow"
-        >
-          Masuk Halaman Login
-        </button>
-      </div>
-    );
+    return <OrmawaLogin onLoginSuccess={setSession} />;
   }
 
   const navItems = [
