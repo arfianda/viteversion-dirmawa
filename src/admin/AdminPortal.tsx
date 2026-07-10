@@ -47,7 +47,7 @@ import AdminOnboarding from './components/AdminOnboarding';
 import DashboardOverview from './components/DashboardOverview';
 import AlumniManagement from './components/AlumniManagement';
 import AchievementsManagement from './components/AchievementsManagement';
-import UkmDirectory from './components/UkmDirectory';
+import OrmawaDirectory from './components/OrmawaDirectory';
 import ScholarshipsManagement from './components/ScholarshipsManagement';
 import NewsEditor from './components/NewsEditor';
 import AdminManagement from './components/AdminManagement';
@@ -1318,7 +1318,7 @@ export default function AdminPortal() {
         );
       case 'ukm':
         return (
-          <UkmDirectory
+          <OrmawaDirectory
             ukms={ukms}
             onAddUkm={handleAddUkm}
             onUpdateUkmStatus={handleUpdateUkmStatus}

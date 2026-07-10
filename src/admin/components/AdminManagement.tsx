@@ -334,7 +334,7 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
               <div className="p-3.5 rounded-xl border border-emerald-100 bg-emerald-50/50">
                 <h4 className="font-bold text-xs text-emerald-800">Staf Ormawa</h4>
                 <p className="text-[11px] text-emerald-700/90 leading-relaxed font-medium mt-1">
-                  Mengelola direktori UKM, verifikasi laporan jumlah anggota, serta antrian proposal &amp; LPJ Ormawa.
+                  Mengelola direktori Ormawa, verifikasi laporan jumlah anggota, serta antrian proposal &amp; LPJ Ormawa.
                 </p>
               </div>
 

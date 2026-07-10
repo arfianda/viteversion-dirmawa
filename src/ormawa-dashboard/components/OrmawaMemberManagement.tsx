@@ -156,7 +156,7 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
           </div>
           <div>
             <h3 className="font-bold text-slate-800 text-sm">Pelaporan Jumlah Anggota Aktif</h3>
-            <p className="text-xs text-slate-400 font-semibold">Laporkan jumlah total anggota aktif Anda untuk disinkronkan ke direktori UKM publik setelah disetujui Dirmawa.</p>
+            <p className="text-xs text-slate-400 font-semibold">Laporkan jumlah total anggota aktif Anda untuk disinkronkan ke direktori Ormawa setelah disetujui Dirmawa.</p>
           </div>
         </div>
 

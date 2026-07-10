@@ -12,7 +12,7 @@ interface AdminOnboardingProps {
 const AVAILABLE_ROLES = [
   { value: 'direktur', label: 'Direktur Dirmawa', desc: 'Akses baca (Read-only) ke seluruh modul beasiswa, alumni, ormawa, dan agenda.' },
   { value: 'staf_beasiswa', label: 'Staf Beasiswa', desc: 'Mengelola program beasiswa dan verifikasi pendaftar beasiswa.' },
-  { value: 'staf_ormawa', label: 'Staf Ormawa', desc: 'Mengelola direktori UKM, verifikasi proposal & LPJ, serta laporan anggota.' },
+  { value: 'staf_ormawa', label: 'Staf Ormawa', desc: 'Mengelola direktori Ormawa, verifikasi proposal & LPJ, serta laporan anggota.' },
   { value: 'staf_alumni', label: 'Staf Alumni', desc: 'Mengelola basis data alumni, pelacakan tracer study, dan statistik karir.' },
   { value: 'staf_depan', label: 'Staf Depan / Front Desk', desc: 'Mengatur janji temu tamu/mahasiswa dengan Direktur dan umum.' },
 ];

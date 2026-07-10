@@ -6,7 +6,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
+import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight, Trophy, HeartPulse, Brain, Shield } from 'lucide-react';
 import { StudentNews, Achievement } from '../types';
 
 interface HomeViewProps {
@@ -520,6 +520,97 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
               Belum ada data prestasi mahasiswa.
             </div>
           )}
+        </div>
+      </section>
+
+      {/* 4.6. FASILITAS & LAYANAN MAHASISWA */}
+      <section className="space-y-6">
+        <div className="flex justify-between items-end border-b border-slate-200 pb-3">
+          <div className="space-y-1 text-left">
+            <div className="flex items-center space-x-2 text-[#feb234]">
+              <div className="w-6 h-0.5 bg-[#feb234]" />
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider">Kesejahteraan Mahasiswa</span>
+            </div>
+            <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Fasilitas &amp; Layanan Kampus</h2>
+          </div>
+          <button
+            onClick={() => setCurrentTab('facilities')}
+            className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1 cursor-pointer"
+          >
+            <span>Lihat Semua Layanan</span>
+            <ArrowRight size={12} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: UKK */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between text-left group">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-red-50 text-red-655 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <HeartPulse size={24} className="text-red-600" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-sans font-black text-[#001e40] text-base group-hover:text-[#feb234] transition-colors">Unit Kesehatan Kampus (UKK)</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase font-mono">Gedung B, Lantai 1</p>
+              </div>
+              <p className="text-xs text-slate-500 font-sans leading-relaxed line-clamp-3">
+                Layanan pemeriksaan kesehatan umum, pertolongan pertama, obat-obatan dasar, dan penanganan cepat darurat medis untuk seluruh civitas akademika.
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentTab('facilities')}
+              className="mt-6 w-full py-2.5 bg-slate-50 hover:bg-[#001e40] hover:text-white text-[#001e40] font-sans font-bold text-[11px] uppercase tracking-wide rounded-xl border border-slate-200/50 transition-all text-center"
+            >
+              Lihat Prosedur Medis
+            </button>
+          </div>
+
+          {/* Card 2: Konseling */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between text-left group">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-[#feb234]/10 text-[#feb234] rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Brain size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-sans font-black text-[#001e40] text-base group-hover:text-[#feb234] transition-colors">Konseling &amp; Mental Health</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase font-mono">Sesi Privat &amp; Rahasia</p>
+              </div>
+              <p className="text-xs text-slate-500 font-sans leading-relaxed line-clamp-3">
+                Pendampingan psikologis profesional yang rahasia untuk membantu mahasiswa mengatasi tantangan akademik, kecemasan, atau masalah pribadi.
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentTab('facilities')}
+              className="mt-6 w-full py-2.5 bg-slate-50 hover:bg-[#001e40] hover:text-white text-[#001e40] font-sans font-bold text-[11px] uppercase tracking-wide rounded-xl border border-slate-200/50 transition-all text-center"
+            >
+              Booking Konsultasi
+            </button>
+          </div>
+
+          {/* Card 3: Asuransi */}
+          <div className="bg-[#001e40] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between text-left relative overflow-hidden group">
+            <div className="space-y-4 relative z-10 text-white">
+              <div className="w-12 h-12 bg-white/10 text-[#feb234] rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Shield size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-sans font-black text-white text-base group-hover:text-[#feb234] transition-colors">Asuransi Mahasiswa</h3>
+                <p className="text-[10px] text-slate-300 font-bold uppercase font-mono">Proteksi Studi Aktif</p>
+              </div>
+              <p className="text-xs text-slate-350 font-sans leading-relaxed line-clamp-3">
+                Layanan klaim perlindungan asuransi bagi seluruh mahasiswa aktif Universitas Pelita Bangsa untuk proteksi kecelakaan maupun kesehatan.
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentTab('facilities')}
+              className="mt-6 w-full py-2.5 bg-[#feb234] text-[#001e40] hover:bg-white transition-all font-sans font-bold text-[11px] uppercase tracking-wide rounded-xl text-center relative z-10"
+            >
+              Ajukan Klaim
+            </button>
+            <div className="absolute -right-6 -top-6 text-white/5 pointer-events-none transition-transform duration-500 group-hover:scale-110">
+              <Shield size={120} />
+            </div>
+          </div>
         </div>
       </section>
 

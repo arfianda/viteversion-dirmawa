@@ -54,7 +54,8 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
   const navItems = [
     { id: 'home', label: 'Beranda' },
     { id: 'scholarships', label: 'Beasiswa' },
-    { id: 'ukms', label: 'Direktori UKM' },
+    { id: 'ukms', label: 'Ormawa' },
+    { id: 'facilities', label: 'Fasilitas' },
   ];
 
   const panduanItems = [
@@ -71,7 +72,6 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
 
   const dropdownItems = [
     { id: 'achievements', label: 'Prestasi' },
-    { id: 'facilities', label: 'Fasilitas' },
     { id: 'about', label: 'Tentang' },
   ];
 

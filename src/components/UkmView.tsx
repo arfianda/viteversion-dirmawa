@@ -23,13 +23,21 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
   const [joinForm, setJoinForm] = React.useState({ name: '', nim: '', email: '', motivation: '', department: '' });
   const [joinSuccess, setJoinSuccess] = React.useState(false);
 
-  const categories = ['semua', 'Seni & Budaya', 'Olahraga', 'Akademik', 'Sosial', 'Kerohanian'];
+  const categories = ['semua', 'Seni & Budaya', 'Olahraga', 'Akademik', 'Sosial', 'Kerohanian', 'Himpunan'];
 
   const filteredUkms = ukms.filter((u) => {
     const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           u.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'semua' || u.category === selectedCategory;
     return matchesSearch && matchesCategory;
+  });
+
+  const sortedUkms = [...filteredUkms].sort((a, b) => {
+    const aIsHimpunan = a.category === 'Himpunan';
+    const bIsHimpunan = b.category === 'Himpunan';
+    if (aIsHimpunan && !bIsHimpunan) return 1;
+    if (!aIsHimpunan && bIsHimpunan) return -1;
+    return 0;
   });
 
   const activeUkm = ukms.find(u => u.id === selectedUkmId) || null;
@@ -51,8 +59,8 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
       
       {/* Header section with pristine typography */}
       <div className="text-center space-y-3">
-        <span className="font-mono text-xs font-black uppercase tracking-widest text-[#feb234] block">EKSPELORASI ORMAWA</span>
-        <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Direktori UKM &amp; Organisasi</h1>
+        <span className="font-mono text-xs font-black uppercase tracking-widest text-[#feb234] block">EKSPLORASI ORMAWA</span>
+        <h1 className="font-sans font-black text-3xl sm:text-4xl text-[#001e40] tracking-tight">Direktori Ormawa</h1>
         <p className="text-sm sm:text-base text-slate-505 max-w-2xl mx-auto font-sans leading-relaxed">
           Temukan wadah kreativitas, pengembangan kepribadian, kepemimpinan, dan bakat di berbagai Unit Kegiatan Mahasiswa Universitas Pelita Bangsa.
         </p>
@@ -93,7 +101,7 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
 
       {/* GRID UKMs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredUkms.map((u) => (
+        {sortedUkms.map((u) => (
           <div 
             key={u.id}
             className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col justify-between group shadow-sm"

@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   HeartPulse,
   Clock,
@@ -333,7 +334,7 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
       {/* MODALS */}
 
       {/* 1. UKK Emergency Modal */}
-      {emergencyModalOpen && (
+      {emergencyModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
@@ -424,12 +425,13 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 
       {/* 3. Counseling Booking Modal */}
-      {bookingModalOpen && (
+      {bookingModalOpen && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
@@ -591,7 +593,8 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -225,7 +225,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
       <section className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="font-display font-extrabold text-2xl md:text-3xl text-[#001e40] mb-1.5">
-            Organisasi & UKM Saya
+            Organisasi &amp; Ormawa Saya
           </h2>
           <p className="text-sm text-slate-500 font-medium max-w-2xl">
             Kelola aktivitas organisasi mahasiswa Anda. Pantau keanggotaan aktif dan temukan minat baru di Universitas Pelita Bangsa.
@@ -236,7 +236,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
           className="flex items-center gap-1.5 px-4 py-2.5 bg-[#feb234]/15 hover:bg-[#feb234]/25 text-[#291800] font-bold text-xs rounded-xl shadow-sm transition-all border border-[#feb234]/25 cursor-pointer"
         >
           <Compass className="w-4 h-4 text-[#815500]" />
-          <span>Jelajahi UKM Baru</span>
+          <span>Jelajahi Ormawa Baru</span>
         </button>
       </section>
 
@@ -425,7 +425,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
         </div>
       )}
 
-      {/* Modal Join UKM Baru */}
+      {/* Modal Join Ormawa Baru */}
       {showJoinModal && (
         <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowJoinModal(false)}>
           <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-scale-up" onClick={e => e.stopPropagation()}>
@@ -433,7 +433,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 className="font-sans font-black text-lg text-[#001e40] flex items-center gap-2">
                   <Compass className="w-5 h-5 text-[#815500]" />
-                  Jelajahi & Gabung UKM Baru
+                  Jelajahi &amp; Gabung Ormawa Baru
                 </h3>
                 <button onClick={() => setShowJoinModal(false)} className="text-slate-400 hover:text-slate-655 transition-colors">
                   <X className="w-5 h-5" />
@@ -443,7 +443,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
               <div className="max-h-[350px] overflow-y-auto space-y-3 pr-1">
                 {recommendations.length === 0 ? (
                   <p className="text-center py-8 text-slate-450 text-xs font-semibold">
-                    Tidak ada UKM baru yang tersedia saat ini (Anda sudah bergabung dengan semua UKM).
+                    Tidak ada Ormawa baru yang tersedia saat ini (Anda sudah bergabung dengan semua Ormawa).
                   </p>
                 ) : (
                   recommendations.map(rec => (

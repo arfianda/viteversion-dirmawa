@@ -9,6 +9,9 @@ const client = new Client({
 
 function getCategory(name) {
   const upper = name.toUpperCase();
+  if (upper.includes('HIMPUNAN') || upper.includes('HIMA') || upper.includes('HMPS')) {
+    return 'Himpunan';
+  }
   if (upper.includes('BSM') || upper.includes('SENI') || upper.includes('SUARA') || upper.includes('SENIKASELIA')) {
     return 'Seni & Budaya';
   }

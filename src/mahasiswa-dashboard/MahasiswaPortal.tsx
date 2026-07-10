@@ -163,7 +163,7 @@ export default function MahasiswaPortal() {
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'ukm', label: 'UKM Saya', icon: Users },
+    { id: 'ukm', label: 'Ormawa Saya', icon: Users },
     { id: 'beasiswa', label: 'Beasiswa', icon: BookOpen },
     { id: 'prestasi', label: 'Pengajuan Prestasi', icon: Award },
     { id: 'ajukan-ormawa', label: 'Ajukan Ormawa Baru', icon: PlusCircle },

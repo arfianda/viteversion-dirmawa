@@ -168,7 +168,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
         instagramUrl
       });
 
-      setSuccessMsg('Profil organisasi berhasil diperbarui! Perubahan Anda langsung sinkron ke Direktori UKM mahasiswa.');
+      setSuccessMsg('Profil organisasi berhasil diperbarui! Perubahan Anda langsung sinkron ke Direktori Ormawa.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
       console.error(e);
