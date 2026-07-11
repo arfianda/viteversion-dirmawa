@@ -146,7 +146,7 @@ export default function MahasiswaDashboardOverview({ session, onNavigate }: Dash
         <div className="flex flex-wrap items-center gap-3">
           <div className="bg-[#feb234]/10 text-[#6d4700] px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 border border-[#feb234]/20">
             <Star className="w-3.5 h-3.5 fill-current" />
-            <span>{session.major || 'Fakultas Ilmu Komputer'}</span>
+            <span>{session.major || 'Program Studi'}</span>
           </div>
           <button 
             onClick={() => onNavigate('prestasi')}

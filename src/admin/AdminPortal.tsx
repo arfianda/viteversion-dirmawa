@@ -75,6 +75,14 @@ export default function AdminPortal() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchGlobalQuery, setSearchGlobalQuery] = useState('');
 
+  const handleBackToHome = () => {
+    sessionStorage.removeItem('pending_portal');
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '#/home';
+    window.location.href = url.toString();
+  };
+
   // Notifications dropdown
   const [showNotifications, setShowNotifications] = useState(false);
   // Profile dropdown
@@ -1603,7 +1611,7 @@ export default function AdminPortal() {
             </button>
           )}
           <button
-            onClick={() => { window.location.hash = ''; }}
+            onClick={handleBackToHome}
             className="text-white/70 hover:text-white flex items-center gap-3 px-4 py-2 text-xs font-bold transition-colors cursor-pointer"
           >
             <ExternalLink size={16} />
@@ -1904,7 +1912,7 @@ export default function AdminPortal() {
                   </button>
                 )}
                 <button
-                  onClick={() => { window.location.hash = ''; }}
+                  onClick={handleBackToHome}
                   className="text-white/70 hover:text-white flex items-center gap-3 py-2 text-xs font-bold text-left cursor-pointer"
                 >
                   <ExternalLink size={16} />

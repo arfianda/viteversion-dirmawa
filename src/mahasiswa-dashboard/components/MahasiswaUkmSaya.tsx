@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Users, 
   Plus, 
@@ -76,17 +77,51 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
         schedule: u.schedule
       }));
 
-      const mappedRecs = dbUkms.filter((u: any) => !joinedIds.includes(u.id)).map((u: any) => ({
-        id: u.id,
-        name: u.name,
-        category: u.category || 'Organisasi',
-        members: u.activeMembers || 120,
-        logo: u.logoImage || 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=200&auto=format&fit=crop',
-        desc: u.description || '',
-        status: 'Active',
-        division: u.category || 'Organisasi',
-        schedule: u.schedule
-      }));
+      const studentMajor = session.major || '';
+
+      const isHimpunanMatch = (ukmName: string, major: string): boolean => {
+        if (!major) return false;
+        const cleanName = ukmName.toLowerCase();
+        const cleanMajor = major.toLowerCase();
+        if (cleanName.includes(cleanMajor) || cleanMajor.includes(cleanName)) {
+          return true;
+        }
+        const stopwords = ['teknik', 'sistem', 'ilmu', 'dan', '&'];
+        const keywords = cleanMajor.split(/\s+/).filter(word => !stopwords.includes(word) && word.length > 2);
+        if (keywords.length > 0) {
+          return keywords.some(keyword => cleanName.includes(keyword));
+        }
+        return false;
+      };
+
+      const mappedRecs = dbUkms
+        .filter((u: any) => !joinedIds.includes(u.id))
+        .filter((u: any) => {
+          if (u.category === 'Himpunan') {
+            return isHimpunanMatch(u.name, studentMajor);
+          }
+          return true;
+        })
+        .map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          category: u.category || 'Organisasi',
+          members: u.activeMembers || 120,
+          logo: u.logoImage || 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=200&auto=format&fit=crop',
+          desc: u.description || '',
+          status: 'Active',
+          division: u.category || 'Organisasi',
+          schedule: u.schedule
+        }));
+
+      // Sort: non-himpunan first, himpunan last
+      mappedRecs.sort((a, b) => {
+        const aIsHimpunan = a.category === 'Himpunan';
+        const bIsHimpunan = b.category === 'Himpunan';
+        if (aIsHimpunan && !bIsHimpunan) return 1;
+        if (!aIsHimpunan && bIsHimpunan) return -1;
+        return 0;
+      });
 
       setMyUkms(mappedMyUkms);
       setRecommendations(mappedRecs);
@@ -220,7 +255,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
   });
 
   return (
-    <div className="space-y-8 animate-fade-in pb-10">
+    <div className="space-y-8 animate-fade-in pb-10 w-full max-w-full overflow-hidden">
       
       <section className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
@@ -263,13 +298,13 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
             <div className="flex gap-2">
               <button 
                 onClick={() => setSelectedUkm(ukm.id)}
-                className="flex-1 py-2 border border-slate-200 hover:border-[#001e40] hover:bg-slate-50 text-[#001e40] font-bold text-xs rounded-xl transition-all cursor-pointer"
+                className="flex-1 min-h-[44px] flex items-center justify-center py-2 border border-slate-200 hover:border-[#001e40] hover:bg-slate-50 text-[#001e40] font-bold text-xs rounded-xl transition-all cursor-pointer"
               >
                 Lihat Profil
               </button>
               <button 
                 onClick={() => handleLeave(ukm.id, ukm.name)}
-                className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100 cursor-pointer"
+                className="w-11 h-11 flex items-center justify-center shrink-0 text-red-500 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-100 cursor-pointer"
                 title="Keluar dari UKM"
               >
                 <LogOut className="w-4 h-4" />
@@ -363,15 +398,15 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
 
       </div>
 
-      {selectedUkm && (
+      {selectedUkm && createPortal(
         <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedUkm(null)}>
           {(() => {
             const ukm = myUkms.find(u => u.id === selectedUkm) || recommendations.find(u => u.id === selectedUkm);
             if (!ukm) return null;
             const isJoined = joinedUkmIds.includes(ukm.id);
             return (
-              <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 border-t-8 border-t-[#001e40] animate-scale-up" onClick={e => e.stopPropagation()}>
-                <div className="p-6 space-y-4">
+              <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 border-t-8 border-t-[#001e40] animate-scale-up max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                   <div className="flex gap-4 items-center border-b border-slate-100 pb-4">
                     <img src={ukm.logo} alt={ukm.name} className="w-16 h-16 rounded-xl object-cover border border-slate-200 shadow-sm" />
                     <div>
@@ -422,25 +457,26 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
               </div>
             );
           })()}
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Join Ormawa Baru */}
-      {showJoinModal && (
+      {showJoinModal && createPortal(
         <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowJoinModal(false)}>
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-scale-up" onClick={e => e.stopPropagation()}>
-            <div className="p-6 space-y-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-scale-up max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 space-y-4 flex flex-col min-h-0">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 className="font-sans font-black text-lg text-[#001e40] flex items-center gap-2">
                   <Compass className="w-5 h-5 text-[#815500]" />
                   Jelajahi &amp; Gabung Ormawa Baru
                 </h3>
-                <button onClick={() => setShowJoinModal(false)} className="text-slate-400 hover:text-slate-655 transition-colors">
+                <button onClick={() => setShowJoinModal(false)} className="w-11 h-11 flex items-center justify-center shrink-0 text-slate-400 hover:text-slate-655 transition-colors cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <div className="max-h-[350px] overflow-y-auto space-y-3 pr-1">
+              <div className="max-h-[350px] overflow-y-auto space-y-3 pr-1 w-full min-w-0">
                 {recommendations.length === 0 ? (
                   <p className="text-center py-8 text-slate-450 text-xs font-semibold">
                     Tidak ada Ormawa baru yang tersedia saat ini (Anda sudah bergabung dengan semua Ormawa).
@@ -449,10 +485,10 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
                   recommendations.map(rec => (
                     <div 
                       key={rec.id}
-                      className="flex items-center justify-between p-3 hover:bg-slate-50 border border-slate-150 rounded-xl transition-all"
+                      className="w-full flex items-center justify-between p-3 hover:bg-slate-50 border border-slate-150 rounded-xl transition-all min-w-0"
                     >
                       <div className="flex gap-3 items-center min-w-0 flex-1">
-                        <img src={rec.logo} alt={rec.name} className="w-10 h-10 rounded-lg object-cover border border-slate-200" />
+                        <img src={rec.logo} alt={rec.name} className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0" />
                         <div className="min-w-0">
                           <h4 className="font-bold text-xs text-[#001e40] truncate">{rec.name}</h4>
                           <p className="text-[9px] text-slate-455 font-bold">{rec.category}</p>
@@ -460,7 +496,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
                       </div>
                       <button 
                         onClick={() => handleJoin(rec.id, rec.name)}
-                        className="ml-3 px-3 py-1.5 bg-[#feb234] hover:bg-[#e09b24] text-[#291800] font-bold text-[10px] rounded-lg shadow-sm transition-colors cursor-pointer"
+                        className="ml-3 px-4 py-2 bg-[#feb234] hover:bg-[#e09b24] text-[#291800] font-bold text-[10px] rounded-lg shadow-sm transition-colors cursor-pointer shrink-0 min-h-[44px] min-w-[72px] flex items-center justify-center"
                       >
                         Gabung
                       </button>
@@ -471,21 +507,22 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
               <div className="flex justify-end pt-2 border-t border-slate-100">
                 <button 
                   onClick={() => setShowJoinModal(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                  className="px-5 py-2.5 min-h-[44px] flex items-center justify-center border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Tutup
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Verifikasi Gabung UKM */}
-      {showVerifyModal && selectedVerifyUkm && (
+      {showVerifyModal && selectedVerifyUkm && createPortal(
         <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => { if (!isScanning) { setShowVerifyModal(false); setSelectedVerifyUkm(null); } }}>
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 animate-scale-up" onClick={e => e.stopPropagation()}>
-            <div className="p-6 space-y-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 animate-scale-up max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <div>
                   <h3 className="font-sans font-black text-base text-[#001e40]">Verifikasi Anggota Baru</h3>
@@ -587,7 +624,7 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
                             onChange={handleSimulateScan}
                             className="absolute inset-0 opacity-0 cursor-pointer" 
                           />
-                          <p className="text-[9px] text-slate-450 font-bold">Atau Unggah Gambar QR Code</p>
+                          <p className="text-[9px] text-slate-455 font-bold">Atau Unggah Gambar QR Code</p>
                         </div>
                       </div>
                     </div>
@@ -606,7 +643,8 @@ export default function MahasiswaUkmSaya({ session }: MahasiswaUkmSayaProps) {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

@@ -304,7 +304,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-slate-700 block font-bold">NIM Mahasiswa</label>
                   <input
@@ -368,8 +368,8 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
 
       {/* Details requirements overlay */}
       {selectedScholarship && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setSelectedScholarship(null)}>
-          <div className="bg-white border border-slate-250 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setSelectedScholarship(null)}>
+          <div className="bg-white border border-slate-250 w-full max-w-2xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-screen sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div 
               className="h-44 w-full bg-cover bg-center relative"
               style={{ backgroundImage: `url('${selectedScholarship.bannerImage}')`, referrerPolicy: 'no-referrer' } as React.CSSProperties}
@@ -455,8 +455,8 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
 
       {/* Scholarship application form modal */}
       {showApplyModal && selectedScholarship && createPortal(
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto" onClick={() => setShowApplyModal(false)}>
-          <div className="bg-white border border-slate-250 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in overflow-y-auto" onClick={() => setShowApplyModal(false)}>
+          <div className="bg-white border border-slate-250 w-full max-w-md rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-screen sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
               <h3 className="font-sans font-black text-lg text-[#001e40]">Formulir Pendaftaran Beasiswa</h3>
               <button 
@@ -467,7 +467,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
               </button>
             </div>
             
-            <form onSubmit={handleApplySubmit} className="p-6 space-y-4 font-sans text-xs">
+            <form onSubmit={handleApplySubmit} className="p-6 space-y-4 font-sans text-xs flex-1 overflow-y-auto">
               <div className="bg-[#feb234]/10 border border-[#feb234]/20 p-3 rounded-xl text-slate-800 flex flex-col gap-1 text-left">
                 <span className="font-bold text-[#001e40]">{selectedScholarship.title}</span>
                 <span className="text-[10px] text-slate-500 font-medium">Penyelenggara: {selectedScholarship.provider}</span>
@@ -480,7 +480,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3 text-left">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                     <div className="space-y-1">
                       <label className="text-slate-700 block font-bold">Nama Lengkap</label>
                       <input
@@ -511,7 +511,7 @@ export default function ScholarshipView({ scholarships }: ScholarshipViewProps) 
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 text-left">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
                     <div className="space-y-1">
                       <label className="text-slate-700 block font-bold">Indeks Prestasi Kumulatif (IPK) *</label>
                       <input

@@ -242,8 +242,8 @@ export default function AchievementView({ achievements, setCurrentTab }: Achieve
 
       {/* DETAIL MODAL ACHIEVEMENT popup overlay */}
       {activeAchievement && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setActiveAchievement(null)}>
-          <div className="bg-white border border-slate-205 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setActiveAchievement(null)}>
+          <div className="bg-white border border-slate-205 w-full max-w-2xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-screen sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             
             {/* Modal Image Header */}
             <div 

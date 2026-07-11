@@ -54,6 +54,13 @@ export default function AlumniView({ alumniList, setAlumniList }: AlumniProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [selectedStatus, setSelectedStatus] = React.useState<string>("semua");
   const [selectedMajor, setSelectedMajor] = React.useState<string>("semua");
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Majors list
   const majors = [
@@ -354,8 +361,8 @@ export default function AlumniView({ alumniList, setAlumniList }: AlumniProps) {
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
+                  labelLine={!isMobile}
+                  label={isMobile ? undefined : ({ name, percent }) =>
                     `${name} (${(percent * 100).toFixed(0)}%)`
                   }
                   outerRadius={80}

@@ -56,8 +56,17 @@ export default function MahasiswaPortal() {
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showRegister, setShowRegister] = useState(false);
+
+  const handleBackToHome = () => {
+    sessionStorage.removeItem('pending_portal');
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '#/home';
+    window.location.href = url.toString();
+  };
 
   const [notifications, setNotifications] = useState([
     { id: '1', text: 'Batas akhir Laporan IPK Beasiswa adalah 15 Maret 2024.', unread: true },
@@ -70,25 +79,25 @@ export default function MahasiswaPortal() {
     const checkActiveAuth = async () => {
       try {
         const activeUser = await AuthService.getSession();
+        const { data: { session: sbSession } } = await supabase.auth.getSession();
+
         if (activeUser && activeUser.role === 'mahasiswa') {
           // If returning from Google SSO, session might not be in localStorage yet
           setSession((prev) => {
-            if (!prev) {
-              const newSession: UserSession = {
-                id: activeUser.id,
-                username: activeUser.nim || activeUser.email,
-                role: 'mahasiswa',
-                name: activeUser.name,
-                nimOrNip: activeUser.nim || '',
-                avatarUrl: activeUser.avatarUrl,
-                email: activeUser.email,
-                major: '',
-                semester: 0,
-              };
-              localStorage.setItem('upb_mahasiswa_session', JSON.stringify(newSession));
-              return newSession;
-            }
-            return prev;
+            const nim = activeUser.nim || prev?.nimOrNip || '';
+            const newSession: UserSession = {
+              id: activeUser.id,
+              username: nim || activeUser.email,
+              role: 'mahasiswa',
+              name: activeUser.name,
+              nimOrNip: nim,
+              avatarUrl: activeUser.avatarUrl || prev?.avatarUrl,
+              email: activeUser.email || prev?.email,
+              major: activeUser.major || prev?.major || '',
+              semester: activeUser.semester || prev?.semester || 0,
+            };
+            localStorage.setItem('upb_mahasiswa_session', JSON.stringify(newSession));
+            return newSession;
           });
 
           // Clean up query params from URL to prevent infinite loading/redirects
@@ -96,7 +105,8 @@ export default function MahasiswaPortal() {
             const cleanUrl = window.location.pathname + '#/mahasiswa';
             window.history.replaceState({}, document.title, cleanUrl);
           }
-        } else {
+        } else if (!sbSession) {
+          // Only remove local storage session if there is absolutely no active Supabase session (ensures network resilience)
           localStorage.removeItem('upb_mahasiswa_session');
           setSession(null);
         }
@@ -229,7 +239,7 @@ export default function MahasiswaPortal() {
                   setActiveTab(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                className={`w-full text-left flex items-center gap-3 px-4 py-3.5 min-h-[44px] rounded-xl font-bold text-xs transition-all cursor-pointer ${
                   isActive
                     ? 'bg-[#feb234] text-[#291800] shadow-sm'
                     : 'text-slate-500 hover:text-[#001e40] hover:bg-slate-50'
@@ -245,7 +255,7 @@ export default function MahasiswaPortal() {
         {/* Footer actions */}
         <div className="mt-auto border-t border-slate-100 pt-4 flex flex-col gap-1.5 font-sans">
           <button 
-            onClick={() => { window.location.hash = ''; }}
+            onClick={handleBackToHome}
             className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-xs text-slate-500 hover:text-[#001e40] hover:bg-slate-50 transition-colors cursor-pointer"
           >
             <ExternalLink className="w-4 h-4 text-slate-400" />
@@ -269,7 +279,7 @@ export default function MahasiswaPortal() {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+              className="lg:hidden w-11 h-11 flex items-center justify-center hover:bg-slate-100 rounded-xl transition-all cursor-pointer shrink-0"
             >
               <Menu className="w-5 h-5 text-[#001e40]" />
             </button>
@@ -296,11 +306,11 @@ export default function MahasiswaPortal() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 hover:bg-slate-50 text-slate-500 hover:text-[#001e40] rounded-full transition-all relative cursor-pointer"
+                className="w-11 h-11 flex items-center justify-center hover:bg-slate-50 text-slate-500 hover:text-[#001e40] rounded-full transition-all relative cursor-pointer"
               >
                 <Bell className="w-5 h-5" />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-650 rounded-full border-2 border-white"></span>
+                  <span className="absolute top-2.5 right-2.5 w-2 bg-red-650 rounded-full border border-white"></span>
                 )}
               </button>
 
@@ -338,24 +348,56 @@ export default function MahasiswaPortal() {
 
             <button 
               onClick={() => alert('Knowledge Base Panduan Mahasiswa: Akses manual panduan di direktorat.')}
-              className="p-2 hover:bg-slate-50 text-slate-500 hover:text-[#001e40] rounded-full transition-all cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center hover:bg-slate-50 text-slate-500 hover:text-[#001e40] rounded-full transition-all cursor-pointer"
             >
               <HelpCircle className="w-5 h-5" />
             </button>
 
             {/* User Profile Info */}
-            <div className="pl-3 border-l border-slate-200 flex items-center gap-3">
+            <div className="pl-3 border-l border-slate-200 flex items-center gap-3 relative">
               <div className="hidden sm:block text-right">
                 <p className="text-xs font-bold text-slate-800 leading-tight">{session.name}</p>
                 <p className="text-[9px] text-slate-400 uppercase tracking-widest font-extrabold mt-0.5">Mahasiswa</p>
               </div>
-              <img 
-                alt="Avatar" 
-                src={avatarUrl} 
-                onClick={handleSignOut}
-                title="Klik untuk Logout"
-                className="w-8 h-8 rounded-full border border-slate-200 object-cover cursor-pointer hover:opacity-85 transition-opacity"
-              />
+              <button 
+                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                className="w-10 h-10 rounded-full border border-slate-200 overflow-hidden cursor-pointer hover:opacity-85 transition-opacity flex items-center justify-center focus:outline-none"
+              >
+                <img 
+                  alt="Avatar" 
+                  src={avatarUrl} 
+                  className="w-full h-full object-cover"
+                />
+              </button>
+
+              {showProfileDropdown && (
+                <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-slate-250/20 py-2.5 z-50 animate-fade-in text-left font-sans">
+                  <div className="px-4 py-2 border-b border-slate-100">
+                    <p className="text-xs font-bold text-slate-800 truncate">{session.name}</p>
+                    <p className="text-[9px] text-slate-400 font-semibold mt-0.5">NIM: {session.nimOrNip}</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setActiveTab('settings');
+                      setShowProfileDropdown(false);
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-xs font-bold text-slate-655 hover:text-[#001e40] hover:bg-slate-50 transition-colors cursor-pointer border-none bg-transparent"
+                  >
+                    <Settings className="w-4 h-4 text-slate-450" />
+                    <span>Pengaturan Akun</span>
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowProfileDropdown(false);
+                      handleSignOut();
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left text-xs font-bold text-red-500 hover:bg-red-50 transition-colors cursor-pointer border-none bg-transparent"
+                  >
+                    <LogOut className="w-4 h-4 text-red-400" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>
@@ -378,7 +420,7 @@ export default function MahasiswaPortal() {
                   </div>
                   <span className="font-sans font-black text-sm text-[#001e40]">Student Portal</span>
                 </div>
-                <button onClick={() => setMobileMenuOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <button onClick={() => setMobileMenuOpen(false)} className="w-11 h-11 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -394,7 +436,7 @@ export default function MahasiswaPortal() {
                         setActiveTab(item.id);
                         setMobileMenuOpen(false);
                       }}
-                      className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-xs transition-colors cursor-pointer ${
+                      className={`w-full text-left flex items-center gap-3 px-4 py-3.5 min-h-[44px] rounded-xl font-bold text-xs transition-colors cursor-pointer ${
                         isActive
                           ? 'bg-[#feb234] text-[#291800]'
                           : 'text-slate-500 hover:text-[#001e40] hover:bg-slate-50'
@@ -409,15 +451,15 @@ export default function MahasiswaPortal() {
 
               <div className="mt-auto border-t border-slate-100 pt-4 flex flex-col gap-2 font-sans">
                 <button 
-                  onClick={() => { window.location.hash = ''; }}
-                  className="w-full flex items-center gap-3 py-2 text-xs font-bold text-slate-500 hover:text-[#001e40]"
+                  onClick={handleBackToHome}
+                  className="w-full flex items-center gap-3 py-2.5 min-h-[44px] text-xs font-bold text-slate-500 hover:text-[#001e40] cursor-pointer"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Kembali ke Beranda</span>
                 </button>
                 <button 
                   onClick={handleSignOut} 
-                  className="w-full flex items-center gap-3 py-2 text-xs font-bold text-slate-500 hover:text-red-650 text-left"
+                  className="w-full flex items-center gap-3 py-2.5 min-h-[44px] text-xs font-bold text-slate-500 hover:text-red-650 text-left"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sign Out</span>

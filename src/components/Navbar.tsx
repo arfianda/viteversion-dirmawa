@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { ShieldAlert, BookOpen, Users, Award, Landmark, Search, Key, LogIn, ChevronDown, Shield, User as UserIcon } from 'lucide-react';
+import { ShieldAlert, BookOpen, Users, Award, Landmark, Search, Key, LogIn, ChevronDown, Shield, User as UserIcon, Menu, X } from 'lucide-react';
 import upbLogo from '../assets/images/logo-upb.png';
 import { AuthService } from '../services/authService';
 import { AuthUser } from '../services/authService';
@@ -26,6 +26,7 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
   const [currentUser, setCurrentUser] = React.useState<AuthUser | null>(null);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const userMenuRef = React.useRef<HTMLDivElement>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   // Load current user on mount
   React.useEffect(() => {
@@ -53,6 +54,7 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
 
   const navItems = [
     { id: 'home', label: 'Beranda' },
+    { id: 'news', label: 'Berita' },
     { id: 'scholarships', label: 'Beasiswa' },
     { id: 'ukms', label: 'Ormawa' },
     { id: 'facilities', label: 'Fasilitas' },
@@ -388,20 +390,214 @@ export default function Navbar({ currentTab, setCurrentTab, setSelectedUkmId }: 
 
             {/* Student Login Button */}
             {!currentUser && (
-              <button
-                onClick={() => {
-                  window.location.hash = '#/mahasiswa';
-                }}
-                className="flex items-center space-x-1.5 px-3.5 py-2 rounded-full text-xs font-sans font-bold uppercase tracking-wider transition-all duration-300 bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm"
-              >
-                <LogIn size={13} className="text-[#feb234]" />
-                <span>Login Mahasiswa</span>
-              </button>
+              <>
+                {/* Desktop Version */}
+                <button
+                  onClick={() => {
+                    window.location.hash = '#/mahasiswa';
+                  }}
+                  className="hidden sm:flex items-center space-x-1.5 px-4 py-2 rounded-full text-xs font-sans font-extrabold tracking-wide transition-all duration-300 bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm whitespace-nowrap cursor-pointer"
+                >
+                  <LogIn size={13} className="text-[#feb234]" />
+                  <span>Login Mahasiswa</span>
+                </button>
+
+                {/* Mobile Version (Icon Only) */}
+                <button
+                  onClick={() => {
+                    window.location.hash = '#/mahasiswa';
+                  }}
+                  className="flex sm:hidden items-center justify-center w-11 h-11 rounded-xl transition-all duration-300 bg-[#001e40] hover:bg-[#002d61] text-white shadow-sm cursor-pointer shrink-0"
+                  aria-label="Login Mahasiswa"
+                >
+                  <LogIn size={18} className="text-[#feb234]" />
+                </button>
+              </>
             )}
+
+            {/* Mobile Hamburger Icon */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl text-[#001e40] hover:bg-slate-100 focus:outline-none w-11 h-11 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+              aria-label="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
 
         </div>
       </div>
+
+      {/* Mobile Drawer Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-200 bg-white shadow-inner animate-fade-in py-4 px-4 space-y-4 max-h-[calc(100vh-4rem)] overflow-y-auto">
+          {/* Mobile Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <input
+              type="text"
+              placeholder="Cari..."
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-[#001e40]"
+            />
+          </div>
+
+          {/* Nav Items */}
+          <div className="flex flex-col space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1">Navigasi Utama</p>
+            {navItems.map((item) => {
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    handleNavClick(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-sans font-bold transition-all ${
+                    isActive
+                      ? 'text-[#001e40] bg-slate-100'
+                      : 'text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Alumni Items (Accordion style or collapsible) */}
+          <div className="flex flex-col space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1">Alumni</p>
+            {alumniDropdownItems.map((item) => {
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    handleNavClick(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-5 py-2 rounded-xl text-sm font-sans font-bold transition-all ${
+                    isActive
+                      ? 'text-[#001e40] bg-slate-100'
+                      : 'text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Lainnya & Panduan */}
+          <div className="flex flex-col space-y-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 py-1">Panduan &amp; Lainnya</p>
+            {dropdownItems.map((item) => {
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    handleNavClick(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-5 py-2 rounded-xl text-sm font-sans font-bold transition-all ${
+                    isActive
+                      ? 'text-[#001e40] bg-slate-100'
+                      : 'text-slate-650 hover:bg-slate-50'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+            
+            {/* Panduan Items */}
+            {panduanItems.map((item) => {
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    handleNavClick(item.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-8 py-2 rounded-xl text-xs font-sans font-semibold text-slate-500 hover:bg-slate-55 transition-all ${
+                    isActive ? 'text-[#001e40] bg-slate-100' : ''
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Profile / Mobile Login */}
+          <div className="pt-4 border-t border-slate-100">
+            {currentUser ? (
+              <div className="space-y-3">
+                <div className="flex items-center space-x-3 px-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#001e40] to-[#feb234] flex items-center justify-center text-white font-bold text-sm">
+                    {currentUser.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[#001e40]">{currentUser.name}</p>
+                    <p className="text-[10px] text-slate-500">{currentUser.email}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      const adminRoles = [
+                        'superadmin', 'admin', 'administrator', 'operator', 
+                        'direktur', 'staf_beasiswa', 'staf_ormawa', 
+                        'staf_alumni', 'staf_depan'
+                      ];
+                      if (currentUser.role === 'mahasiswa') {
+                        window.location.hash = '#/mahasiswa';
+                      } else if (adminRoles.includes(currentUser.role)) {
+                        window.location.hash = '#/admin';
+                      } else if (currentUser.role === 'admin_ormawa') {
+                        window.location.hash = '#/ormawa';
+                      } else {
+                        window.location.hash = '#/home';
+                      }
+                      setMobileMenuOpen(false);
+                    }}
+                    className="px-4 py-2.5 bg-slate-100 text-[#001e40] text-xs font-bold rounded-xl text-center"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await AuthService.signOut();
+                      setCurrentUser(null);
+                      setMobileMenuOpen(false);
+                      localStorage.removeItem('upb_mahasiswa_session');
+                      localStorage.removeItem('upb_affairs_session');
+                      window.location.hash = '';
+                    }}
+                    className="px-4 py-2.5 bg-red-50 text-red-650 text-xs font-bold rounded-xl text-center"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  window.location.hash = '#/mahasiswa';
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-center space-x-2 py-3 rounded-xl text-xs font-sans font-bold uppercase tracking-wider bg-[#001e40] text-white shadow-sm"
+              >
+                <LogIn size={14} className="text-[#feb234]" />
+                <span>Login Mahasiswa</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

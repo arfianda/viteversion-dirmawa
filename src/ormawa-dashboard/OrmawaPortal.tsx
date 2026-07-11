@@ -169,7 +169,7 @@ export default function OrmawaPortal() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   isActive 
                     ? 'bg-[#001e40] text-white shadow-sm' 
                     : 'text-slate-550 hover:bg-slate-50 hover:text-slate-800'
@@ -186,7 +186,7 @@ export default function OrmawaPortal() {
         <div className="pt-4 border-t border-slate-100">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4 text-red-500" />
             <span>Keluar Akun</span>
@@ -202,7 +202,8 @@ export default function OrmawaPortal() {
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-lg lg:hidden cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center -ml-2 text-slate-500 hover:bg-slate-50 rounded-xl lg:hidden cursor-pointer shrink-0"
+              aria-label="Menu Utama"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -220,11 +221,12 @@ export default function OrmawaPortal() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl relative cursor-pointer"
+                className="w-11 h-11 flex items-center justify-center text-slate-500 hover:bg-slate-50 rounded-xl relative cursor-pointer"
+                aria-label="Notifikasi"
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-4.5 h-4.5" />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                 )}
               </button>
               
@@ -295,11 +297,11 @@ export default function OrmawaPortal() {
       {mobileMenuOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden"
+            className="fixed inset-0 bg-[#001e40]/40 backdrop-blur-sm z-50 lg:hidden animate-fade-in"
             onClick={() => setMobileMenuOpen(false)}
           ></div>
           
-          <aside className="bg-white fixed left-0 top-0 h-screen w-64 p-6 z-50 flex flex-col lg:hidden animate-slide-in">
+          <aside className="bg-white fixed left-0 top-0 h-screen w-72 p-6 z-55 flex flex-col lg:hidden shadow-2xl transition-all duration-300 ease-in-out animate-slide-in">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-[#001e40] rounded-xl flex items-center justify-center text-white">
@@ -312,7 +314,8 @@ export default function OrmawaPortal() {
               </div>
               <button 
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500"
+                className="w-11 h-11 flex items-center justify-center hover:bg-slate-100 rounded-xl text-slate-500 transition-colors"
+                aria-label="Tutup Menu"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -329,9 +332,9 @@ export default function OrmawaPortal() {
                       setActiveTab(item.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isActive 
-                        ? 'bg-[#001e40] text-white' 
+                        ? 'bg-[#001e40] text-white shadow-sm' 
                         : 'text-slate-550 hover:bg-slate-50 hover:text-slate-800'
                     }`}
                   >
@@ -345,7 +348,7 @@ export default function OrmawaPortal() {
             <div className="pt-4 border-t border-slate-100">
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-red-500" />
                 <span>Keluar Akun</span>

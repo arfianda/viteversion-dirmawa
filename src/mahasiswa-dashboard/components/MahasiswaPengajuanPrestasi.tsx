@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Award, 
   History, 
@@ -549,10 +550,10 @@ export default function MahasiswaPengajuanPrestasi({ session }: MahasiswaPengaju
       </section>
 
       {/* Modal File Viewer / Submission Details */}
-      {showDetail && (
+      {showDetail && createPortal(
         <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowDetail(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 border-t-8 border-t-[#001e40] animate-scale-up" onClick={e => e.stopPropagation()}>
-            <div className="p-6 space-y-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 border-t-8 border-t-[#001e40] animate-scale-up max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                 <h4 className="font-sans font-black text-lg text-[#001e40]">Detail Pengajuan Prestasi</h4>
                 <button onClick={() => setShowDetail(null)} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
@@ -613,7 +614,8 @@ export default function MahasiswaPengajuanPrestasi({ session }: MahasiswaPengaju
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

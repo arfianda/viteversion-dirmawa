@@ -36,11 +36,13 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
+          // Force it to explicitly target your local network loopback domain
+          redirectTo: 'http://10.100.30.51.nip.io:3000/?portal=admin',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          },
-          redirectTo: window.location.origin + window.location.pathname + '?portal=admin'
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          }
         }
       });
       if (error) {

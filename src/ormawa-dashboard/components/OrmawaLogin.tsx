@@ -129,7 +129,8 @@ export default function OrmawaLogin({ onLoginSuccess }: OrmawaLoginProps) {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#191c1e] transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#191c1e] transition-colors w-11 h-11 flex items-center justify-center cursor-pointer"
+                  aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>

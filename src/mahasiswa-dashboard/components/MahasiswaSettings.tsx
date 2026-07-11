@@ -248,7 +248,7 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
                     <button 
                       type="button"
                       onClick={() => toggleShowPassword('current')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-700 transition-colors"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-slate-450 hover:text-slate-700 transition-colors cursor-pointer"
                     >
                       {showPassword['current'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -270,7 +270,7 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
                     <button 
                       type="button"
                       onClick={() => toggleShowPassword('new')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-700 transition-colors"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-slate-450 hover:text-slate-700 transition-colors cursor-pointer"
                     >
                       {showPassword['new'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -292,7 +292,7 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
                     <button 
                       type="button"
                       onClick={() => toggleShowPassword('confirm')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-700 transition-colors"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-slate-450 hover:text-slate-700 transition-colors cursor-pointer"
                     >
                       {showPassword['confirm'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>

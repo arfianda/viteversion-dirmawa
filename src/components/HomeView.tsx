@@ -646,11 +646,11 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
       {/* 4.6. DETAIL MODAL NEWS / ANNOUNCEMENT */}
       {selectedNews && createPortal(
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#001e40]/60 backdrop-blur-sm animate-fade-in overflow-y-auto text-slate-800"
+          className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-[#001e40]/60 backdrop-blur-sm animate-fade-in overflow-y-auto text-slate-800"
           onClick={() => setSelectedNews(null)}
         >
           <div 
-            className="bg-white border border-slate-200 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-up"
+            className="bg-white border border-slate-200 w-full max-w-2xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-screen sm:max-h-[90vh] animate-scale-up"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Image Header */}

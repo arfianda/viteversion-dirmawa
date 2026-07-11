@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Award, 
   CheckCircle2, 
@@ -400,10 +401,10 @@ export default function MahasiswaBeasiswaSaya({ session }: MahasiswaBeasiswaSaya
       </section>
 
       {/* Modal Pendaftaran Beasiswa */}
-      {selectedScholarship && (
+      {selectedScholarship && createPortal(
         <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedScholarship(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-scale-up" onClick={e => e.stopPropagation()}>
-            <form onSubmit={handleApplySubmit} className="p-6 space-y-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-scale-up max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <form onSubmit={handleApplySubmit} className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <h3 className="font-sans font-black text-lg text-[#001e40] flex items-center gap-2">
                   <Award className="w-5 h-5 text-[#815500]" />
@@ -453,7 +454,7 @@ export default function MahasiswaBeasiswaSaya({ session }: MahasiswaBeasiswaSaya
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] text-slate-650 font-bold uppercase tracking-wider mb-1">IPK Terakhir *</label>
+                  <label className="block text-[10px] text-slate-655 font-bold uppercase tracking-wider mb-1">IPK Terakhir *</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -467,7 +468,7 @@ export default function MahasiswaBeasiswaSaya({ session }: MahasiswaBeasiswaSaya
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-slate-650 font-bold uppercase tracking-wider mb-1">No. Telepon / WA *</label>
+                  <label className="block text-[10px] text-slate-655 font-bold uppercase tracking-wider mb-1">No. Telepon / WA *</label>
                   <input 
                     type="tel" 
                     required 
@@ -509,7 +510,8 @@ export default function MahasiswaBeasiswaSaya({ session }: MahasiswaBeasiswaSaya
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

@@ -6,7 +6,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { UKM } from '../types';
-import { Search, Calendar, Phone, CheckCircle, Users, Compass, Sparkles, Instagram } from 'lucide-react';
+import { Search, Calendar, Phone, CheckCircle, Users, Compass, Sparkles, Instagram, X } from 'lucide-react';
 
 interface UkmViewProps {
   ukms: UKM[];
@@ -19,9 +19,97 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
   const [selectedCategory, setSelectedCategory] = React.useState<string>('semua');
   const [joinUkmId, setJoinUkmId] = React.useState<string | null>(null);
   
-  // Join form state
-  const [joinForm, setJoinForm] = React.useState({ name: '', nim: '', email: '', motivation: '', department: '' });
+  // Load session from local storage
+  const [session, setSession] = React.useState<any>(() => {
+    const saved = localStorage.getItem('upb_mahasiswa_session');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        localStorage.removeItem('upb_mahasiswa_session');
+      }
+    }
+    return null;
+  });
+
+  const [verifyMethod, setVerifyMethod] = React.useState<'code' | 'scan'>('code');
+  const [verificationCode, setVerificationCode] = React.useState('');
+  const [isScanning, setIsScanning] = React.useState(false);
+  const [scanSuccess, setScanSuccess] = React.useState(false);
   const [joinSuccess, setJoinSuccess] = React.useState(false);
+
+  const ukmTokens: Record<string, string> = {
+    '1': 'UPB-SENI-X9A2F',
+    '2': 'UPB-BASKET-7D3K9',
+    '3': 'UPB-ROBOT-5H8P2',
+    '4': 'UPB-MAPALA-3K6J1',
+    '5': 'UPB-FUTSAL-8R2L9',
+    '6': 'UPB-ENGLISH-4N8Y2'
+  };
+
+  const getUkmToken = (ukm: UKM) => {
+    if (ukmTokens[ukm.id]) return ukmTokens[ukm.id];
+    const shortName = ukm.name.split(' ').pop()?.toUpperCase() || 'ORMAWA';
+    return `UPB-${shortName}-X7K2B`;
+  };
+
+  const handleVerifyCodeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinUkmId || !session) return;
+
+    const ukm = ukms.find(u => u.id === joinUkmId);
+    if (!ukm) return;
+
+    const expectedToken = getUkmToken(ukm);
+    if (verificationCode.trim().toUpperCase() === expectedToken) {
+      const savedIds = localStorage.getItem(`upb_joined_ukms_${session.id}`);
+      let joinedIds = savedIds ? JSON.parse(savedIds) : [];
+      
+      if (!joinedIds.includes(joinUkmId)) {
+        joinedIds.push(joinUkmId);
+        localStorage.setItem(`upb_joined_ukms_${session.id}`, JSON.stringify(joinedIds));
+      }
+      setJoinSuccess(true);
+      setTimeout(() => {
+        setJoinSuccess(false);
+        setJoinUkmId(null);
+        setVerificationCode('');
+      }, 3000);
+    } else {
+      alert('Token verifikasi salah. Silakan periksa kembali token unik Anda.');
+    }
+  };
+
+  const handleSimulateScan = () => {
+    if (!joinUkmId || !session) return;
+    setIsScanning(true);
+    setScanSuccess(false);
+
+    setTimeout(() => {
+      setIsScanning(false);
+      setScanSuccess(true);
+      
+      const savedIds = localStorage.getItem(`upb_joined_ukms_${session.id}`);
+      let joinedIds = savedIds ? JSON.parse(savedIds) : [];
+      
+      if (!joinedIds.includes(joinUkmId)) {
+        joinedIds.push(joinUkmId);
+        localStorage.setItem(`upb_joined_ukms_${session.id}`, JSON.stringify(joinedIds));
+      }
+      
+      setJoinSuccess(true);
+      setTimeout(() => {
+        setJoinSuccess(false);
+        setJoinUkmId(null);
+        setScanSuccess(false);
+      }, 3000);
+    }, 2000);
+  };
+
+  const handleRedirectLogin = () => {
+    sessionStorage.setItem('pending_portal', 'mahasiswa');
+    window.location.hash = '#/mahasiswa';
+  };
 
   const categories = ['semua', 'Seni & Budaya', 'Olahraga', 'Akademik', 'Sosial', 'Kerohanian', 'Himpunan'];
 
@@ -42,17 +130,10 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
 
   const activeUkm = ukms.find(u => u.id === selectedUkmId) || null;
 
-  const handleJoinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (joinForm.name && joinForm.nim && joinForm.email) {
-      setJoinSuccess(true);
-      setTimeout(() => {
-        setJoinSuccess(false);
-        setJoinUkmId(null);
-        setJoinForm({ name: '', nim: '', email: '', motivation: '', department: '' });
-      }, 4000);
-    }
-  };
+  const selectedVerifyUkm = ukms.find(d => d.id === joinUkmId) || null;
+  const savedIds = session ? localStorage.getItem(`upb_joined_ukms_${session.id}`) : null;
+  const joinedIds = savedIds ? JSON.parse(savedIds) : [];
+  const alreadyJoined = joinUkmId ? joinedIds.includes(joinUkmId) : false;
 
   return (
     <div className="space-y-12">
@@ -195,8 +276,8 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
 
       {/* UKM Detail Drawer / Modal Cover overlay with beautiful Light Theme */}
       {activeUkm && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setSelectedUkmId(null)}>
-          <div className="bg-white border border-slate-250 w-full max-w-3xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setSelectedUkmId(null)}>
+          <div className="bg-white border border-slate-250 w-full max-w-3xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-screen sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             
             {/* Modal Cover Image header */}
             <div 
@@ -367,105 +448,200 @@ export default function UkmView({ ukms, selectedUkmId, setSelectedUkmId }: UkmVi
         document.body
       )}
 
-      {/* JOIN UKM MODEL popup layout inside Light Theme */}
-      {joinUkmId && createPortal(
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setJoinUkmId(null)}>
-          <div className="bg-white border border-slate-250 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-8 space-y-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-start">
-              <div className="space-y-1 text-slate-800">
-                <div className="font-mono text-[10px] font-bold text-[#feb234] uppercase tracking-wider">FORMULIR PENDAFTARAN</div>
-                <h3 className="font-sans font-black text-xl text-[#001e40]">Join {ukms.find(d => d.id === joinUkmId)?.name}</h3>
-              </div>
-              <button 
-                onClick={() => setJoinUkmId(null)} 
-                className="text-slate-400 hover:text-slate-800 text-sm bg-slate-50 border border-slate-200 w-8 h-8 rounded-full flex items-center justify-center font-bold shadow-sm cursor-pointer"
-              >
-                ✕
-              </button>
+      {/* JOIN UKM MODEL - VERIFICATION / LOGIN PROMPT */}
+      {joinUkmId && selectedVerifyUkm && createPortal(
+        <div 
+          className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" 
+          onClick={() => { if (!isScanning) setJoinUkmId(null); }}
+        >
+          <div 
+            className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 animate-scale-up max-h-[90vh] flex flex-col font-sans text-xs" 
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto text-slate-700">
+              
+              {!session ? (
+                /* 1. GUEST / NOT LOGGED IN PROMPT */
+                <div className="text-center space-y-4 py-4">
+                  <div className="flex justify-center text-amber-500">
+                    <Compass className="w-12 h-12" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-sans font-black text-base text-[#001e40]">Akses Terbatas Mahasiswa</h3>
+                    <p className="text-xs text-slate-500 max-w-xs mx-auto leading-relaxed font-semibold">
+                      Silakan login sebagai <strong>Mahasiswa</strong> terlebih dahulu untuk dapat bergabung dengan Ormawa menggunakan Token Verifikasi / Scan QR.
+                    </p>
+                  </div>
+                  <div className="pt-4 flex gap-3 justify-center">
+                    <button 
+                      onClick={() => setJoinUkmId(null)}
+                      className="px-4 py-2 border border-slate-250 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Kembali
+                    </button>
+                    <button 
+                      onClick={handleRedirectLogin}
+                      className="px-4 py-2 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] font-black text-xs rounded-xl shadow-sm transition-colors cursor-pointer"
+                    >
+                      Login Mahasiswa
+                    </button>
+                  </div>
+                </div>
+              ) : alreadyJoined ? (
+                /* 2. ALREADY JOINED */
+                <div className="text-center space-y-4 py-6">
+                  <div className="flex justify-center text-green-600">
+                    <CheckCircle className="w-12 h-12" />
+                  </div>
+                  <div>
+                    <h3 className="font-sans font-black text-base text-[#001e40]">Sudah Bergabung</h3>
+                    <p className="text-xs text-slate-500 mt-1 font-semibold">Anda sudah terdaftar sebagai anggota aktif di {selectedVerifyUkm.name}.</p>
+                  </div>
+                  <div className="pt-2">
+                    <button 
+                      onClick={() => setJoinUkmId(null)}
+                      className="px-5 py-2.5 bg-[#001e40] text-white hover:bg-[#feb234] hover:text-[#001e40] font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                </div>
+              ) : joinSuccess ? (
+                /* 3. VERIFICATION SUCCESS */
+                <div className="text-center space-y-4 py-6 animate-fade-in">
+                  <div className="flex justify-center text-green-600">
+                    <CheckCircle className="w-12 h-12" />
+                  </div>
+                  <div>
+                    <h3 className="font-sans font-black text-base text-green-700">Verifikasi Berhasil!</h3>
+                    <p className="text-xs text-slate-500 mt-1 font-semibold">Selamat, Anda resmi bergabung dengan {selectedVerifyUkm.name}.</p>
+                  </div>
+                </div>
+              ) : (
+                /* 4. VERIFICATION TABS (CODE / SCANNER) */
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                    <div>
+                      <h3 className="font-sans font-black text-base text-[#001e40]">Verifikasi Anggota Baru</h3>
+                      <p className="text-[10px] text-slate-500 font-semibold">{selectedVerifyUkm.name}</p>
+                    </div>
+                    <button 
+                      disabled={isScanning}
+                      onClick={() => { setJoinUkmId(null); }} 
+                      className="text-slate-400 hover:text-slate-650 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Tab Selector */}
+                  <div className="grid grid-cols-2 p-1 bg-slate-100 rounded-xl">
+                    <button 
+                      disabled={isScanning}
+                      onClick={() => setVerifyMethod('code')}
+                      className={`py-2 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${verifyMethod === 'code' ? 'bg-white text-[#001e40] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Kode Verifikasi
+                    </button>
+                    <button 
+                      disabled={isScanning}
+                      onClick={() => setVerifyMethod('scan')}
+                      className={`py-2 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${verifyMethod === 'scan' ? 'bg-white text-[#001e40] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Scan Barcode/QR
+                    </button>
+                  </div>
+
+                  {verifyMethod === 'code' ? (
+                    <form onSubmit={handleVerifyCodeSubmit} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center">Token Verifikasi Ormawa</label>
+                        <input 
+                          type="text"
+                          required
+                          value={verificationCode}
+                          onChange={e => setVerificationCode(e.target.value)}
+                          placeholder="Masukkan 12-karakter token unik..."
+                          className="w-full p-3 bg-white border border-slate-200 focus:border-[#feb234] focus:ring-1 focus:ring-[#feb234] rounded-xl text-xs font-mono font-bold tracking-wider outline-none text-center"
+                        />
+                        <p className="text-[9px] text-amber-600 font-semibold text-center mt-1">
+                          Info Demo: Pengurus memberikan token unik berikut `{getUkmToken(selectedVerifyUkm)}`
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                        <button 
+                          type="button"
+                          onClick={() => { setJoinUkmId(null); }}
+                          className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                        <button 
+                          type="submit"
+                          className="px-4 py-2 bg-[#feb234] hover:bg-[#e09b24] text-[#291800] font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer"
+                        >
+                          Verifikasi &amp; Gabung
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="space-y-4">
+                      {isScanning ? (
+                        <div className="bg-slate-900 rounded-2xl h-48 flex flex-col items-center justify-center relative overflow-hidden">
+                          <div className="absolute inset-x-0 h-[2px] bg-emerald-500 animate-scan-line"></div>
+                          <div className="w-24 h-24 border-2 border-dashed border-emerald-500/60 rounded-xl flex items-center justify-center animate-pulse">
+                            <Compass className="w-8 h-8 text-emerald-500 animate-spin" />
+                          </div>
+                          <span className="text-[10px] text-emerald-400 font-bold tracking-widest uppercase mt-4">Memindai Barcode/QR...</span>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-900 rounded-2xl p-5 text-center text-white space-y-4 relative overflow-hidden">
+                          <div className="flex justify-center">
+                            <Compass className="w-12 h-12 text-[#feb234]" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold text-white">Pindai QR Code Rekrutmen</p>
+                            <p className="text-[10px] text-slate-400 mt-1 max-w-xs mx-auto">
+                              Arahkan kamera ke QR code / barcode rekrutmen resmi yang dipasang oleh pengurus Ormawa.
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col gap-2">
+                            <button 
+                              onClick={handleSimulateScan}
+                              className="w-full py-2.5 bg-[#feb234] hover:bg-[#e09b24] text-[#291800] font-bold text-xs rounded-xl shadow-sm transition-colors cursor-pointer"
+                            >
+                              Simulasikan Scan Kamera
+                            </button>
+                            <div className="relative border border-dashed border-slate-700 hover:border-slate-500 rounded-xl py-3 cursor-pointer transition-colors bg-slate-950/40">
+                              <input 
+                                type="file" 
+                                accept="image/*"
+                                onChange={handleSimulateScan}
+                                className="absolute inset-0 opacity-0 cursor-pointer" 
+                              />
+                              <p className="text-[9px] text-slate-400 font-bold">Atau Unggah Gambar QR Code</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-end pt-2 border-t border-slate-100">
+                        <button 
+                          disabled={isScanning}
+                          onClick={() => { setJoinUkmId(null); }}
+                          className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 font-bold text-xs rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          Batal
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              
             </div>
-
-            {joinSuccess ? (
-              <div className="p-4 bg-yellow-500/10 border border-yellow-350 text-[#feb234] text-xs leading-relaxed rounded-xl font-sans animate-fade-in">
-                <span className="font-bold block mb-1">✓ Pengajuan Pendaftaran Terkirim!</span>
-                Data diri Anda berhasil direkam dalam waiting-list kepengurusan. Silakan periksa pesan WhatsApp Anda dalam beberapa hari kerja untuk undangan grup kaderisasi internal.
-              </div>
-            ) : (
-              <form onSubmit={handleJoinSubmit} className="space-y-4 font-sans text-xs">
-                {/* Full name input */}
-                <div className="space-y-1">
-                  <label className="text-slate-700 block font-bold">Nama Lengkap Mahasiswa</label>
-                  <input
-                    type="text"
-                    required
-                    value={joinForm.name}
-                    onChange={(e) => setJoinForm({ ...joinForm, name: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-850 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                    placeholder="Contoh: Dewa Wicaksana"
-                  />
-                </div>
-
-                {/* NIM + Major inputs */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-slate-700 block font-bold">NIM Mahasiswa</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={10}
-                      value={joinForm.nim}
-                      onChange={(e) => setJoinForm({ ...joinForm, nim: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-850 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                      placeholder="312010xxx"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-slate-700 block font-bold">Jurusan / Prodi</label>
-                    <input
-                      type="text"
-                      required
-                      value={joinForm.department}
-                      onChange={(e) => setJoinForm({ ...joinForm, department: e.target.value })}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-850 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                      placeholder="Teknik Informatika"
-                    />
-                  </div>
-                </div>
-
-                {/* Email address */}
-                <div className="space-y-1">
-                  <label className="text-slate-700 block font-bold">Email Kontak Aktif</label>
-                  <input
-                    type="email"
-                    required
-                    value={joinForm.email}
-                    onChange={(e) => setJoinForm({ ...joinForm, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-850 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                    placeholder="dewa@mhs.upb.ac.id"
-                  />
-                </div>
-
-                {/* Aspirations motivation */}
-                <div className="space-y-1">
-                  <label className="text-slate-700 block font-bold">Aspirasi / Motivasi Gabung</label>
-                  <textarea
-                    required
-                    value={joinForm.motivation}
-                    onChange={(e) => setJoinForm({ ...joinForm, motivation: e.target.value })}
-                    rows={2}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-slate-850 focus:outline-none focus:border-[#001e40] focus:bg-white text-xs font-sans"
-                    placeholder="Saya ingin meningkatkan skill..."
-                  />
-                </div>
-
-                {/* Submission button */}
-                <button
-                  type="submit"
-                  className="w-full py-3 bg-[#001e40] hover:bg-[#002d61] text-white font-sans font-bold text-xs uppercase tracking-wider rounded-xl transition duration-305 shadow-sm active:scale-95"
-                >
-                  Kirim Formulir Pendaftaran
-                </button>
-              </form>
-            )}
           </div>
         </div>,
         document.body

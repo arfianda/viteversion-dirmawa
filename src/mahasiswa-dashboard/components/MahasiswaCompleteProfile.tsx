@@ -22,22 +22,34 @@ export default function MahasiswaCompleteProfile({ session, onProfileCompleted }
     setError(null);
 
     try {
-      // 1. Update public.users table (phone)
-      const { error: userError } = await supabase
+      // 1. Check if user exists in public.users table
+      const { data: users, error: checkError } = await supabase
         .from('users')
-        .update({ phone, role: 'mahasiswa' })
+        .select('id')
         .eq('id', session.id);
 
-      // If user doesn't exist in public.users, we should insert them
-      if (userError) {
-         const { error: insertUserError } = await supabase.from('users').insert({
+      if (checkError) throw checkError;
+
+      const userExists = users && users.length > 0;
+
+      if (!userExists) {
+        const { error: insertUserError } = await supabase
+          .from('users')
+          .insert({
             id: session.id,
             email: session.email,
             name: session.name,
             role: 'mahasiswa',
-            phone: phone
-         });
-         if (insertUserError) throw insertUserError;
+            phone: phone,
+            is_approved: true
+          });
+        if (insertUserError) throw insertUserError;
+      } else {
+        const { error: updateUserError } = await supabase
+          .from('users')
+          .update({ phone, role: 'mahasiswa' })
+          .eq('id', session.id);
+        if (updateUserError) throw updateUserError;
       }
 
       // 2. Insert into mahasiswa_profiles
