@@ -13,7 +13,9 @@ import {
   X,
   User,
   ExternalLink,
-  PlusCircle
+  PlusCircle,
+  Clock,
+  XCircle
 } from 'lucide-react';
 import { UserSession, UKM, Beasiswa } from '../types/mahasiswa';
 
@@ -28,6 +30,7 @@ import MahasiswaSettings from './components/MahasiswaSettings';
 import MahasiswaAjukanOrmawa from './components/MahasiswaAjukanOrmawa';
 import { AuthService } from '../services/authService';
 import { supabase } from '../services/supabaseClient';
+import { SupabaseService } from '../services/supabaseService';
 
 export default function MahasiswaPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -59,6 +62,8 @@ export default function MahasiswaPortal() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showRegister, setShowRegister] = useState(false);
+  const [registrationStatus, setRegistrationStatus] = useState<'pending' | 'rejected' | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string | null>(null);
 
   const handleBackToHome = () => {
     sessionStorage.removeItem('pending_portal');
@@ -82,6 +87,25 @@ export default function MahasiswaPortal() {
         const { data: { session: sbSession } } = await supabase.auth.getSession();
 
         if (activeUser && activeUser.role === 'mahasiswa') {
+          // If the student doesn't have a profile yet (SSO onboarding), check if they have a pending/rejected request
+          if (!activeUser.nim) {
+            const { data: reqData } = await supabase
+              .rpc('get_registration_status', { p_query: activeUser.email });
+
+            const firstReq = reqData && reqData.length > 0 ? reqData[0] : null;
+
+            if (firstReq) {
+              setRegistrationStatus(firstReq.status);
+              setRejectionReason(firstReq.rejection_reason);
+            }
+          } else {
+            // Log successful login for Google SSO redirect
+            if (!sessionStorage.getItem('login_logged')) {
+              SupabaseService.logLogin(activeUser.email, 'mahasiswa', 'success', activeUser.id);
+              sessionStorage.setItem('login_logged', 'true');
+            }
+          }
+
           // If returning from Google SSO, session might not be in localStorage yet
           setSession((prev) => {
             const nim = activeUser.nim || prev?.nimOrNip || '';
@@ -105,6 +129,30 @@ export default function MahasiswaPortal() {
             const cleanUrl = window.location.pathname + '#/mahasiswa';
             window.history.replaceState({}, document.title, cleanUrl);
           }
+        } else if (activeUser && activeUser.role !== 'mahasiswa') {
+          // Clear pending_portal to prevent redirect loop
+          sessionStorage.removeItem('pending_portal');
+          
+          const adminRoles = [
+            'superadmin', 'admin', 'administrator', 'operator', 
+            'direktur', 'staf_beasiswa', 'staf_ormawa', 
+            'staf_alumni', 'staf_depan'
+          ];
+          
+          const url = new URL(window.location.href);
+          url.search = ''; // Clear query params (e.g. ?portal=mahasiswa)
+          
+          if (adminRoles.includes(activeUser.role)) {
+            url.hash = '#/admin';
+          } else if (activeUser.role === 'admin_ormawa') {
+            url.hash = '#/ormawa';
+          } else {
+            url.hash = '#/home';
+            await supabase.auth.signOut();
+          }
+          
+          window.location.href = url.toString();
+          return;
         } else if (!sbSession) {
           // Only remove local storage session if there is absolutely no active Supabase session (ensures network resilience)
           localStorage.removeItem('upb_mahasiswa_session');
@@ -123,6 +171,11 @@ export default function MahasiswaPortal() {
     localStorage.setItem('upb_mahasiswa_session', JSON.stringify(userSession));
     sessionStorage.removeItem('pending_portal');
     
+    if (!sessionStorage.getItem('login_logged')) {
+      SupabaseService.logLogin(userSession.email || userSession.username, 'mahasiswa', 'success', userSession.id);
+      sessionStorage.setItem('login_logged', 'true');
+    }
+    
     // Clean up query params from URL to prevent infinite loading/redirects
     if (window.location.search.includes('portal=mahasiswa')) {
       const cleanUrl = window.location.pathname + '#/mahasiswa';
@@ -133,6 +186,8 @@ export default function MahasiswaPortal() {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setSession(null);
+    setRegistrationStatus(null);
+    setRejectionReason(null);
     localStorage.removeItem('upb_mahasiswa_session');
     sessionStorage.removeItem('pending_portal');
     
@@ -150,6 +205,74 @@ export default function MahasiswaPortal() {
 
   const unreadNotificationsCount = notifications.filter(n => n.unread).length;
 
+  if (registrationStatus === 'pending') {
+    return (
+      <div className="min-h-screen bg-[#f7f9fc] flex items-center justify-center p-6 text-center font-sans antialiased text-[#191c1e]">
+        <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-200/60 flex flex-col items-center">
+          <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-6">
+            <Clock className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-black text-[#001e40] tracking-tight mb-3">Pendaftaran Ditinjau</h2>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+            Pendaftaran akun mahasiswa Anda sedang ditinjau oleh Admin. Silakan tunggu persetujuan untuk mengakses portal.
+          </p>
+          <div className="w-full space-y-3">
+            <button
+              onClick={handleSignOut}
+              className="w-full py-3.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer border-none"
+            >
+              Sign Out / Keluar
+            </button>
+            <button
+              onClick={handleBackToHome}
+              className="w-full py-3.5 px-4 bg-[#001e40] hover:bg-[#1f477b] text-white font-bold text-xs rounded-xl transition-all cursor-pointer border-none"
+            >
+              Kembali ke Beranda
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (registrationStatus === 'rejected') {
+    return (
+      <div className="min-h-screen bg-[#f7f9fc] flex items-center justify-center p-6 text-center font-sans antialiased text-[#191c1e]">
+        <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl border border-slate-200/60 flex flex-col items-center">
+          <div className="w-16 h-16 bg-red-50 text-red-650 rounded-2xl flex items-center justify-center mb-6">
+            <XCircle className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-black text-[#001e40] tracking-tight mb-3">Pendaftaran Ditolak</h2>
+          <p className="text-sm text-slate-500 leading-relaxed mb-4">
+            Mohon maaf, pendaftaran akun Anda ditolak oleh Admin.
+          </p>
+          {rejectionReason && (
+            <div className="w-full bg-red-50 text-red-700 text-xs p-4 rounded-xl border border-red-100 mb-6 font-semibold">
+              Alasan: {rejectionReason}
+            </div>
+          )}
+          <div className="w-full space-y-3">
+            <button
+              onClick={() => {
+                setRegistrationStatus(null);
+                setRejectionReason(null);
+              }}
+              className="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer border-none"
+            >
+              Daftar Kembali
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full py-3.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer border-none"
+            >
+              Sign Out / Keluar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!session) {
     if (showRegister) {
       return <MahasiswaRegister onRegistered={() => setShowRegister(false)} onBackToLogin={() => setShowRegister(false)} />;
@@ -163,6 +286,7 @@ export default function MahasiswaPortal() {
       <MahasiswaCompleteProfile 
         session={session} 
         onProfileCompleted={(updated) => handleUpdateSession(updated)} 
+        onProfileSubmitted={() => setRegistrationStatus('pending')}
       />
     );
   }

@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { UserSession } from '../../types/mahasiswa';
 import { supabase } from '../../services/supabaseClient';
-import { User, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User, AlertCircle, CheckCircle2, BookOpen } from 'lucide-react';
+import SearchableProdiDropdown from '../../components/SearchableProdiDropdown';
 
 interface Props {
   session: UserSession;
   onProfileCompleted: (updatedSession: UserSession) => void;
+  onProfileSubmitted?: () => void;
 }
 
-export default function MahasiswaCompleteProfile({ session, onProfileCompleted }: Props) {
+export default function MahasiswaCompleteProfile({ session, onProfileCompleted, onProfileSubmitted }: Props) {
   const [nim, setNim] = useState('');
   const [major, setMajor] = useState('');
+  const [faculty, setFaculty] = useState('');
   const [semester, setSemester] = useState<number>(1);
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -22,59 +25,51 @@ export default function MahasiswaCompleteProfile({ session, onProfileCompleted }
     setError(null);
 
     try {
-      // 1. Check if user exists in public.users table
-      const { data: users, error: checkError } = await supabase
+      if (!major) {
+        throw new Error('Silakan pilih Program Studi terlebih dahulu.');
+      }
+
+      // 1. Check if registration request already exists by NIM or Email
+      const { data: reqData, error: reqCheckError } = await supabase
+        .rpc('get_registration_status', { p_query: nim });
+
+      if (reqCheckError) throw reqCheckError;
+
+      const requestExists = reqData && reqData.length > 0;
+      if (requestExists) {
+        throw new Error('NIM ini sudah terdaftar atau dalam antrean persetujuan.');
+      }
+
+      // 2. Insert into registration_requests as pending
+      const { error: insertError } = await supabase
+        .from('registration_requests')
+        .insert({
+          nim,
+          name: session.name,
+          email: session.email,
+          password: 'sso-authenticated', // Dummy password for SSO accounts
+          major,
+          faculty: faculty || 'Belum ditentukan',
+          semester,
+          status: 'pending'
+        });
+
+      if (insertError) throw insertError;
+
+      // Update phone in public.users table if it exists
+      const { data: users } = await supabase
         .from('users')
         .select('id')
         .eq('id', session.id);
 
-      if (checkError) throw checkError;
-
-      const userExists = users && users.length > 0;
-
-      if (!userExists) {
-        const { error: insertUserError } = await supabase
+      if (users && users.length > 0) {
+        await supabase
           .from('users')
-          .insert({
-            id: session.id,
-            email: session.email,
-            name: session.name,
-            role: 'mahasiswa',
-            phone: phone,
-            is_approved: true
-          });
-        if (insertUserError) throw insertUserError;
-      } else {
-        const { error: updateUserError } = await supabase
-          .from('users')
-          .update({ phone, role: 'mahasiswa' })
+          .update({ phone })
           .eq('id', session.id);
-        if (updateUserError) throw updateUserError;
       }
 
-      // 2. Insert into mahasiswa_profiles
-      const { error: profileError } = await supabase
-        .from('mahasiswa_profiles')
-        .insert({
-          user_id: session.id,
-          nim,
-          major,
-          semester,
-          faculty: 'Belum ditentukan',
-        });
-
-      if (profileError && profileError.code !== '23505') {
-        throw profileError;
-      }
-
-      // Update session locally
-      onProfileCompleted({
-        ...session,
-        nimOrNip: nim,
-        username: nim,
-        major,
-        semester,
-      });
+      onProfileSubmitted?.();
 
     } catch (err: any) {
       console.error('Error completing profile:', err);
@@ -119,14 +114,22 @@ export default function MahasiswaCompleteProfile({ session, onProfileCompleted }
 
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Program Studi</label>
-            <input
-              type="text"
-              required
-              value={major}
-              onChange={(e) => setMajor(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 transition-all outline-none"
-              placeholder="Contoh: Teknik Informatika"
-            />
+            <div className="relative">
+              <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+              <SearchableProdiDropdown
+                value={major}
+                onChange={(m, f) => {
+                  setMajor(m);
+                  setFaculty(f);
+                }}
+                placeholder="Cari & Pilih Program Studi..."
+              />
+            </div>
+            {faculty && (
+              <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                Fakultas otomatis terdeteksi: <span className="text-[#001e40] font-bold">{faculty}</span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">

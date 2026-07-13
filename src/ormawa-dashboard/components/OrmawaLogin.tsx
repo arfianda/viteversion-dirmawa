@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, ShieldAlert } from 'lucide-react';
 import { AuthService } from '../../services/authService';
+import { SupabaseService } from '../../services/supabaseService';
 
 interface OrmawaLoginProps {
   onLoginSuccess: (session: any) => void;
@@ -23,15 +24,20 @@ export default function OrmawaLogin({ onLoginSuccess }: OrmawaLoginProps) {
 
       if (authError || !user) {
         setError(authError || 'Kredensial salah. Silakan periksa kembali.');
+        await SupabaseService.logLogin(email, 'admin_ormawa', 'failed');
         setIsLoading(false);
         return;
       }
 
       if (user.role !== 'admin_ormawa') {
         setError('Akses ditolak. Halaman ini hanya untuk Administrator Ormawa.');
+        await SupabaseService.logLogin(email, user.role, 'failed', user.id);
         setIsLoading(false);
         return;
       }
+
+      await SupabaseService.logLogin(email, 'admin_ormawa', 'success', user.id);
+      sessionStorage.setItem('login_logged', 'true');
 
       const sessionData = {
         id: user.id,
@@ -147,6 +153,23 @@ export default function OrmawaLogin({ onLoginSuccess }: OrmawaLoginProps) {
               {!isLoading && <ArrowRight size={14} />}
             </button>
           </form>
+        </div>
+
+        {/* Back to Landing Page Link */}
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.removeItem('pending_portal');
+              const url = new URL(window.location.href);
+              url.search = '';
+              url.hash = '#/home';
+              window.location.href = url.toString();
+            }}
+            className="text-slate-400 hover:text-[#001e40] text-xs font-bold transition-colors cursor-pointer"
+          >
+            Kembali ke Beranda
+          </button>
         </div>
 
         <p className="mt-8 text-[10px] text-slate-400 font-semibold">

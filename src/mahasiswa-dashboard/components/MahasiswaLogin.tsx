@@ -3,6 +3,7 @@ import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight, GraduationCap } from 
 import { UserSession } from '../../types/mahasiswa';
 import { AuthService } from '../../services/authService';
 import { supabase } from '../../services/supabaseClient';
+import { SupabaseService } from '../../services/supabaseService';
 
 interface MahasiswaLoginProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -67,6 +68,7 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
       // Step 2: Ensure the user is a student
       if (loginInfo.role !== 'mahasiswa') {
         setError('Akses ditolak. Portal ini hanya untuk mahasiswa.');
+        await SupabaseService.logLogin(loginInfo.email, 'mahasiswa', 'failed');
         setIsLoading(false);
         return;
       }
@@ -76,9 +78,14 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
 
       if (authError || !user) {
         setError(authError || 'NIM atau password salah. Silakan periksa kembali.');
+        await SupabaseService.logLogin(loginInfo.email, 'mahasiswa', 'failed');
         setIsLoading(false);
         return;
       }
+
+      // Log success
+      await SupabaseService.logLogin(loginInfo.email, 'mahasiswa', 'success', user.id);
+      sessionStorage.setItem('login_logged', 'true'); // Prevents double logging SSO hooks
 
       // Step 4: Build session
       onLoginSuccess({
@@ -108,7 +115,7 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
         provider: 'google',
         options: {
           // Force it to explicitly target your local network loopback domain
-          redirectTo: 'http://10.100.30.51.nip.io:3000/?portal=mahasiswa',
+          redirectTo: 'http://10.200.24.199.nip.io:3000/?portal=mahasiswa',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -287,7 +294,13 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
           <div className="mt-2 text-center">
             <button
               type="button"
-              onClick={() => { window.location.hash = ''; }}
+              onClick={() => {
+                sessionStorage.removeItem('pending_portal');
+                const url = new URL(window.location.href);
+                url.search = '';
+                url.hash = '#/home';
+                window.location.href = url.toString();
+              }}
               className="text-slate-400 hover:text-[#001e40] text-xs font-bold transition-colors cursor-pointer"
             >
               Kembali ke Beranda

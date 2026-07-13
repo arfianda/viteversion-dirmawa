@@ -140,6 +140,7 @@ export default function AdminPortal() {
   const [alumniCount, setAlumniCount] = useState<number>(0);
   const [verifiedAlumniCount, setVerifiedAlumniCount] = useState<number>(0);
   const [isUnderConstruction, setIsUnderConstruction] = useState<boolean>(false);
+  const [loginLogs, setLoginLogs] = useState<any[]>([]);
   const [pendingScholarshipApps, setPendingScholarshipApps] = useState<any[]>([]);
   const [pendingUserApprovals, setPendingUserApprovals] = useState<any[]>([]);
   const [pendingRegistrations, setPendingRegistrations] = useState<any[]>([]);
@@ -380,6 +381,16 @@ export default function AdminPortal() {
       } catch (ucErr) {
         console.error("Failed to load under_construction setting:", ucErr);
       }
+
+      // Load login logs from Supabase for Super Admin
+      if (session?.role === 'superadmin') {
+        try {
+          const logs = await SupabaseService.getLoginLogs(100);
+          setLoginLogs(logs);
+        } catch (logErr) {
+          console.error("Failed to load login logs:", logErr);
+        }
+      }
     } catch (err) {
       console.error("AdminPortal failed to load Supabase data, using local mockup fallback:", err);
     }
@@ -465,6 +476,10 @@ export default function AdminPortal() {
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'member_reports' }, () => {
         console.log('Realtime change in member_reports');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'login_logs' }, () => {
+        console.log('Realtime change in login_logs');
         loadDbData();
       })
       .subscribe();
@@ -685,6 +700,11 @@ export default function AdminPortal() {
     setActiveTab('dashboard');
     localStorage.setItem('upb_affairs_session', JSON.stringify(userSession));
     sessionStorage.removeItem('pending_portal');
+    
+    if (!sessionStorage.getItem('login_logged')) {
+      SupabaseService.logLogin(userSession.username, userSession.role, 'success', userSession.id);
+      sessionStorage.setItem('login_logged', 'true');
+    }
     
     // Clean up query params from URL to prevent infinite loading/redirects
     if (window.location.search.includes('portal=admin')) {
@@ -1459,45 +1479,105 @@ export default function AdminPortal() {
         return <MemberReportsQueue onRefresh={loadDbData} />;
       case 'system-control':
         return (
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6 shadow-sm max-w-2xl font-sans text-left">
-            <div>
-              <h2 className="font-sans font-black text-2xl text-[#001e40]">System Control Panel</h2>
-              <p className="text-xs text-[#737780] font-semibold mt-1">
-                Kelola status global website dan konfigurasi sistem kemahasiswaan Universitas Pelita Bangsa.
-              </p>
+          <div className="space-y-6 max-w-4xl font-sans text-left">
+            <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6 shadow-sm">
+              <div>
+                <h2 className="font-sans font-black text-2xl text-[#001e40]">System Control Panel</h2>
+                <p className="text-xs text-[#737780] font-semibold mt-1">
+                  Kelola status global website dan konfigurasi sistem kemahasiswaan Universitas Pelita Bangsa.
+                </p>
+              </div>
+
+              <div className="border-t border-[#eceef1] pt-6 space-y-6">
+                {/* Under Construction Toggle */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#f2f4f7]/40 border border-slate-200/60 p-5 rounded-2xl">
+                  <div className="space-y-1">
+                    <span className="text-sm font-bold text-slate-800 block">Mode Perbaikan (Under Construction)</span>
+                    <p className="text-xs text-slate-500 max-w-md font-semibold leading-relaxed">
+                      Bila diaktifkan, pengunjung umum akan diarahkan ke halaman Under Construction. Admin tetap dapat mengakses Admin Portal untuk mengelola data.
+                    </p>
+                  </div>
+                  
+                  {/* Custom Toggle Switch */}
+                  <button
+                    onClick={async () => {
+                      const nextVal = !isUnderConstruction;
+                      try {
+                        await SupabaseService.setSystemSetting('under_construction', nextVal ? 'true' : 'false');
+                        setIsUnderConstruction(nextVal);
+                      } catch (e: any) {
+                        alert('Gagal memperbarui status: ' + (e.message || e));
+                      }
+                    }}
+                    className={`w-14 h-8 rounded-full transition-colors flex items-center p-1 cursor-pointer shrink-0 ${
+                      isUnderConstruction ? 'bg-[#feb234]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${
+                        isUnderConstruction ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="border-t border-[#eceef1] pt-6 space-y-6">
-              {/* Under Construction Toggle */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#f2f4f7]/40 border border-slate-200/60 p-5 rounded-2xl">
-                <div className="space-y-1">
-                  <span className="text-sm font-bold text-slate-800 block">Mode Perbaikan (Under Construction)</span>
-                  <p className="text-xs text-slate-500 max-w-md font-semibold leading-relaxed">
-                    Bila diaktifkan, pengunjung umum akan diarahkan ke halaman Under Construction. Admin tetap dapat mengakses Admin Portal untuk mengelola data.
-                  </p>
-                </div>
-                
-                {/* Custom Toggle Switch */}
-                <button
-                  onClick={async () => {
-                    const nextVal = !isUnderConstruction;
-                    try {
-                      await SupabaseService.setSystemSetting('under_construction', nextVal ? 'true' : 'false');
-                      setIsUnderConstruction(nextVal);
-                    } catch (e: any) {
-                      alert('Gagal memperbarui status: ' + (e.message || e));
-                    }
-                  }}
-                  className={`w-14 h-8 rounded-full transition-colors flex items-center p-1 cursor-pointer shrink-0 ${
-                    isUnderConstruction ? 'bg-[#feb234]' : 'bg-slate-300'
-                  }`}
-                >
-                  <div
-                    className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${
-                      isUnderConstruction ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+            {/* Login Logs Panel */}
+            <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-4 shadow-sm">
+              <div>
+                <h3 className="font-sans font-black text-lg text-[#001e40]">Log Aktivitas Login</h3>
+                <p className="text-xs text-[#737780] font-semibold mt-1">
+                  Audit log login pengguna ke website (maksimum 100 aktivitas terbaru).
+                </p>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                <table className="w-full text-left font-sans text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 font-black uppercase tracking-wider border-b border-slate-200 text-[10px]">
+                      <th className="px-4 py-3 pl-5">Email</th>
+                      <th className="px-4 py-3">Peran</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">User Agent</th>
+                      <th className="px-4 py-3 pr-5">Waktu</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {loginLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3 pl-5 font-semibold text-slate-800">{log.email}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-600 uppercase text-[10px]">{log.role}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            log.status === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                          }`}>
+                            {log.status === 'success' ? 'Berhasil' : 'Gagal'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 max-w-[250px] truncate" title={log.user_agent}>
+                          {log.user_agent || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 pr-5">
+                          {new Date(log.created_at).toLocaleString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                    {loginLogs.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400 font-medium">
+                          Belum ada log login tercatat.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>

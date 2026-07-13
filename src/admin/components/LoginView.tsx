@@ -3,6 +3,7 @@ import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { UserSession } from '../types';
 import { AuthService } from '../../services/authService';
 import { supabase } from '../../services/supabaseClient';
+import { SupabaseService } from '../../services/supabaseService';
 
 interface LoginViewProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -37,7 +38,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         provider: 'google',
         options: {
           // Force it to explicitly target your local network loopback domain
-          redirectTo: 'http://10.100.30.51.nip.io:3000/?portal=admin',
+          redirectTo: 'http://10.200.24.199.nip.io:3000/?portal=admin',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -124,6 +125,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
         if (authError || !user) {
           setError(authError || 'Login failed. Please check your credentials.');
+          await SupabaseService.logLogin(email, 'admin', 'failed');
           setIsLoading(false);
           return;
         }
@@ -131,6 +133,8 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         // Only allow administrators, superadmins, and ormawa admins
         console.log('Checking role:', user.role);
         if (user.role === 'admin_ormawa') {
+          await SupabaseService.logLogin(email, 'admin_ormawa', 'success', user.id);
+          sessionStorage.setItem('login_logged', 'true');
           localStorage.setItem('upb_ormawa_session', JSON.stringify({
             id: user.id,
             username: user.email,
@@ -147,15 +151,20 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator'];
         if (!allowedRoles.includes(user.role)) {
           setError('Akses ditolak. Peran admin/staf diperlukan.');
+          await SupabaseService.logLogin(email, user.role, 'failed', user.id);
           setIsLoading(false);
           return;
         }
 
         if (user.isApproved === false && user.role !== 'superadmin') {
           setError('Akun Anda belum disetujui oleh Super Admin. Silakan hubungi admin utama untuk aktivasi.');
+          await SupabaseService.logLogin(email, user.role, 'failed', user.id);
           setIsLoading(false);
           return;
         }
+
+        await SupabaseService.logLogin(email, user.role, 'success', user.id);
+        sessionStorage.setItem('login_logged', 'true');
 
         onLoginSuccess({
           id: user.id,
@@ -387,6 +396,23 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                 {isSignup ? 'Sign In' : 'Sign Up Here'}
               </button>
             </p>
+          </div>
+
+          {/* Back to Landing Page Link */}
+          <div className="text-center mt-1">
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem('pending_portal');
+                const url = new URL(window.location.href);
+                url.search = '';
+                url.hash = '#/home';
+                window.location.href = url.toString();
+              }}
+              className="text-slate-400 hover:text-[#001e40] text-xs font-bold transition-colors cursor-pointer"
+            >
+              Kembali ke Beranda
+            </button>
           </div>
 
           {/* Security Indicator */}

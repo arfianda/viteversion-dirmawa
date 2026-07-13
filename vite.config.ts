@@ -14,7 +14,7 @@ export default defineConfig(() => {
     server: {
       host: true, // Ensures it listens on all local network interfaces
       allowedHosts: [
-        '10.100.30.51.nip.io' // 👈 Whitelists your wildcard loopback domain
+        '10.200.24.199.nip.io' // 👈 Whitelists your wildcard loopback domain
       ],
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modify—file watching is disabled to prevent flickering during agent edits.

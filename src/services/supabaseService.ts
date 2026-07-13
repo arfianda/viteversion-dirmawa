@@ -1105,6 +1105,31 @@ export const SupabaseService = {
       })
       .eq('id', userId);
     if (error) throw error;
+  },
+
+  async logLogin(email: string, role: string, status: 'success' | 'failed', userId?: string): Promise<void> {
+    try {
+      const userAgent = navigator.userAgent;
+      await supabase.from('login_logs').insert({
+        user_id: userId || null,
+        email,
+        role,
+        status,
+        user_agent: userAgent
+      });
+    } catch (e) {
+      console.error('Failed to save login log:', e);
+    }
+  },
+
+  async getLoginLogs(limit = 100): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('login_logs')
+      .select('id, user_id, email, role, status, user_agent, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
   }
 };
 
