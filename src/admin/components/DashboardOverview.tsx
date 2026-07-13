@@ -339,7 +339,13 @@ export default function DashboardOverview({
       {/* Stats Grid (Bento Style) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Card 1 - Total Students */}
-        <div className="bg-white rounded-2xl p-6 border border-[#c3c6d1]/40 shadow-sm hover:shadow-md transition-all flex flex-col justify-between min-h-[140px]">
+        <div
+          onClick={() => {
+            sessionStorage.setItem('registration_active_tab', 'database');
+            onNavigate('registrations');
+          }}
+          className="bg-white rounded-2xl p-6 border border-[#c3c6d1]/40 shadow-sm hover:shadow-lg hover:border-[#001e40]/30 transition-all flex flex-col justify-between min-h-[140px] cursor-pointer"
+        >
           <div className="flex justify-between items-start">
             <div className="p-3 bg-[#001e40]/5 text-[#001e40] rounded-xl">
               <BookOpen size={24} />

@@ -4,6 +4,7 @@ import { UserSession } from '../types';
 import { AuthService } from '../../services/authService';
 import { supabase } from '../../services/supabaseClient';
 import { SupabaseService } from '../../services/supabaseService';
+import { BRAND_LOGO } from '../../constants/brand';
 
 interface LoginViewProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -204,7 +205,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
               <img
                 alt="UPB Logo"
                 className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3jVZ0gnP1io7hv_EKmsUA0s0v7P43UjpVBwguh_r3QVt5Dm4tz2mfh0vT9aWln58W1_fZxHlbY16eWk5VKX1jgZBnaH200pA6g1VCPL8I43xCoLGsruIGqBGEGNaLkFtNy1FAH1xOAXyzcn6YIat9XO541xj6DQUzdkHICC1Jb4ngg7898WTlID-ob-hpyTWybxVzdskYbABFEGf_fwFWdIsx-NvILmzz3pxBUjLwfX7jsXe5vh9iYxsbUldDq-FskdT4Ykg80n0"
+                src={BRAND_LOGO}
               />
             </div>
             <h1 className="font-headline font-bold text-2xl text-[#001e40] leading-snug">

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, User, Mail, Lock, ShieldCheck, BookOpen, Calendar, Hash } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User, Mail, Lock, ShieldCheck, BookOpen, Calendar, Hash, Phone } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
 import SearchableProdiDropdown from '../../components/SearchableProdiDropdown';
 
@@ -18,6 +18,7 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
     major: '',
     faculty: '',
     semester: '',
+    phone: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -55,6 +56,7 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
         major: form.major,
         faculty: form.faculty,
         semester: parseInt(form.semester) || null,
+        phone: form.phone,
       });
 
       if (insertError) {
@@ -210,6 +212,20 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
                   />
                 </div>
               </div>
+              <div className="space-y-1.5">
+                <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">No. WhatsApp</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Contoh: 08123456789"
+                    value={form.phone}
+                    onChange={(e) => handleChange('phone', e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-3 font-medium outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
 
               <div className="space-y-1.5">
                 <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">Program Studi</label>
@@ -226,20 +242,6 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">Fakultas</label>
-                <div className="relative">
-                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    readOnly
-                    placeholder="Terisi otomatis setelah memilih prodi"
-                    value={form.faculty}
-                    className="w-full bg-slate-100 border border-slate-200 text-slate-500 text-sm rounded-xl pl-10 pr-4 py-3 font-medium outline-none transition-all cursor-not-allowed"
-                  />
-                </div>
-              </div>
 
               <div className="space-y-1.5">
                 <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">Semester</label>

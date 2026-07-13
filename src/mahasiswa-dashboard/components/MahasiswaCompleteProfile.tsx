@@ -14,7 +14,7 @@ export default function MahasiswaCompleteProfile({ session, onProfileCompleted, 
   const [nim, setNim] = useState('');
   const [major, setMajor] = useState('');
   const [faculty, setFaculty] = useState('');
-  const [semester, setSemester] = useState<number>(1);
+  const [semester, setSemester] = useState<string>('1');
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +50,8 @@ export default function MahasiswaCompleteProfile({ session, onProfileCompleted, 
           password: 'sso-authenticated', // Dummy password for SSO accounts
           major,
           faculty: faculty || 'Belum ditentukan',
-          semester,
+          semester: parseInt(semester) || 1,
+          phone,
           status: 'pending'
         });
 
@@ -141,7 +142,7 @@ export default function MahasiswaCompleteProfile({ session, onProfileCompleted, 
                 max="14"
                 required
                 value={semester}
-                onChange={(e) => setSemester(parseInt(e.target.value) || 1)}
+                onChange={(e) => setSemester(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 transition-all outline-none"
               />
             </div>

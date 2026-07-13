@@ -1130,6 +1130,26 @@ export const SupabaseService = {
       .limit(limit);
     if (error) throw error;
     return data || [];
+  },
+
+  async getActiveStudents(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('mahasiswa_profiles')
+      .select('user_id, nim, major, faculty, semester, users:user_id(name, email, phone, avatar_url)')
+      .order('nim', { ascending: true });
+    if (error) throw error;
+    
+    return (data || []).map((profile: any) => ({
+      userId: profile.user_id,
+      nim: profile.nim,
+      major: profile.major,
+      faculty: profile.faculty,
+      semester: profile.semester,
+      name: profile.users?.name || 'Unknown',
+      email: profile.users?.email || '',
+      phone: profile.users?.phone || '',
+      avatarUrl: profile.users?.avatar_url || ''
+    }));
   }
 };
 

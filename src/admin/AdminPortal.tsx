@@ -31,6 +31,7 @@ import { INITIAL_ALUMNI, INITIAL_UKMS, INITIAL_SCHOLARSHIPS, INITIAL_NEWS, INITI
 import { SupabaseService } from '../services/supabaseService';
 import { supabase } from '../services/supabaseClient';
 import { AuthService } from '../services/authService';
+import { BRAND_LOGO } from '../constants/brand';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -1255,7 +1256,7 @@ export default function AdminPortal() {
                 <img
                   alt="UPB Logo"
                   className="w-full h-full object-cover"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3jVZ0gnP1io7hv_EKmsUA0s0v7P43UjpVBwguh_r3QVt5Dm4tz2mfh0vT9aWln58W1_fZxHlbY16eWk5VKX1jgZBnaH200pA6g1VCPL8I43xCoLGsruIGqBGEGNaLkFtNy1FAH1xOAXyzcn6YIat9XO541xj6DQUzdkHICC1Jb4ngg7898WTlID-ob-hpyTWybxVzdskYbABFEGf_fwFWdIsx-NvILmzz3pxBUjLwfX7jsXe5vh9iYxsbUldDq-FskdT4Ykg80n0"
+                  src={BRAND_LOGO}
                 />
               </div>
               <h1 className="font-headline font-bold text-xl text-[#001e40] leading-snug">
@@ -1620,7 +1621,7 @@ export default function AdminPortal() {
           <img
             alt="Universitas Pelita Bangsa Logo"
             className="w-10 h-10 rounded-full bg-white p-1"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA53r5C5uZeYiR8TGIWbzuUSXAUlfE6L70SCfAA8cV-XGHpZBTcig38onXkxohVqxK77Madf71cV0BRf9LP2QezTiwjuxJqltB1Q1WlVI9_A8-IB_tb1v4F2bmfQVfF36nplyaXmd5Msv3BJTZ3Q6NpIhgee-2Zz4NudZm12Sn6ttF_oPYa6fnG7P8bsFWTDmRQ_WV8dGGfR4DoyqKBKiAtdye8SrDpNT6mYLk18hDlt65ezFR25ZP8zmx0KmWJacqfh6sibMRea3Y"
+            src={BRAND_LOGO}
           />
           <div>
             <h1 className="font-headline font-bold text-white text-sm leading-tight leading-none truncate max-w-[140px]">
@@ -1711,7 +1712,7 @@ export default function AdminPortal() {
       <div className="flex-1 md:ml-64 flex flex-col min-h-screen w-full relative">
         
         {/* TopNavBar Header Component */}
-        <header className="bg-white text-[#001e40] border-b border-[#c3c6d1]/40 shadow-sm fixed top-0 right-0 left-0 md:left-64 h-16 px-6 flex justify-between items-center z-50">
+        <header className="bg-white text-[#001e40] border-b border-[#c3c6d1]/40 shadow-sm fixed top-0 right-0 left-0 md:left-64 h-16 px-4 md:px-6 flex justify-between items-center z-50">
           
           {/* Brand/Hamburger toggle on Mobile */}
           <div className="flex items-center gap-3">
@@ -1831,21 +1832,21 @@ export default function AdminPortal() {
             {/* Help Support button */}
             <button
               onClick={() => alert("Student Affairs Knowledge Base: Access system guidelines in directory.")}
-              className="text-[#43474f] hover:bg-[#eceef1] rounded-full p-2 transition-all cursor-pointer"
+              className="hidden md:block text-[#43474f] hover:bg-[#eceef1] rounded-full p-2 transition-all cursor-pointer"
               title="Help center"
             >
               <HelpCircle size={18} />
             </button>
 
             {/* Profile trigger block */}
-            <div className="pl-4 border-l border-[#c3c6d1]/40 flex items-center gap-3 relative">
+            <div className="pl-3 md:pl-4 border-l border-[#c3c6d1]/40 flex items-center gap-3 relative shrink-0">
               <button 
                 id="profile-menu-button"
                 onClick={() => {
                   setShowProfileMenu(!showProfileMenu);
                   setShowNotifications(false); // Close notifications if open
                 }}
-                className="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none cursor-pointer text-left"
+                className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none cursor-pointer text-left shrink-0"
               >
                 <div className="hidden lg:block text-right">
                   <p className="text-xs font-bold text-[#191c1e]">{session.name}</p>
@@ -1937,7 +1938,7 @@ export default function AdminPortal() {
                 <img
                   alt="UPB Logo"
                   className="w-8 h-8 rounded-full bg-white p-1"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuA53r5C5uZeYiR8TGIWbzuUSXAUlfE6L70SCfAA8cV-XGHpZBTcig38onXkxohVqxK77Madf71cV0BRf9LP2QezTiwjuxJqltB1Q1WlVI9_A8-IB_tb1v4F2bmfQVfF36nplyaXmd5Msv3BJTZ3Q6NpIhgee-2Zz4NudZm12Sn6ttF_oPYa6fnG7P8bsFWTDmRQ_WV8dGGfR4DoyqKBKiAtdye8SrDpNT6mYLk18hDlt65ezFR25ZP8zmx0KmWJacqfh6sibMRea3Y"
+                  src={BRAND_LOGO}
                 />
                 <div>
                   <h4 className="font-headline font-bold text-sm">DIRMAWA Admin Portal</h4>
