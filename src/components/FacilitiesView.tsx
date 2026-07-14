@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { createPortal } from "react-dom";
 import {
   HeartPulse,
   Clock,
@@ -333,13 +334,13 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
       {/* MODALS */}
 
       {/* 1. UKK Emergency Modal */}
-      {emergencyModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {emergencyModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
           <div
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={() => setEmergencyModalOpen(false)}
           ></div>
-          <div className="relative bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-100 z-10 animate-fade-in">
+          <div className="relative bg-white w-full max-w-lg rounded-none sm:rounded-2xl overflow-hidden shadow-2xl border border-slate-100 z-10 animate-fade-in h-full sm:h-auto max-h-screen sm:max-h-[90vh] flex flex-col">
             <div className="p-6 bg-[#001e40] text-white flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <HeartPulse className="text-[#feb234]" size={22} />
@@ -354,7 +355,7 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
                 <X size={20} />
               </button>
             </div>
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="flex gap-3.5 p-3.5 bg-red-50 border border-red-100 rounded-xl">
                 <AlertCircle
                   className="text-red-600 flex-shrink-0 mt-0.5"
@@ -424,18 +425,19 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
 
       {/* 3. Counseling Booking Modal */}
-      {bookingModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {bookingModalOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4">
           <div
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={resetBookingForm}
           ></div>
-          <div className="relative bg-white w-full max-w-lg rounded-2xl overflow-hidden shadow-2xl border border-slate-100 z-10 animate-fade-in">
+          <div className="relative bg-white w-full max-w-lg rounded-none sm:rounded-2xl overflow-hidden shadow-2xl border border-slate-100 z-10 animate-fade-in h-full sm:h-auto max-h-screen sm:max-h-[90vh] flex flex-col">
             <div className="p-6 bg-[#001e40] text-white flex justify-between items-center">
               <div className="flex items-center gap-2.5">
                 <Brain className="text-[#feb234]" size={22} />
@@ -454,7 +456,7 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
             {!bookingSuccess ? (
               <form
                 onSubmit={handleBookingSubmit}
-                className="p-6 space-y-4 max-h-[70vh] overflow-y-auto"
+                className="p-6 space-y-4 flex-1 overflow-y-auto"
               >
                 <p className="text-xs text-slate-500 leading-relaxed mb-4">
                   Silakan tentukan jadwal kosong Anda. Privasi dan identitas
@@ -591,7 +593,8 @@ export default function FacilitiesView({ setCurrentTab }: FacilitiesViewProps) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

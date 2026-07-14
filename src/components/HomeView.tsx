@@ -4,9 +4,10 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
-import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
-import { StudentNews } from '../types';
+import { Award, BookOpen, Users, Landmark, Calendar, Search, ArrowUpRight, ArrowRight, Eye, CalendarCheck, MapPin, Briefcase, Sparkles, ChevronLeft, ChevronRight, Trophy, HeartPulse, Brain, Shield } from 'lucide-react';
+import { StudentNews, Achievement } from '../types';
 
 interface HomeViewProps {
   setCurrentTab: (tab: string) => void;
@@ -15,9 +16,10 @@ interface HomeViewProps {
   ukmsCount: number;
   alumniCount: number;
   achievementsCount: number;
+  achievements: Achievement[];
 }
 
-export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCount, alumniCount, achievementsCount }: HomeViewProps) {
+export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCount, alumniCount, achievementsCount, achievements }: HomeViewProps) {
   const [selectedNews, setSelectedNews] = React.useState<any | null>(null);
   const [currentSlide, setCurrentSlide] = React.useState(0);
   const [isPaused, setIsPaused] = React.useState(false);
@@ -73,11 +75,10 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
     return () => clearInterval(interval);
   }, [isPaused, heroSlides.length]);
 
-  // Stats matching the exact values of your stitch mockups: 50+ Unit Kegiatan Mahasiswa, 15k+ Jaringan Alumni, 500+ Prestasi Gemilang
   const stats = [
-    { value: ukmsCount ? `${ukmsCount}+` : '50+', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
-    { value: alumniCount ? (alumniCount >= 1000 ? `${(alumniCount/1000).toFixed(0)}k+` : `${alumniCount}+`) : '15k+', label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
-    { value: achievementsCount ? `${achievementsCount}+` : '500+', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
+    { value: ukmsCount > 0 ? `${ukmsCount}+` : '0', label: 'Unit Kegiatan Mahasiswa', sub: 'Minat, Bakat, & Keagamaan', colorBg: 'bg-[#001e40]/10 text-[#001e40]' },
+    { value: alumniCount >= 1000 ? `${(alumniCount/1000).toFixed(1)}k+` : (alumniCount > 0 ? `${alumniCount}+` : '0'), label: 'Jaringan Alumni', sub: 'Tersebar di Berbagai Industri', colorBg: 'bg-amber-50 text-[#feb234]' },
+    { value: achievementsCount > 0 ? `${achievementsCount}+` : '0', label: 'Prestasi Gemilang', sub: 'Level Regional hingga Nasional', colorBg: 'bg-emerald-50 text-emerald-600' }
   ];
 
   const handleServiceClick = (id: string) => {
@@ -331,24 +332,36 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
           {/* News listing matching stitch */}
           <div className="space-y-4">
             {newsAndAnnouncements.slice(0, 3).map((item) => (
-              <div key={item.id} className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-sm transition">
+              <div 
+                key={item.id} 
+                onClick={() => setSelectedNews(item)}
+                className="bg-white border border-slate-100 p-4 rounded-xl flex flex-col sm:flex-row gap-4 hover:shadow-md transition cursor-pointer group text-left animate-none"
+              >
                 <div
-                  className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0"
+                  className="w-full sm:w-36 h-28 bg-cover bg-center rounded-lg flex-shrink-0 transition-transform group-hover:scale-[1.02]"
                   style={{ backgroundImage: `url('${item.image || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop'}')` } as React.CSSProperties}
                 />
-                <div className="space-y-2 flex-grow">
-                  <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
-                    {item.category}
-                  </span>
-                  <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight">
-                    {item.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
-                    {item.summary}
-                  </p>
-                  <div className="flex items-center text-[10px] text-slate-400 font-sans space-x-1">
-                    <Calendar size={10} />
-                    <span>{item.date}</span>
+                <div className="space-y-2 flex-grow flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <span className="inline-block bg-orange-50 text-orange-600 px-2 py-0.5 text-[9px] font-sans font-black uppercase rounded">
+                      {item.category}
+                    </span>
+                    <h3 className="font-sans font-extrabold text-[#001e40] text-sm sm:text-base leading-tight group-hover:text-[#feb234] transition-colors line-clamp-2">
+                      {item.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-sans line-clamp-1 leading-normal">
+                      {item.summary}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 font-sans pt-1">
+                    <div className="flex items-center space-x-1">
+                      <Calendar size={10} />
+                      <span>{item.date}</span>
+                    </div>
+                    <span className="text-[#feb234] font-bold group-hover:underline flex items-center space-x-0.5">
+                      <span>Baca Selengkapnya</span>
+                      <ArrowRight size={10} />
+                    </span>
                   </div>
                 </div>
               </div>
@@ -367,50 +380,238 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
             <h2 className="font-sans font-extrabold text-xl text-[#001e40]">Agenda Mendatang</h2>
           </div>
 
-          <div className="bg-[#001e40] p-6 rounded-2xl text-white space-y-5 shadow-md">
-            <div className="flex items-center space-x-2 text-[#feb234]">
-              <Calendar size={16} />
-              <span className="font-mono text-xs uppercase tracking-wider font-extrabold">
-                {latestAgenda ? 'Agenda Terdekat' : 'Hari Ini'}
-              </span>
+          <div className="bg-[#001e40] p-6 rounded-2xl text-white space-y-5 shadow-md flex flex-col justify-between min-h-[250px] text-left">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 text-[#feb234]">
+                <Calendar size={16} />
+                <span className="font-mono text-xs uppercase tracking-wider font-extrabold">
+                  Agenda Terdekat
+                </span>
+              </div>
+
+              {latestAgenda ? (
+                <div className="space-y-3">
+                  <h3 className="font-sans font-black text-lg text-white leading-tight line-clamp-2">
+                    {latestAgenda.title}
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed font-sans line-clamp-3">
+                    {latestAgenda.summary}
+                  </p>
+                  <div className="space-y-1 pt-1 text-[11px] text-slate-350 font-mono">
+                    <p>📅 Tanggal: {latestAgenda.date}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1 py-8 text-center text-slate-400">
+                  <p className="font-sans font-bold text-xs">Belum ada agenda terdekat.</p>
+                  <p className="text-[10px] text-slate-500 font-medium leading-relaxed">Agenda mendatang akan ditampilkan di sini jika sudah dipublikasikan.</p>
+                </div>
+              )}
             </div>
 
-            {latestAgenda ? (
-              <div className="space-y-3">
-                <h3 className="font-sans font-black text-lg text-white leading-tight">
-                  {latestAgenda.title}
-                </h3>
-                <p className="text-xs text-slate-350 leading-relaxed font-sans line-clamp-3">
-                  {latestAgenda.summary}
-                </p>
-                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
-                  <p>📅 Tanggal: {latestAgenda.date}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <h3 className="font-sans font-black text-lg text-white leading-tight">
-                  Job Fair &amp; Career Expo 2026
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Aula Gedung B, Kampus Cikarang.
-                </p>
-                <div className="space-y-1 pt-1 text-[11px] text-slate-300 font-mono">
-                  <p>⌚ 09.00 - 16.00 WIB</p>
-                  <p>📍 Auditorium Lt. 3</p>
-                </div>
-              </div>
+            {latestAgenda && (
+              <button
+                onClick={() => setSelectedNews(latestAgenda)}
+                className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition cursor-pointer"
+              >
+                Lihat Detail
+              </button>
             )}
+          </div>
+        </div>
 
+      </section>
+
+      {/* 4.5. MAHASISWA BERPRESTASI - Premium Grid or Slider */}
+      <section className="space-y-6">
+        <div className="flex justify-between items-end border-b border-slate-200 pb-3">
+          <div className="space-y-1 text-left">
+            <div className="flex items-center space-x-2 text-[#feb234]">
+              <div className="w-6 h-0.5 bg-[#feb234]" />
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider">Apresiasi & Karya</span>
+            </div>
+            <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Mahasiswa Berprestasi</h2>
+          </div>
+          <div className="flex items-center space-x-4">
             <button
-              onClick={() => handleServiceClick(latestAgenda ? 'news' : 'alumni-data')}
-              className="w-full bg-white/10 hover:bg-white/20 text-[#feb234] py-2.5 rounded-xl text-xs font-sans font-bold uppercase transition"
+              onClick={() => {
+                sessionStorage.setItem('mahasiswa_active_tab', 'prestasi');
+                setCurrentTab('mahasiswa');
+              }}
+              className="text-xs font-sans font-bold text-[#001e40] hover:text-[#002d61] bg-[#feb234] hover:bg-[#ffddb2] px-3 py-1.5 rounded-lg flex items-center space-x-1 shadow-sm transition cursor-pointer"
             >
-              Lihat Detail
+              <span>Laporkan Prestasi</span>
+            </button>
+            <button
+              onClick={() => setCurrentTab('achievements')}
+              className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1 cursor-pointer"
+            >
+              <span>Lihat Semua</span>
+              <ArrowRight size={12} />
             </button>
           </div>
         </div>
 
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {achievements.slice(0, 3).map((ach) => {
+            const levelColors = {
+              'Internasional': 'from-amber-500 to-purple-600 text-white',
+              'Nasional': 'from-blue-600 to-indigo-600 text-white',
+              'Regional': 'from-emerald-500 to-teal-600 text-white',
+            };
+            const levelClass = levelColors[ach.level] || 'from-slate-500 to-slate-650 text-white';
+
+            return (
+              <div key={ach.id} className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm flex flex-col justify-between group hover:shadow-md transition-all duration-300">
+                <div className="relative h-48 overflow-hidden bg-slate-100">
+                  <img
+                    src={ach.image || 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=600&auto=format&fit=crop'}
+                    alt={ach.title}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  
+                  {/* Level Badge */}
+                  <span className={`absolute top-4 left-4 bg-gradient-to-r ${levelClass} px-2.5 py-0.5 rounded-full text-[9px] font-sans font-black uppercase tracking-wider`}>
+                    {ach.level}
+                  </span>
+                  
+                  {/* Rank Title Overlay */}
+                  <div className="absolute bottom-4 left-4 right-4 flex items-center gap-1.5 text-white">
+                    <Trophy size={14} className="text-[#feb234]" />
+                    <span className="text-xs font-bold font-sans text-white uppercase tracking-wide bg-black/35 px-2 py-0.5 rounded backdrop-blur-sm">
+                      {ach.rank}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-5 flex-grow flex flex-col justify-between space-y-4 text-left">
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-[#feb234] uppercase tracking-widest block font-mono">
+                      {ach.category}
+                    </span>
+                    <h3 className="font-sans font-extrabold text-[#001e40] text-sm leading-snug line-clamp-2 min-h-[40px] group-hover:text-[#feb234] transition-colors">
+                      {ach.title}
+                    </h3>
+                    <p className="text-xs text-slate-505 font-sans line-clamp-2 leading-relaxed">
+                      {ach.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-[#191c1e] line-clamp-1">{ach.studentName}</p>
+                      <p className="text-[10px] text-slate-400 font-semibold">{ach.major} ({ach.year})</p>
+                    </div>
+                    <button
+                      onClick={() => setCurrentTab('achievements')}
+                      className="w-8 h-8 rounded-full bg-slate-50 group-hover:bg-[#feb234]/10 text-slate-400 group-hover:text-[#feb234] flex items-center justify-center transition-all animate-none cursor-pointer"
+                      title="Lihat detail prestasi"
+                    >
+                      <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {achievements.length === 0 && (
+            <div className="col-span-3 text-center py-10 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-500 font-medium text-xs">
+              Belum ada data prestasi mahasiswa.
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* 4.6. FASILITAS & LAYANAN MAHASISWA */}
+      <section className="space-y-6">
+        <div className="flex justify-between items-end border-b border-slate-200 pb-3">
+          <div className="space-y-1 text-left">
+            <div className="flex items-center space-x-2 text-[#feb234]">
+              <div className="w-6 h-0.5 bg-[#feb234]" />
+              <span className="font-mono text-[11px] font-bold uppercase tracking-wider">Kesejahteraan Mahasiswa</span>
+            </div>
+            <h2 className="font-sans font-extrabold text-2xl text-[#001e40] tracking-tight">Fasilitas &amp; Layanan Kampus</h2>
+          </div>
+          <button
+            onClick={() => setCurrentTab('facilities')}
+            className="text-xs font-sans font-bold text-[#feb234] hover:text-[#ffddb2] flex items-center space-x-1 cursor-pointer"
+          >
+            <span>Lihat Semua Layanan</span>
+            <ArrowRight size={12} />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Card 1: UKK */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between text-left group">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-red-50 text-red-655 rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <HeartPulse size={24} className="text-red-600" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-sans font-black text-[#001e40] text-base group-hover:text-[#feb234] transition-colors">Unit Kesehatan Kampus (UKK)</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase font-mono">Gedung B, Lantai 1</p>
+              </div>
+              <p className="text-xs text-slate-500 font-sans leading-relaxed line-clamp-3">
+                Layanan pemeriksaan kesehatan umum, pertolongan pertama, obat-obatan dasar, dan penanganan cepat darurat medis untuk seluruh civitas akademika.
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentTab('facilities')}
+              className="mt-6 w-full py-2.5 bg-slate-50 hover:bg-[#001e40] hover:text-white text-[#001e40] font-sans font-bold text-[11px] uppercase tracking-wide rounded-xl border border-slate-200/50 transition-all text-center"
+            >
+              Lihat Prosedur Medis
+            </button>
+          </div>
+
+          {/* Card 2: Konseling */}
+          <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between text-left group">
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-[#feb234]/10 text-[#feb234] rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Brain size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-sans font-black text-[#001e40] text-base group-hover:text-[#feb234] transition-colors">Konseling &amp; Mental Health</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase font-mono">Sesi Privat &amp; Rahasia</p>
+              </div>
+              <p className="text-xs text-slate-500 font-sans leading-relaxed line-clamp-3">
+                Pendampingan psikologis profesional yang rahasia untuk membantu mahasiswa mengatasi tantangan akademik, kecemasan, atau masalah pribadi.
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentTab('facilities')}
+              className="mt-6 w-full py-2.5 bg-slate-50 hover:bg-[#001e40] hover:text-white text-[#001e40] font-sans font-bold text-[11px] uppercase tracking-wide rounded-xl border border-slate-200/50 transition-all text-center"
+            >
+              Booking Konsultasi
+            </button>
+          </div>
+
+          {/* Card 3: Asuransi */}
+          <div className="bg-[#001e40] rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between text-left relative overflow-hidden group">
+            <div className="space-y-4 relative z-10 text-white">
+              <div className="w-12 h-12 bg-white/10 text-[#feb234] rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Shield size={24} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-sans font-black text-white text-base group-hover:text-[#feb234] transition-colors">Asuransi Mahasiswa</h3>
+                <p className="text-[10px] text-slate-300 font-bold uppercase font-mono">Proteksi Studi Aktif</p>
+              </div>
+              <p className="text-xs text-slate-350 font-sans leading-relaxed line-clamp-3">
+                Layanan klaim perlindungan asuransi bagi seluruh mahasiswa aktif Universitas Pelita Bangsa untuk proteksi kecelakaan maupun kesehatan.
+              </p>
+            </div>
+            <button
+              onClick={() => setCurrentTab('facilities')}
+              className="mt-6 w-full py-2.5 bg-[#feb234] text-[#001e40] hover:bg-white transition-all font-sans font-bold text-[11px] uppercase tracking-wide rounded-xl text-center relative z-10"
+            >
+              Ajukan Klaim
+            </button>
+            <div className="absolute -right-6 -top-6 text-white/5 pointer-events-none transition-transform duration-500 group-hover:scale-110">
+              <Shield size={120} />
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 5. MINAT BAKAT (Olahraga, Seni, Akademik) */}
@@ -441,6 +642,89 @@ export default function HomeView({ setCurrentTab, setSelectedUkmId, news, ukmsCo
           Jelajahi Semua UKM
         </button>
       </section>
+
+      {/* 4.6. DETAIL MODAL NEWS / ANNOUNCEMENT */}
+      {selectedNews && createPortal(
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-[#001e40]/60 backdrop-blur-sm animate-fade-in overflow-y-auto text-slate-800"
+          onClick={() => setSelectedNews(null)}
+        >
+          <div 
+            className="bg-white border border-slate-200 w-full max-w-2xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-screen sm:max-h-[90vh] animate-scale-up"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Image Header */}
+            {selectedNews.image && (
+              <div 
+                className="h-56 sm:h-64 w-full bg-cover bg-center relative flex-shrink-0"
+                style={{ backgroundImage: `url('${selectedNews.image}')` } as React.CSSProperties}
+              >
+                <button 
+                  onClick={() => setSelectedNews(null)}
+                  className="absolute top-4 right-4 bg-black/70 hover:bg-black text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shadow hover:scale-105 transition cursor-pointer z-10"
+                >
+                  ✕
+                </button>
+                <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10 to-transparent" />
+                <div className="absolute bottom-6 left-6 space-y-1 z-10 pr-6">
+                  <span className="bg-[#feb234] text-[#001e40] font-sans text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-sm">
+                    {selectedNews.category}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!selectedNews.image && (
+              <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center flex-shrink-0 text-left">
+                <span className="bg-[#feb234] text-[#001e40] font-sans text-[10px] font-black uppercase px-2.5 py-1 rounded shadow-sm">
+                  {selectedNews.category}
+                </span>
+                <button 
+                  onClick={() => setSelectedNews(null)}
+                  className="text-slate-400 hover:text-slate-650 transition cursor-pointer text-lg font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable Content */}
+            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-left">
+              <div className="space-y-2">
+                <h2 className="font-sans font-black text-xl sm:text-2xl text-[#001e40] leading-tight">
+                  {selectedNews.title}
+                </h2>
+                <div className="flex items-center text-xs text-slate-400 font-sans space-x-1">
+                  <Calendar size={12} />
+                  <span>Diterbitkan pada: {selectedNews.date}</span>
+                </div>
+              </div>
+
+              <div className="text-sm text-slate-650 leading-relaxed font-sans space-y-4">
+                <p className="font-bold text-slate-800 border-l-4 border-[#feb234] pl-4 italic">
+                  {selectedNews.summary}
+                </p>
+                <div 
+                  className="prose max-w-none text-slate-605 space-y-4"
+                  dangerouslySetInnerHTML={{ __html: selectedNews.description || '' }}
+                />
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="bg-slate-50 border-t border-slate-100 px-6 py-4 flex justify-between items-center flex-shrink-0">
+              <span className="text-[10px] font-sans font-bold text-slate-400 uppercase">Informasi Kemahasiswaan UPB</span>
+              <button
+                onClick={() => setSelectedNews(null)}
+                className="bg-[#001e40] hover:bg-[#002d61] text-white font-sans font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer shadow-sm"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

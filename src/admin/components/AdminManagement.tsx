@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UserCheck, Shield, ChevronLeft, ChevronRight, MoreVertical, Plus, Trash2, Key, Check } from 'lucide-react';
 import { AdminRecord } from '../types';
 
@@ -8,6 +9,7 @@ interface AdminManagementProps {
   onRemoveAdmin: (id: string) => void;
   onUpdateAdminRole: (id: string, role: 'Super Admin' | 'Admin' | 'Editor') => void;
   onUpdateAdminRoles?: (id: string, roles: string[]) => void;
+  onUpdateAdminApproval?: (id: string, isApproved: boolean) => void;
 }
 
 const AVAILABLE_BADGES = [
@@ -19,7 +21,7 @@ const AVAILABLE_BADGES = [
   { value: 'staf_depan', label: 'Staf Depan', color: 'bg-teal-50 text-teal-700 border-teal-200' },
 ];
 
-export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onUpdateAdminRole, onUpdateAdminRoles }: AdminManagementProps) {
+export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onUpdateAdminRole, onUpdateAdminRoles, onUpdateAdminApproval }: AdminManagementProps) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeAdminOptions, setActiveAdminOptions] = useState<string | null>(null);
   const [roleSelectorAdminId, setRoleSelectorAdminId] = useState<string | null>(null);
@@ -118,6 +120,7 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                     <th className="px-5 py-4 pl-6">Nama &amp; Email</th>
                     <th className="px-5 py-4">Peran Badges</th>
                     <th className="px-5 py-4">Terakhir Aktif</th>
+                    <th className="px-5 py-4">Status</th>
                     <th className="px-5 py-4 text-right pr-6">Aksi</th>
                   </tr>
                 </thead>
@@ -198,6 +201,15 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                       <td className="px-5 py-4 text-[#737780] text-xs font-semibold">
                         {admin.lastActive}
                       </td>
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          admin.isApproved
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {admin.isApproved ? 'Aktif / Disetujui' : 'Menunggu'}
+                        </span>
+                      </td>
                       <td className="px-5 py-4 text-right pr-6 relative">
                         <button
                           onClick={() => setActiveAdminOptions(activeAdminOptions === admin.id ? null : admin.id)}
@@ -209,6 +221,33 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                         {/* Dropdown Menu Option Context */}
                         {activeAdminOptions === admin.id && (
                           <div className="absolute right-6 top-12 bg-white border border-[#c3c6d1] shadow-xl rounded-xl p-1 z-30 min-w-[150px] text-left">
+                            {admin.isApproved === false && onUpdateAdminApproval && (
+                              <button
+                                onClick={() => {
+                                  onUpdateAdminApproval(admin.id, true);
+                                  setActiveAdminOptions(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-emerald-50 font-semibold text-emerald-700 text-left transition-colors cursor-pointer"
+                              >
+                                <Check size={14} className="stroke-[3]" />
+                                Setujui Staf
+                              </button>
+                            )}
+                            {admin.isApproved === true && admin.email !== 'arfiandafirsta@gmail.com' && onUpdateAdminApproval && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Nonaktifkan akses untuk ${admin.name}?`)) {
+                                    onUpdateAdminApproval(admin.id, false);
+                                  }
+                                  setActiveAdminOptions(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-red-50 font-semibold text-[#ba1a1a] text-left transition-colors cursor-pointer"
+                              >
+                                <Trash2 size={14} />
+                                Nonaktifkan Staf
+                              </button>
+                            )}
+                            <hr className="my-1 border-slate-100" />
                             <button
                               onClick={() => {
                                 setRoleSelectorAdminId(admin.id);
@@ -295,7 +334,7 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
               <div className="p-3.5 rounded-xl border border-emerald-100 bg-emerald-50/50">
                 <h4 className="font-bold text-xs text-emerald-800">Staf Ormawa</h4>
                 <p className="text-[11px] text-emerald-700/90 leading-relaxed font-medium mt-1">
-                  Mengelola direktori UKM, verifikasi laporan jumlah anggota, serta antrian proposal &amp; LPJ Ormawa.
+                  Mengelola direktori Ormawa, verifikasi laporan jumlah anggota, serta antrian proposal &amp; LPJ Ormawa.
                 </p>
               </div>
 
@@ -319,8 +358,8 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
       </div>
 
       {/* Add Admin Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
             <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Berikan Akses Administrator Baru</h3>
             <form onSubmit={handleCreateSubmit} className="space-y-4 animate-fade-in block">
@@ -329,6 +368,7 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   placeholder="Contoh: Prof. Dr. John Doe, M.T."
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
@@ -391,7 +431,8 @@ export default function AdminManagement({ admins, onAddAdmin, onRemoveAdmin, onU
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, HelpCircle, PlusCircle, Sparkles, AlertTriangle, FileText, CheckSquare, Calendar, Edit2, ChevronLeft, ChevronRight, Trash2, X } from 'lucide-react';
 import { ScholarshipRecord } from '../types';
 import { SupabaseService } from '../../services/supabaseService';
@@ -402,8 +403,8 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
       </div>
 
       {/* Add Scholarship Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
             <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Pasang Peluang Beasiswa Baru</h3>
             <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
@@ -491,12 +492,13 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Edit Scholarship Modal */}
-      {showEditModal && editingRecord && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showEditModal && editingRecord && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-sans font-bold text-xl text-[#001e40]">Edit Peluang Beasiswa</h3>
@@ -605,12 +607,13 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* FAQs Panel */}
-      {faqOpen && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setFaqOpen(false)}>
+      {faqOpen && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in" onClick={() => setFaqOpen(false)}>
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left" onClick={e => e.stopPropagation()}>
             <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4 border-b border-[#eceef1] pb-3">Pengaturan FAQ Beasiswa Mahasiswa</h3>
             
@@ -639,7 +642,8 @@ export default function ScholarshipsManagement({ scholarships, onAddScholarship,
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

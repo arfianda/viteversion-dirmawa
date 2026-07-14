@@ -373,6 +373,7 @@ export const SupabaseService = {
       type: row.type || 'Academic & Tech',
       status: (row.status || 'Active') as any,
       logoUrl: row.logo_image_url || undefined,
+      coverUrl: row.cover_image_url || undefined,
       updatedAt: row.updated_at ? new Date(row.updated_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : 'Oct 24, 2023',
       description: row.description || '',
       leaderName: row.leader_name || undefined,
@@ -470,6 +471,7 @@ export const SupabaseService = {
       type: ur.type,
       status: ur.status,
       logo_image_url: ur.logoUrl,
+      cover_image_url: ur.coverUrl,
       description: ur.description,
       leader_name: ur.leaderName,
       instagram_url: ur.instagramUrl || null
@@ -481,7 +483,7 @@ export const SupabaseService = {
         .insert({
           id: ukmId,
           ...payload,
-          cover_image_url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop'
+          cover_image_url: ur.coverUrl || 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop'
         });
       if (error) throw error;
     } else {
@@ -526,7 +528,8 @@ export const SupabaseService = {
       category: row.category as any,
       year: row.year,
       description: row.description || '',
-      image: row.image_url || ''
+      image: row.image_url || '',
+      status: row.status
     }));
   },
 
@@ -541,7 +544,8 @@ export const SupabaseService = {
       category: a.category,
       year: a.year,
       description: a.description,
-      image_url: a.image || 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop'
+      image_url: a.image || 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop',
+      status: a.status || 'Menunggu Verifikasi'
     };
 
     if (isNew) {
@@ -609,7 +613,10 @@ export const SupabaseService = {
       prodi: row.major,
       graduationYear: row.graduation_year,
       status: (row.nim_status || 'Valid') as any,
-      email: row.email || undefined
+      email: row.email || undefined,
+      employmentStatus: row.status as any,
+      company: row.company || '',
+      position: row.position || ''
     }));
   },
 
@@ -1098,6 +1105,51 @@ export const SupabaseService = {
       })
       .eq('id', userId);
     if (error) throw error;
+  },
+
+  async logLogin(email: string, role: string, status: 'success' | 'failed', userId?: string): Promise<void> {
+    try {
+      const userAgent = navigator.userAgent;
+      await supabase.from('login_logs').insert({
+        user_id: userId || null,
+        email,
+        role,
+        status,
+        user_agent: userAgent
+      });
+    } catch (e) {
+      console.error('Failed to save login log:', e);
+    }
+  },
+
+  async getLoginLogs(limit = 100): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('login_logs')
+      .select('id, user_id, email, role, status, user_agent, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getActiveStudents(): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('mahasiswa_profiles')
+      .select('user_id, nim, major, faculty, semester, users:user_id(name, email, phone, avatar_url)')
+      .order('nim', { ascending: true });
+    if (error) throw error;
+    
+    return (data || []).map((profile: any) => ({
+      userId: profile.user_id,
+      nim: profile.nim,
+      major: profile.major,
+      faculty: profile.faculty,
+      semester: profile.semester,
+      name: profile.users?.name || 'Unknown',
+      email: profile.users?.email || '',
+      phone: profile.users?.phone || '',
+      avatarUrl: profile.users?.avatar_url || ''
+    }));
   }
 };
 

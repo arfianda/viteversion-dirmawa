@@ -400,6 +400,14 @@ export const OrmawaService = {
         details.gallery.map((g: string) => ({ ukpm_id: ukmId, image_url: g }))
       );
     }
+
+    // Refresh requirements
+    await supabase.from('ukpm_requirements').delete().eq('ukpm_id', ukmId);
+    if (details.requirements && details.requirements.length > 0) {
+      await supabase.from('ukpm_requirements').insert(
+        details.requirements.map((r: string) => ({ ukpm_id: ukmId, requirement: r }))
+      );
+    }
   },
 
   // ==========================================

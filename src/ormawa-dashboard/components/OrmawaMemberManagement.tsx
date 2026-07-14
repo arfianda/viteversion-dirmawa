@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Users, 
   Search, 
@@ -8,7 +9,8 @@ import {
   CheckCircle,
   FileSpreadsheet,
   Plus,
-  ClipboardList
+  ClipboardList,
+  X
 } from 'lucide-react';
 import { SupabaseService } from '../../services/supabaseService';
 
@@ -156,7 +158,7 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
           </div>
           <div>
             <h3 className="font-bold text-slate-800 text-sm">Pelaporan Jumlah Anggota Aktif</h3>
-            <p className="text-xs text-slate-400 font-semibold">Laporkan jumlah total anggota aktif Anda untuk disinkronkan ke direktori UKM publik setelah disetujui Dirmawa.</p>
+            <p className="text-xs text-slate-400 font-semibold">Laporkan jumlah total anggota aktif Anda untuk disinkronkan ke direktori Ormawa setelah disetujui Dirmawa.</p>
           </div>
         </div>
 
@@ -224,8 +226,8 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
           </div>
         </div>
 
-        {/* Roster Table */}
-        <div className="overflow-x-auto">
+        {/* Roster Table - Hidden on Mobile */}
+        <div className="overflow-x-auto hidden sm:block">
           <table className="w-full text-left border-collapse text-xs text-slate-700">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-450 uppercase font-extrabold text-[9px] tracking-wider">
@@ -273,7 +275,7 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
                       {member.role !== 'Ketua' && (
                         <button
                           onClick={() => handleRemoveMember(member.id)}
-                          className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
+                          className="p-1.5 text-red-500 hover:text-red-750 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
                           title="Keluarkan dari Ormawa"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -287,6 +289,55 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
           </table>
         </div>
 
+        {/* Mobile Roster Card List - Visible on Mobile Only */}
+        <div className="block sm:hidden divide-y divide-slate-100 font-sans">
+          {filteredMembers.length === 0 ? (
+            <div className="py-10 text-center text-slate-400 font-bold text-xs">
+              Tidak ditemukan anggota yang cocok dengan pencarian Anda.
+            </div>
+          ) : (
+            filteredMembers.map((member) => (
+              <div key={member.id} className="p-4 space-y-3">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#001e40]/5 text-[#001e40] font-black flex items-center justify-center border border-slate-200 uppercase text-xs">
+                      {member.name.substring(0, 2)}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-800 text-xs">{member.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-semibold">{member.nim} | Semester {member.semester}</p>
+                    </div>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-full text-[9px] font-black ${
+                    member.role === 'Ketua' 
+                      ? 'bg-blue-50 text-blue-700 border border-blue-150' 
+                      : member.role === 'Sekretaris' || member.role === 'Bendahara'
+                        ? 'bg-purple-50 text-purple-700 border border-purple-150'
+                        : 'bg-slate-50 text-slate-600 border border-slate-150'
+                  }`}>
+                    {member.role}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[10px] font-semibold text-slate-555 pt-1">
+                  <span>Prodi: {member.major}</span>
+                  <span className="text-slate-400 font-medium">Gabung: {member.joinDate}</span>
+                </div>
+                {member.role !== 'Ketua' && (
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={() => handleRemoveMember(member.id)}
+                      className="px-3.5 py-2 text-red-650 hover:text-red-750 bg-red-50 hover:bg-red-100 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors min-h-[44px]"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Keluarkan Anggota</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
         {/* Summary Footer */}
         <div className="p-4 border-t border-slate-200 flex justify-between items-center text-slate-450 font-bold text-[10px] uppercase">
           <span>Menampilkan {filteredMembers.length} dari {members.length} Anggota</span>
@@ -295,16 +346,17 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
       </section>
 
       {/* Modal Add Member */}
-      {showAddModal && (
+      {showAddModal && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-fade-in font-sans text-xs">
-            <div className="bg-[#001e40] p-5 text-white flex justify-between items-center border-b border-[#002d61]">
+            <div className="bg-[#001e40] px-5 py-3 text-white flex justify-between items-center border-b border-[#002d61]">
               <h3 className="font-sans font-black text-sm uppercase tracking-wider">Tambah Anggota Baru</h3>
               <button 
                 onClick={() => setShowAddModal(false)}
-                className="text-white hover:text-[#feb234] font-bold text-sm cursor-pointer"
+                className="w-11 h-11 -mr-2 flex items-center justify-center text-white hover:text-[#feb234] transition-colors cursor-pointer"
+                aria-label="Tutup"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
             
@@ -380,17 +432,17 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 items-center">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-slate-500 font-bold hover:text-slate-800 cursor-pointer"
+                  className="px-4 py-2.5 min-h-[44px] text-slate-500 font-bold hover:text-slate-800 cursor-pointer"
                 >
                   Batalkan
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-xl font-bold transition cursor-pointer"
+                  className="px-5 py-2.5 min-h-[44px] bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-xl font-bold transition cursor-pointer"
                 >
                   Simpan Anggota
                 </button>
@@ -398,7 +450,8 @@ export default function OrmawaMemberManagement({ ukmId, ukmName }: OrmawaMemberM
 
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

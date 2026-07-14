@@ -1,116 +1,90 @@
-# Dirmawa - Student Affairs Web Portal
+# Dirmawa - Portal Layanan Kemahasiswaan & Alumni Universitas Pelita Bangsa
 
-**Dirmawa** is a modern, high-fidelity, and fully responsive Student Affairs Web Portal designed for **Universitas Pelita Bangsa (UPB)**. The application serves as an integrated platform connecting students, alumni, and university administration (Biro Kemahasiswaan) to manage academic and extracurricular opportunities, accomplishments, and career tracking.
-
----
-
-## 🚀 Key Features
-
-The portal comprises six main functional areas:
-
-1. **Homepage / Dashboard (`HomeView.tsx`)**
-   - High-contrast hero banner featuring dynamic call-to-actions.
-   - Real-time statistics counter tracking 50+ Student Activity Units (UKM), 15k+ Alumni, and 500+ Achievements.
-   - Quick Access Grid linking to key student services (SIPMA Beasiswa, UKM Directory, Alumni Tracer, and Pusat Karir).
-   - News feed for student achievements and academic announcements.
-   - Upcoming Agenda panel tracking campus events (e.g., Job Fairs).
-
-2. **Scholarships Portal (`ScholarshipView.tsx`)**
-   - Category-based filtering (Pemerintah, Internal, Swasta).
-   - Detailed modal view displaying funding amounts, deadlines, benefits, and requirements.
-   - Student application simulator checking pre-requisites.
-
-3. **UKM Directory (`UkmView.tsx`)**
-   - Filterable directory categorized by activity fields (Sports, Arts & Culture, Academic, Social, etc.).
-   - Full profile views outlining vision, mission, weekly schedules, contact personnel, and photo galleries.
-   - Built-in registration form for students to join units directly.
-
-4. **Achievements Board (`AchievementView.tsx`)**
-   - Showcase of student awards at regional, national, and international levels.
-   - Dynamic report form allowing students to submit new achievements for university verification.
-
-5. **Alumni Tracer Study (`AlumniView.tsx`)**
-   - Interactive analytics dashboard visualizing career distribution (Recharts Pie Chart) and graduation trends (Recharts Bar Chart).
-   - Searchable, sortable, and paginated directory table powered by **TanStack Table**.
-   - Robust tracer study questionnaire built with **React Hook Form** and **Zod** to validate and submit career data.
-
-6. **Console Admin Portal (`AdminView.tsx`)**
-   - Secure management dashboard for university administrators.
-   - Full CRUD (Create, Read, Update, Delete) workflows to manage Scholarships, UKMs, Achievements, News, and Alumni records.
-   - Global reactive state updates across the client-side database.
+**Dirmawa** adalah Portal Web Layanan Kemahasiswaan dan Hub Data Alumni modern terintegrasi untuk **Universitas Pelita Bangsa (UPB)**. Sistem ini menghubungkan mahasiswa, pengurus Organisasi Kemahasiswaan (Ormawa/Hima), alumni, dan staf administrasi Dirmawa dalam satu platform digital.
 
 ---
 
-## 🛠️ Technology Stack
+## 🚀 Fitur Utama
 
-- **Framework:** React 19 & TypeScript
-- **Bundler & Build Tool:** Vite (v6.2.3)
-- **Styling:** Tailwind CSS v4 (configured via `@tailwindcss/vite` plugin and `@import "tailwindcss"` in `src/index.css`)
-- **Typography:** Plus Jakarta Sans & Inter (Google Fonts)
-- **Table Operations:** TanStack Table v8 (`@tanstack/react-table`)
-- **Data Visualization:** Recharts (v3.8.1)
-- **State & Form Validation:** React Hook Form & Zod Resolver
-- **Transitions & Animations:** Motion (v12)
-- **Icons:** Lucide React
+Sistem ini terbagi menjadi empat portal utama:
+
+1. **Portal Publik / Beranda (`src/components/`)**
+   - **Layanan Informasi**: Menampilkan berita prestasi mahasiswa, pengumuman akademik, dan agenda kegiatan kampus.
+   - **Portal Beasiswa (`ScholarshipView.tsx`)**: Informasi program beasiswa eksternal, internal, dan pemerintah.
+   - **Direktori UKM (`UkmView.tsx`)**: Informasi profil, jadwal latihan, dan pendaftaran anggota UKM secara langsung.
+   - **Hub Data Alumni & Tracer Study (`AlumniView.tsx`)**: Pratinjau data penyerapan kerja alumni dilengkapi dengan visualisasi analitik grafik (**Recharts**).
+
+2. **Portal Mahasiswa (`src/mahasiswa-dashboard/`)**
+   - Manajemen profil akademik mahasiswa.
+   - Pengajuan pendaftaran ormawa baru dan permohonan rekomendasi beasiswa.
+
+3. **Portal Admin Ormawa / Hima (`src/ormawa-dashboard/`)**
+   - Manajemen keanggotaan dan profil ormawa.
+   - Pengajuan proposal kegiatan dan Laporan Pertanggungjawaban (LPJ) terstruktur.
+
+4. **Portal Admin Dirmawa & Super Admin (`src/admin/`)**
+   - **Kontrol Akses Multi-Peran**: Super Admin dapat menetapkan peran staf ganda secara modular menggunakan sistem badge checklist (seperti *Staf Depan*, *Staf Ormawa*, *Staf Beasiswa*, *Staf Alumni*, atau *Direktur*).
+   - **Mode Baca-Saja (Read-only)**: Akun dengan peran `direktur` (Bu Wening) memiliki hak baca-saja di seluruh portal manajemen untuk memantau data tanpa izin modifikasi.
+   - **Janji Temu Direktur**: Modul penjadwalan pertemuan resmi dengan Direktur Dirmawa, diajukan melalui Staf Depan/Super Admin dan dikelola di dasbor direktur.
+   - **Manajemen Data CRUD**: Pengelolaan data beasiswa, direktori UKM, verifikasi anggota, artikel berita, dan persetujuan antrian akun baru.
 
 ---
 
-## 📁 Project Directory Structure
+## 🛠️ Tech Stack
+
+- **Frontend:** React 19 & TypeScript
+- **Build Tool:** Vite (v6.4.2)
+- **Styling:** Tailwind CSS (dikonfigurasi menggunakan plugin `@tailwindcss/vite`)
+- **Database & Auth:** Supabase (PostgreSQL dengan Row Level Security yang ketat)
+- **Visualisasi Data:** Recharts
+- **Validasi Form:** React Hook Form & Zod
+- **Ikon:** Lucide React
+
+---
+
+## 📁 Struktur Direktori Proyek
 
 ```text
-dirmawa2.0/
-├── docs/                             # Project documentation & plans
-│   ├── superpowers/plans/            # Execution plans
-│   └── version-management.md         # React version update strategy
+viteversion-dirmawa/
+├── supabase/                         # Skema database & file migrasi Supabase
 ├── src/
-│   ├── components/                   # React view components
-│   │   ├── AchievementView.tsx       # Student Achievements Board
-│   │   ├── AdminView.tsx             # Administrative Control Console
-│   │   ├── AlumniView.tsx            # Tracer Study & Alumni Directory
-│   │   ├── Footer.tsx                # Page Footer component
-│   │   ├── HomeView.tsx              # Portal Home & News feed
-│   │   ├── Navbar.tsx                # Navigation Header component
-│   │   ├── ScholarshipView.tsx       # Scholarships Search & Apply
-│   │   └── UkmView.tsx               # Student Activity Units directory
-│   ├── App.tsx                       # Main application shell and state manager
-│   ├── data.ts                       # Realistic Mock data for UPB
-│   ├── index.css                     # Global styles & Tailwind entrypoint
-│   ├── main.tsx                      # Vite React mount point
-│   └── types.ts                      # TypeScript type declarations
-├── index.html                        # HTML entry point
-├── package.json                      # Dependency registry & execution scripts
-├── tsconfig.json                     # TypeScript configurations
-└── vite.config.ts                    # Vite compilation configuration
+│   ├── admin/                        # Portal Admin Dirmawa & Kontrol Akses
+│   │   ├── components/               # Komponen kontrol akses, beasiswa, alumni, janji temu
+│   │   └── types.ts                  # Deklarasi tipe data khusus Admin
+│   ├── mahasiswa-dashboard/          # Portal dasbor pribadi mahasiswa
+│   ├── ormawa-dashboard/             # Portal dasbor untuk pengurus Ormawa/Hima
+│   ├── components/                   # Komponen halaman utama (Landing Page, Beasiswa, UKM, Alumni)
+│   ├── services/                     # Layanan integrasi API Supabase & Auth
+│   ├── types/                        # Deklarasi tipe data global mahasiswa & profil
+│   ├── App.tsx                       # Titik masuk utama aplikasi & router
+│   ├── index.css                     # Gaya CSS global & konfigurasi Tailwind
+│   ├── main.tsx                      # Titik render utama Vite React
+│   └── data.ts                       # Data cadangan statis
+├── SETUP_DIRMAWA_LOCAL.md            # Panduan instalasi dan setup lokal
+├── package.json                      # Berkas dependensi proyek
+└── tsconfig.json                     # Konfigurasi compiler TypeScript
 ```
 
 ---
 
-## 📈 Current Development Progress
+## 🏃 Panduan Memulai Cepat
 
-- [x] **Core UI Layout & Routing:** Implemented standard layout shell using responsive side/header navigation.
-- [x] **All Pages & Interactive Forms:** Fully developed all views with rich client interactions (forms, search filters, modals, tables, and pagination).
-- [x] **Validated Inputs:** Wired React Hook Form with Zod schemas for the tracer study questionnaire and achievements submission.
-- [x] **Visual Analytics:** Integrated Recharts to represent alumni tracer study metrics with a modern visual style.
-- [x] **Admin Management Console:** Full CRUD operational on mock states for real-time reactivity during live demo testing.
-- [x] **Tailwind CSS v4 Integration:** Modernized theme variables using native CSS custom properties inside `index.css`.
-- [x] **React 19 Version Management Strategy:** Successfully migrated to React 19 and established a flexible semantic versioning schema (`^19.0.0`) for dependencies and dev type definitions to receive patch updates safely (documented in [docs/version-management.md](file:///c:/Users/arfia/Documents/Websites/dirmawa2.0/docs/version-management.md)).
+Informasi lengkap mengenai persiapan database lokal (Docker/Supabase CLI), konfigurasi environment variable, dan migrasi database dapat ditemukan pada panduan terpisah di **[SETUP_DIRMAWA_LOCAL.md](file:///home/arfiandastr/Documents/magang/viteversion-dirmawa/SETUP_DIRMAWA_LOCAL.md)**.
 
----
+### Langkah Menjalankan Aplikasi:
 
-## 🏃 Getting Started Locally
-
-1. **Install Dependencies**
+1. **Instal Dependensi**
    ```bash
    npm install
    ```
 
-2. **Run Development Server**
+2. **Jalankan Server Development**
    ```bash
    npm run dev
    ```
-   *The server defaults to port `3000` (`http://localhost:3000`).*
+   *Aplikasi secara default dapat diakses melalui `http://localhost:3000`.*
 
-3. **Build for Production**
+3. **Membangun Aplikasi untuk Produksi**
    ```bash
    npm run build
    ```

@@ -37,7 +37,10 @@ CREATE POLICY "Admins manage all applications" ON public.scholarship_application
     EXISTS (
       SELECT 1 FROM public.users
       WHERE public.users.id = auth.uid()
-      AND public.users.role IN ('administrator', 'superadmin', 'admin')
+      AND (
+        public.users.role IN ('administrator', 'superadmin', 'admin', 'staf_beasiswa', 'direktur')
+        OR public.users.roles && ARRAY['superadmin', 'admin', 'administrator', 'staf_beasiswa', 'direktur']
+      )
     )
   );
 

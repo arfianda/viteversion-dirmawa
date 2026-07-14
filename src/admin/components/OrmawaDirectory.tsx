@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, PlusCircle, Eye, Edit2, Ban, RefreshCw, CheckCircle, Users, Trash2, Upload } from 'lucide-react';
 import { UkmRecord } from '../types';
 
-interface UkmDirectoryProps {
+interface OrmawaDirectoryProps {
   ukms: UkmRecord[];
   onAddUkm: (record: Omit<UkmRecord, 'id' | 'updatedAt'>) => void;
   onUpdateUkmStatus: (id: string, status: 'Active' | 'Inactive') => void;
@@ -19,17 +20,18 @@ const mapCategoryToEnglish = (dbCategory: string): string => {
   if (c.includes('akademik') || c.includes('academic')) return 'Academic';
   if (c.includes('sosial') || c.includes('social')) return 'Social';
   if (c.includes('kerohanian') || c.includes('rohani') || c.includes('relig')) return 'Religious';
+  if (c.includes('himpunan') || c.includes('association')) return 'Himpunan';
   return 'Special Interest';
 };
 
-export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEditUkm, onDeleteUkm, readOnly = false }: UkmDirectoryProps) {
+export default function OrmawaDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEditUkm, onDeleteUkm, readOnly = false }: OrmawaDirectoryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState<UkmRecord | null>(null);
   const [showDetailModal, setShowDetailModal] = useState<UkmRecord | null>(null);
   
-  // Add UKM Form States
+  // Add Ormawa Form States
   const [newName, setNewName] = useState('');
   const [newCat, setNewCat] = useState('Academic');
   const [newType, setNewType] = useState('Academic & Tech');
@@ -37,7 +39,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
   const [newLeader, setNewLeader] = useState('');
   const [newLogoUrl, setNewLogoUrl] = useState('');
 
-  // Edit UKM Form States
+  // Edit Ormawa Form States
   const [editName, setEditName] = useState('');
   const [editCat, setEditCat] = useState('Academic');
   const [editType, setEditType] = useState('Academic & Tech');
@@ -54,7 +56,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
     return matchesSearch && matchesCategory;
   });
 
-  const categories = ['All', 'Sports', 'Arts & Culture', 'Academic', 'Social', 'Religious', 'Special Interest'];
+  const categories = ['All', 'Sports', 'Arts & Culture', 'Academic', 'Social', 'Religious', 'Himpunan', 'Special Interest'];
 
   const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
     const file = e.target.files?.[0];
@@ -145,7 +147,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h2 className="font-sans font-black text-3xl text-[#001e40]">Direktori UKM &amp; Ormawa</h2>
+          <h2 className="font-sans font-black text-3xl text-[#001e40]">Direktori Ormawa</h2>
           <p className="text-sm text-[#43474f] max-w-2xl font-medium mt-1">
             Kelola organisasi kemahasiswaan yang terdaftar, pantau status aktif mereka, dan awasi profil kepemimpinan dalam ekosistem universitas.
           </p>
@@ -156,7 +158,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
             className="bg-[#001e40] hover:bg-[#1f477b] text-white font-bold text-sm px-6 py-3 rounded-xl flex items-center gap-2 transition-colors shadow-sm cursor-pointer whitespace-nowrap"
           >
             <PlusCircle size={18} />
-            Tambah UKM Baru
+            Tambah Ormawa Baru
           </button>
         )}
       </div>
@@ -196,6 +198,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                cat === 'Academic' ? 'Akademik' : 
                cat === 'Social' ? 'Sosial' : 
                cat === 'Religious' ? 'Kerohanian' : 
+               cat === 'Himpunan' ? 'Himpunan' :
                cat === 'Special Interest' ? 'Minat Khusus' : cat}
             </button>
           ))}
@@ -326,20 +329,20 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
           <button className="px-4 py-2 rounded-xl border border-[#c3c6d1] text-[#191c1e] text-xs font-bold hover:bg-[#f2f4f7] disabled:opacity-50 transition-colors" disabled>
             Sebelumnya
           </button>
-          <button className="px-4 py-2 rounded-xl border border-[#c3c6d1] text-[#191c1e] text-xs font-bold hover:bg-[#f2f4f7] transition-colors" onClick={() => alert("Semua UKM saat ini ditampilkan dalam satu halaman.")}>
+          <button className="px-4 py-2 rounded-xl border border-[#c3c6d1] text-[#191c1e] text-xs font-bold hover:bg-[#f2f4f7] transition-colors" onClick={() => alert("Semua Ormawa saat ini ditampilkan dalam satu halaman.")}>
             Selanjutnya
           </button>
         </div>
       </div>
 
-      {/* Add UKM Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {/* Add Ormawa Modal */}
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
-            <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Daftarkan Organisasi Kemahasiswaan Baru (UKM)</h3>
+            <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Daftarkan Organisasi Kemahasiswaan Baru (Ormawa)</h3>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama UKM</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ormawa</label>
                 <input
                   type="text"
                   required
@@ -361,6 +364,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                       else if (e.target.value === 'Arts & Culture') setNewType('Seni & Budaya');
                       else if (e.target.value === 'Social') setNewType('Sosial & Komunitas');
                       else if (e.target.value === 'Religious') setNewType('Kerohanian');
+                      else if (e.target.value === 'Himpunan') setNewType('Himpunan Mahasiswa');
                       else if (e.target.value === 'Special Interest') setNewType('Minat Khusus');
                       else setNewType('Akademik & Teknologi');
                     }}
@@ -371,16 +375,17 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                     <option value="Arts & Culture">Seni &amp; Budaya</option>
                     <option value="Social">Sosial</option>
                     <option value="Religious">Kerohanian</option>
+                    <option value="Himpunan">Himpunan</option>
                     <option value="Special Interest">Minat Khusus</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Subtipe</label>
+                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Tipe / Fokus</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Olahraga &amp; Rekreasi"
+                    placeholder="Contoh: Olahraga Lapangan"
                     value={newType}
                     onChange={(e) => setNewType(e.target.value)}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -389,11 +394,11 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua Organisasi</label>
                 <input
                   type="text"
                   required
-                  placeholder="Nama ketua mahasiswa"
+                  placeholder="Contoh: Budi Santoso"
                   value={newLeader}
                   onChange={(e) => setNewLeader(e.target.value)}
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -427,10 +432,10 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Deskripsi</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Deskripsi Singkat Ormawa</label>
                 <textarea
-                  rows={3}
                   required
+                  rows={2}
                   placeholder="Jelaskan tujuan organisasi, jadwal kegiatan, prestasi..."
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
@@ -450,22 +455,23 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                   type="submit"
                   className="px-5 py-2.5 bg-[#001e40] text-white text-sm font-bold rounded-xl shadow-md cursor-pointer"
                 >
-                  Buat UKM
+                  Buat Ormawa
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Edit UKM Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {/* Edit Ormawa Modal */}
+      {showEditModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left">
-            <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Edit Organisasi Kemahasiswaan (UKM)</h3>
+            <h3 className="font-sans font-bold text-xl text-[#001e40] mb-4">Edit Organisasi Kemahasiswaan (Ormawa)</h3>
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama UKM</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ormawa</label>
                 <input
                   type="text"
                   required
@@ -487,6 +493,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                       else if (e.target.value === 'Arts & Culture') setEditType('Seni & Budaya');
                       else if (e.target.value === 'Social') setEditType('Sosial & Komunitas');
                       else if (e.target.value === 'Religious') setEditType('Kerohanian');
+                      else if (e.target.value === 'Himpunan') setEditType('Himpunan Mahasiswa');
                       else if (e.target.value === 'Special Interest') setEditType('Minat Khusus');
                       else setEditType('Akademik & Teknologi');
                     }}
@@ -497,16 +504,17 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                     <option value="Arts & Culture">Seni &amp; Budaya</option>
                     <option value="Social">Sosial</option>
                     <option value="Religious">Kerohanian</option>
+                    <option value="Himpunan">Himpunan</option>
                     <option value="Special Interest">Minat Khusus</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Subtipe</label>
+                  <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Tipe / Fokus</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Olahraga &amp; Rekreasi"
+                    placeholder="Contoh: Olahraga Lapangan"
                     value={editType}
                     onChange={(e) => setEditType(e.target.value)}
                     className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -515,11 +523,11 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua</label>
+                <label className="block text-xs font-bold text-[#43474f] uppercase tracking-wider mb-1">Nama Ketua Organisasi</label>
                 <input
                   type="text"
                   required
-                  placeholder="Nama ketua mahasiswa"
+                  placeholder="Contoh: Budi Santoso"
                   value={editLeader}
                   onChange={(e) => setEditLeader(e.target.value)}
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#001e40]"
@@ -581,12 +589,13 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Detail Modal */}
-      {showDetailModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in" onClick={() => setShowDetailModal(null)}>
+      {showDetailModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in" onClick={() => setShowDetailModal(null)}>
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-[#c3c6d1]/40 text-left" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-4 mb-4 border-b border-[#eceef1] pb-4">
               <div className="w-16 h-16 rounded-xl bg-[#f2f4f7] border border-[#c3c6d1]/40 flex items-center justify-center overflow-hidden shrink-0">
@@ -603,6 +612,7 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
                    showDetailModal.category === 'Arts & Culture' ? 'Seni & Budaya' :
                    showDetailModal.category === 'Social' ? 'Sosial' :
                    showDetailModal.category === 'Religious' ? 'Kerohanian' :
+                   showDetailModal.category === 'Himpunan' ? 'Himpunan' :
                    showDetailModal.category === 'Special Interest' ? 'Minat Khusus' : showDetailModal.category}
                 </span>
                 <h3 className="font-headline font-bold text-[#001e40] text-lg mt-1">{showDetailModal.name}</h3>
@@ -641,7 +651,8 @@ export default function UkmDirectory({ ukms, onAddUkm, onUpdateUkmStatus, onEdit
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

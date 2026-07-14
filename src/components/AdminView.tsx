@@ -51,7 +51,7 @@ export default function AdminView({
 
   // Achievement form state
   const [achievementForm, setAchievementForm] = React.useState<Partial<Achievement>>({
-    title: '', studentName: '', major: '', level: 'Nasional', rank: '', category: 'Akademik', year: 2024, description: '', image: ''
+    title: '', studentName: '', major: '', level: 'Nasional', rank: '', category: 'Akademik', year: 2024, description: '', image: '', status: 'Menunggu Verifikasi'
   });
 
   // News form state
@@ -75,7 +75,7 @@ export default function AdminView({
     // Reset forms
     setScholarshipForm({ title: '', type: 'pemerintah', provider: '', description: '', fundingAmount: '', registrationDeadline: '', requirements: [''], benefits: [''], bannerImage: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?q=80&w=800&auto=format&fit=crop' });
     setUkmForm({ name: '', category: 'Seni & Budaya', description: '', shortDescription: '', vision: '', mission: [''], schedule: [{ day: 'Senin', time: '16.00', activity: 'Latihan' }], requirements: [''], activeMembers: 10, coverImage: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=800&auto=format&fit=crop', logoImage: '', contacts: [{ role: 'Ketua', name: '', contact: '' }] });
-    setAchievementForm({ title: '', studentName: '', major: 'Teknik Informatika', level: 'Nasional', rank: '', category: 'Akademik', year: 2024, description: '', image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop' });
+    setAchievementForm({ title: '', studentName: '', major: 'Teknik Informatika', level: 'Nasional', rank: '', category: 'Akademik', year: 2024, description: '', image: 'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=300&auto=format&fit=crop', status: 'Menunggu Verifikasi' });
     setNewsForm({ title: '', summary: '', description: '', category: 'Berita', date: '2024-05-22', image: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=300&auto=format&fit=crop' });
     setAlumniForm({ name: '', graduationYear: 2024, major: 'Teknik Informatika', status: 'Bekerja', company: '', position: '' });
   };
@@ -485,6 +485,18 @@ export default function AdminView({
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-800 font-sans text-xs"
                   />
                 </div>
+                <div className="space-y-1">
+                  <label className="text-slate-700 font-bold block">Status Verifikasi</label>
+                  <select
+                    value={achievementForm.status || 'Menunggu Verifikasi'} 
+                    onChange={e => setAchievementForm({ ...achievementForm, status: e.target.value as any })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2 text-slate-805 font-sans text-xs"
+                  >
+                    <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
+                    <option value="Disetujui">Disetujui</option>
+                    <option value="Ditolak">Ditolak</option>
+                  </select>
+                </div>
                 <div className="space-y-1 sm:col-span-2">
                   <label className="text-slate-700 font-bold block">Deskripsi Prestasi</label>
                   <textarea
@@ -689,7 +701,16 @@ export default function AdminView({
                     </td>
                     <td className="px-5 py-4 whitespace-nowrap">
                       <span className="bg-yellow-50 text-[#feb234] border border-yellow-250 px-2.5 py-0.5 rounded font-mono text-[9px] block w-fit mb-1">{item.level}</span>
-                      <span className="text-slate-500 font-sans font-bold text-[10px] block">{item.rank}</span>
+                      <span className="text-slate-500 font-sans font-bold text-[10px] block mb-1">{item.rank}</span>
+                      <span className={`px-2 py-0.5 rounded text-[8px] font-bold border uppercase ${
+                        item.status === 'Disetujui' 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-250' 
+                          : item.status === 'Ditolak'
+                          ? 'bg-red-50 text-red-700 border-red-250'
+                          : 'bg-amber-50 text-amber-700 border-amber-250'
+                      }`}>
+                        {item.status || 'Menunggu Verifikasi'}
+                      </span>
                     </td>
                     <td className="px-5 py-4 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">

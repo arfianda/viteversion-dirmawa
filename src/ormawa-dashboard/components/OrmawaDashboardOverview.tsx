@@ -256,13 +256,12 @@ export default function OrmawaDashboardOverview({ ukmId, ukmName, onNavigate }: 
                     </span>
                   </div>
 
-                  {/* Horizontal Pipeline stepper */}
-                  <div className="pt-2 overflow-x-auto">
+                  {/* Horizontal Pipeline stepper for Desktop & Tablet */}
+                  <div className="pt-2 overflow-x-auto hidden sm:block">
                     <div className="flex items-center min-w-[700px] pb-2 px-1">
                       {steps.map((step, idx) => {
                         const isCompleted = idx < activeIndex;
                         const isCurrent = idx === activeIndex;
-                        const isUpcoming = idx > activeIndex;
 
                         return (
                           <React.Fragment key={idx}>
@@ -296,6 +295,44 @@ export default function OrmawaDashboardOverview({ ukmId, ukmName, onNavigate }: 
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* Vertical Pipeline stepper for Mobile */}
+                  <div className="pt-2 block sm:hidden space-y-4">
+                    {steps.map((step, idx) => {
+                      const isCompleted = idx < activeIndex;
+                      const isCurrent = idx === activeIndex;
+
+                      return (
+                        <div key={idx} className="flex gap-3 items-start relative">
+                          {/* Circle & line wrapper */}
+                          <div className="flex flex-col items-center shrink-0">
+                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-xs transition-all ${
+                              isCompleted 
+                                ? 'bg-[#001e40] border-[#001e40] text-white shadow-sm' 
+                                : isCurrent 
+                                  ? 'bg-[#feb234] border-[#feb234] text-[#001e40] shadow animate-pulse scale-105' 
+                                  : 'bg-white border-slate-200 text-slate-400'
+                            }`}>
+                              {isCompleted ? (
+                                <CheckCircle className="w-4 h-4 text-[#feb234]" />
+                              ) : (
+                                <span>{idx + 1}</span>
+                              )}
+                            </div>
+                            {idx < steps.length - 1 && (
+                              <div className={`w-0.5 h-6 mt-1 bg-slate-250 ${isCompleted ? 'bg-[#001e40]' : ''}`} />
+                            )}
+                          </div>
+                          {/* Label info */}
+                          <div className="pt-1.5 min-w-0">
+                            <p className={`text-xs font-black leading-none ${isCurrent ? 'text-[#001e40]' : 'text-slate-500 font-semibold'}`}>
+                              {step.label}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Info helper about current step holder */}

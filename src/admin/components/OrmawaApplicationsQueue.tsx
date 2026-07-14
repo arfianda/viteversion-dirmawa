@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Check, 
   X, 
@@ -15,9 +16,10 @@ import { OrmawaService, OrmawaApplication } from '../../services/ormawaService';
 
 interface OrmawaApplicationsQueueProps {
   reviewerId: string;
+  onRefresh?: () => void;
 }
 
-export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicationsQueueProps) {
+export default function OrmawaApplicationsQueue({ reviewerId, onRefresh }: OrmawaApplicationsQueueProps) {
   const [applications, setApplications] = useState<OrmawaApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -51,9 +53,12 @@ export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicatio
     setIsProcessing(true);
     try {
       await OrmawaService.reviewApplication(app.id, 'approved', undefined, reviewerId);
-      alert(`Ormawa "${app.name}" disetujui! Akun admin khusus telah digenerate.`);
+      const generatedEmail = `admin.${app.name.toLowerCase().replace(/[^a-z0-9]/g, '')}@upb.ac.id`;
+      const defaultPassword = 'password123';
+      alert(`Ormawa "${app.name}" disetujui!\n\nKredensial Login Admin Ormawa:\nEmail: ${generatedEmail}\nPassword: ${defaultPassword}\n\nSilakan salin dan berikan kredensial ini kepada ketua/perwakilan ormawa.`);
       setSelectedApp(null);
       await fetchApps();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menyetujui pengajuan: ' + e.message);
@@ -74,6 +79,7 @@ export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicatio
       setRejectionReason('');
       setShowRejectForm(false);
       await fetchApps();
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menolak pengajuan: ' + e.message);
@@ -207,7 +213,7 @@ export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicatio
       </section>
 
       {/* Detail Modal Overlay */}
-      {selectedApp && (
+      {selectedApp && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-fade-in text-xs text-slate-700">
             <div className="bg-[#001e40] p-5 text-white flex justify-between items-center border-b border-[#002d61]">
@@ -358,7 +364,8 @@ export default function OrmawaApplicationsQueue({ reviewerId }: OrmawaApplicatio
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

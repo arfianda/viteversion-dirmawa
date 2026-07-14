@@ -22,7 +22,8 @@ import {
   ExternalLink,
   X,
   Trash2,
-  ClipboardList
+  ClipboardList,
+  Trophy
 } from 'lucide-react';
 
 import { UserSession, AlumniRecord, UkmRecord, ScholarshipRecord, NewsArticle, AdminRecord } from './types';
@@ -30,6 +31,7 @@ import { INITIAL_ALUMNI, INITIAL_UKMS, INITIAL_SCHOLARSHIPS, INITIAL_NEWS, INITI
 import { SupabaseService } from '../services/supabaseService';
 import { supabase } from '../services/supabaseClient';
 import { AuthService } from '../services/authService';
+import { BRAND_LOGO } from '../constants/brand';
 
 const generateUUID = () => {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -42,9 +44,11 @@ const generateUUID = () => {
 };
 
 import LoginView from './components/LoginView';
+import AdminOnboarding from './components/AdminOnboarding';
 import DashboardOverview from './components/DashboardOverview';
 import AlumniManagement from './components/AlumniManagement';
-import UkmDirectory from './components/UkmDirectory';
+import AchievementsManagement from './components/AchievementsManagement';
+import OrmawaDirectory from './components/OrmawaDirectory';
 import ScholarshipsManagement from './components/ScholarshipsManagement';
 import NewsEditor from './components/NewsEditor';
 import AdminManagement from './components/AdminManagement';
@@ -72,6 +76,14 @@ export default function AdminPortal() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchGlobalQuery, setSearchGlobalQuery] = useState('');
 
+  const handleBackToHome = () => {
+    sessionStorage.removeItem('pending_portal');
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.hash = '#/home';
+    window.location.href = url.toString();
+  };
+
   // Notifications dropdown
   const [showNotifications, setShowNotifications] = useState(false);
   // Profile dropdown
@@ -86,14 +98,34 @@ export default function AdminPortal() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  const [notifications, setNotifications] = useState([
-    { id: '1', text: 'New Alumni upload spreadsheet parsed successfully.', unread: true },
-    { id: '2', text: 'Critical scholarship "Beasiswa Prestasi Akademik" closes soon!', unread: true },
-    { id: '3', text: 'System-wide SIA database sync triggered successfully.', unread: false }
-  ]);
+  // SSO & Onboarding states
+  const [ssoUser, setSsoUser] = useState<any>(null);
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [onboardingError, setOnboardingError] = useState<string | null>(null);
+  const [isOnboardingLoading, setIsOnboardingLoading] = useState<boolean>(false);
+  const [pendingApprovalMessage, setPendingApprovalMessage] = useState<string | null>(null);
+
+  interface NotificationItem {
+    id: string;
+    text: string;
+    unread: boolean;
+    tab?: string;
+    createdAt: string;
+  }
+
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   // Main interactive state tables
   const [alumni, setAlumni] = useState<AlumniRecord[]>([]);
+  const [achievements, setAchievements] = useState<any[]>([]);
   const [ukms, setUkms] = useState<UkmRecord[]>([]);
   const [scholarships, setScholarships] = useState<ScholarshipRecord[]>([]);
   const [news, setNews] = useState<NewsArticle[]>([]);
@@ -101,50 +133,90 @@ export default function AdminPortal() {
   const [studentsCount, setStudentsCount] = useState<number>(0);
   const [newStudentsCount, setNewStudentsCount] = useState<number>(0);
   const [pendingRegistrationsCount, setPendingRegistrationsCount] = useState<number>(0);
+  const [pendingMemberReportsCount, setPendingMemberReportsCount] = useState<number>(0);
+  const [pendingScholarshipAppsCount, setPendingScholarshipAppsCount] = useState<number>(0);
+  const [pendingOrmawaAppsCount, setPendingOrmawaAppsCount] = useState<number>(0);
+  const [pendingOrmawaPropsCount, setPendingOrmawaPropsCount] = useState<number>(0);
+  const [pendingAdminsCount, setPendingAdminsCount] = useState<number>(0);
   const [alumniCount, setAlumniCount] = useState<number>(0);
   const [verifiedAlumniCount, setVerifiedAlumniCount] = useState<number>(0);
   const [isUnderConstruction, setIsUnderConstruction] = useState<boolean>(false);
+  const [loginLogs, setLoginLogs] = useState<any[]>([]);
+  const [pendingScholarshipApps, setPendingScholarshipApps] = useState<any[]>([]);
+  const [pendingUserApprovals, setPendingUserApprovals] = useState<any[]>([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState<any[]>([]);
   
   // News Editor helper
   const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
 
-  // Load data from Supabase
+  // Load data from Supabase with individual query isolation to prevent one failure from blocking all others
   const loadDbData = async () => {
+    const handleQuery = async (promise: any, fallback: any, label: string) => {
+      try {
+        return await promise;
+      } catch (e) {
+        console.error(`[AdminPortal] Failed to load query "${label}":`, e);
+        return fallback;
+      }
+    };
+
     try {
       const [
         dbNews,
         dbUkms,
         dbScholarships,
         dbAlumni,
+        dbAchievements,
         dbStudentsCount,
         dbNewStudentsCount,
         dbPendingRegistrations,
-        dbAlumniStats
+        dbAlumniStats,
+        mrCountRes,
+        saCountRes,
+        oaCountRes,
+        propCountRes,
+        lpjCountRes,
+        adminCountRes
       ] = await Promise.all([
-        SupabaseService.getAdminNewsArticles(),
-        SupabaseService.getAdminUkmRecords(),
-        SupabaseService.getAdminScholarshipRecords(),
-        SupabaseService.getAdminAlumniRecords(),
-        SupabaseService.getStudentsCount(),
-        SupabaseService.getNewStudentsCountThisMonth(),
-        SupabaseService.getPendingRegistrationsCount(),
-        SupabaseService.getAlumniStats()
+        handleQuery(SupabaseService.getAdminNewsArticles(), [], 'NewsArticles'),
+        handleQuery(SupabaseService.getAdminUkmRecords(), [], 'UkmRecords'),
+        handleQuery(SupabaseService.getAdminScholarshipRecords(), [], 'ScholarshipRecords'),
+        handleQuery(SupabaseService.getAdminAlumniRecords(), [], 'AlumniRecords'),
+        handleQuery(SupabaseService.getAchievements(), [], 'Achievements'),
+        handleQuery(SupabaseService.getStudentsCount(), 0, 'StudentsCount'),
+        handleQuery(SupabaseService.getNewStudentsCountThisMonth(), 0, 'NewStudentsCountThisMonth'),
+        handleQuery(SupabaseService.getPendingRegistrationsCount(), 0, 'PendingRegistrationsCount'),
+        handleQuery(SupabaseService.getAlumniStats(), { total: 0, verified: 0 }, 'AlumniStats'),
+        handleQuery(supabase.from('member_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'), { count: 0 }, 'MemberReportsCount'),
+        handleQuery(supabase.from('scholarship_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'), { count: 0 }, 'ScholarshipAppsCount'),
+        handleQuery(supabase.from('ormawa_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending'), { count: 0 }, 'OrmawaAppsCount'),
+        handleQuery(supabase.from('ormawa_proposals').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'), { count: 0 }, 'OrmawaProposalsCount'),
+        handleQuery(supabase.from('ormawa_lpjs').select('id', { count: 'exact', head: true }).not('status', 'eq', 'completed').not('status', 'eq', 'rejected'), { count: 0 }, 'OrmawaLpjsCount'),
+        handleQuery(supabase.from('users').select('id', { count: 'exact', head: true }).eq('is_approved', false).in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']), { count: 0 }, 'UsersApprovalsCount')
       ]);
+
       setNews(dbNews);
       setUkms(dbUkms);
       setScholarships(dbScholarships);
       setAlumni(dbAlumni);
+      setAchievements(dbAchievements);
       setStudentsCount(dbStudentsCount);
       setNewStudentsCount(dbNewStudentsCount);
       setPendingRegistrationsCount(dbPendingRegistrations);
       setAlumniCount(dbAlumniStats.total);
       setVerifiedAlumniCount(dbAlumniStats.verified);
 
+      setPendingMemberReportsCount(mrCountRes?.count || 0);
+      setPendingScholarshipAppsCount(saCountRes?.count || 0);
+      setPendingOrmawaAppsCount(oaCountRes?.count || 0);
+      setPendingOrmawaPropsCount((propCountRes?.count || 0) + (lpjCountRes?.count || 0));
+      setPendingAdminsCount(adminCountRes?.count || 0);
+
       // Load administrators list from Supabase
       const { data: dbUsers, error: usersError } = await supabase
-        .from('users')
-        .select('id, name, email, role, created_at')
-        .in('role', ['superadmin', 'admin', 'administrator', 'operator']);
+         .from('users')
+         .select('id, name, email, role, roles, is_approved, created_at')
+         .in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']);
       
       if (!usersError && dbUsers) {
         const dbAdmins: AdminRecord[] = dbUsers.map((u: any) => {
@@ -158,12 +230,150 @@ export default function AdminPortal() {
             name: u.name,
             email: u.email,
             role: displayRole,
+            roles: u.roles || [u.role],
+            isApproved: u.is_approved,
             avatarInitials: initials,
             lastActive: u.created_at ? new Date(u.created_at).toLocaleDateString('id-ID') : 'Today'
           };
         });
         setAdmins(dbAdmins);
       }
+
+      // Fetch details for notifications
+      const [
+        regDetails,
+        userDetails,
+        scholarshipDetails,
+        ormawaDetails,
+        proposalDetails,
+        lpjDetails,
+        memberReportDetails
+      ] = await Promise.all([
+        supabase.from('registration_requests').select('id, name, nim, created_at').eq('status', 'pending'),
+        supabase.from('users').select('id, name, role, created_at').eq('is_approved', false).in('role', ['superadmin', 'admin', 'administrator', 'operator', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan']),
+        supabase.from('scholarship_applications').select('id, name, nim, major, gpa, document_url, phone, created_at, scholarships(title)').eq('status', 'pending'),
+        supabase.from('ormawa_applications').select('id, name, leader_name, created_at').eq('status', 'pending'),
+        supabase.from('ormawa_proposals').select('id, title, status, created_at').not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
+        supabase.from('ormawa_lpjs').select('id, title, status, created_at').not('status', 'eq', 'completed').not('status', 'eq', 'rejected'),
+        supabase.from('member_reports').select('id, ukm_id, reported_count, created_at').eq('status', 'pending')
+      ]);
+
+      const regList = regDetails.data || [];
+      const userList = userDetails.data || [];
+      const scholarshipList = scholarshipDetails.data || [];
+      const ormawaList = ormawaDetails.data || [];
+      const proposalList = proposalDetails.data || [];
+      const lpjList = lpjDetails.data || [];
+      const memberReportList = memberReportDetails.data || [];
+
+      setPendingScholarshipApps(scholarshipList);
+      setPendingUserApprovals(userList);
+      setPendingRegistrations(regList);
+
+      let storedReadIds: string[] = [];
+      try {
+        storedReadIds = JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+      } catch {}
+
+      // Build notification items dynamically
+      const activeRoles = session?.roles || [session?.role || ''];
+      const isSuper = activeRoles.includes('superadmin');
+      
+      const allowedTabs: string[] = ['dashboard'];
+      if (activeRoles.includes('staf_beasiswa') || isSuper) {
+        allowedTabs.push('scholarships', 'scholarship-apps');
+      }
+      if (activeRoles.includes('staf_ormawa') || isSuper) {
+        allowedTabs.push('ukm', 'member-reports', 'ormawa-apps', 'ormawa-props');
+      }
+      if (activeRoles.includes('staf_alumni') || isSuper) {
+        allowedTabs.push('alumni');
+      }
+      if (activeRoles.includes('staf_depan') || isSuper) {
+        allowedTabs.push('appointments', 'ukm', 'ormawa-props');
+      }
+      if (isSuper) {
+        allowedTabs.push('settings', 'registrations');
+      }
+
+      const mappedNotifications: NotificationItem[] = [];
+
+      regList.forEach((r: any) => {
+        mappedNotifications.push({
+          id: `reg-${r.id}`,
+          text: `Registrasi Mahasiswa Baru: ${r.name} (${r.nim})`,
+          unread: !storedReadIds.includes(`reg-${r.id}`),
+          tab: 'registrations',
+          createdAt: r.created_at || new Date().toISOString()
+        });
+      });
+
+      userList.forEach((u: any) => {
+        mappedNotifications.push({
+          id: `user-${u.id}`,
+          text: `Persetujuan Staf Baru: ${u.name} (${u.role})`,
+          unread: !storedReadIds.includes(`user-${u.id}`),
+          tab: 'settings',
+          createdAt: u.created_at || new Date().toISOString()
+        });
+      });
+
+      scholarshipList.forEach((sa: any) => {
+        mappedNotifications.push({
+          id: `scholarship-${sa.id}`,
+          text: `Pengajuan Beasiswa: ${sa.name} (${sa.nim})`,
+          unread: !storedReadIds.includes(`scholarship-${sa.id}`),
+          tab: 'scholarship-apps',
+          createdAt: sa.created_at || new Date().toISOString()
+        });
+      });
+
+      ormawaList.forEach((oa: any) => {
+        mappedNotifications.push({
+          id: `ormawa-${oa.id}`,
+          text: `Pengajuan Ormawa Baru: ${oa.name} oleh ${oa.leader_name}`,
+          unread: !storedReadIds.includes(`ormawa-${oa.id}`),
+          tab: 'ormawa-apps',
+          createdAt: oa.created_at || new Date().toISOString()
+        });
+      });
+
+      proposalList.forEach((op: any) => {
+        mappedNotifications.push({
+          id: `proposal-${op.id}`,
+          text: `Proposal Baru: "${op.title}" menunggu review`,
+          unread: !storedReadIds.includes(`proposal-${op.id}`),
+          tab: 'ormawa-props',
+          createdAt: op.created_at || new Date().toISOString()
+        });
+      });
+
+      lpjList.forEach((lpj: any) => {
+        mappedNotifications.push({
+          id: `lpj-${lpj.id}`,
+          text: `LPJ Baru: "${lpj.title}" menunggu review`,
+          unread: !storedReadIds.includes(`lpj-${lpj.id}`),
+          tab: 'ormawa-props',
+          createdAt: lpj.created_at || new Date().toISOString()
+        });
+      });
+
+      memberReportList.forEach((mr: any) => {
+        mappedNotifications.push({
+          id: `member-${mr.id}`,
+          text: `Laporan Anggota UKM Baru (ID: ${mr.ukm_id})`,
+          unread: !storedReadIds.includes(`member-${mr.id}`),
+          tab: 'member-reports',
+          createdAt: mr.created_at || new Date().toISOString()
+        });
+      });
+
+      // Filter by permissions and sort by date descending
+      const filteredAndSorted = mappedNotifications
+        .filter(n => allowedTabs.includes(n.tab || ''))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      setNotifications(filteredAndSorted);
 
       // Load under_construction status from Supabase
       try {
@@ -172,41 +382,298 @@ export default function AdminPortal() {
       } catch (ucErr) {
         console.error("Failed to load under_construction setting:", ucErr);
       }
+
+      // Load login logs from Supabase for Super Admin
+      if (session?.role === 'superadmin') {
+        try {
+          const logs = await SupabaseService.getLoginLogs(100);
+          setLoginLogs(logs);
+        } catch (logErr) {
+          console.error("Failed to load login logs:", logErr);
+        }
+      }
     } catch (err) {
       console.error("AdminPortal failed to load Supabase data, using local mockup fallback:", err);
     }
   };
 
+  // Load database data whenever session changes
   useEffect(() => {
-    loadDbData();
-  }, []);
+    if (session) {
+      console.log("Loading database data for session:", session.username);
+      loadDbData();
+    }
+  }, [session]);
 
-  // Verify Supabase session asynchronously in the background on mount
+  // Verify active Supabase Auth session on mount to prevent local storage desync or missed initial events
   useEffect(() => {
-    async function verifySession() {
-      try {
-        const { data: { session: sbSession } } = await supabase.auth.getSession();
-        if (!sbSession) {
-          handleSignOut();
-          return;
-        }
+    async function verify() {
+      const { data: { session: sbSession } } = await supabase.auth.getSession();
+      if (!sbSession) {
+        console.log("No active Supabase session found. Clearing local storage session...");
+        setSession(null);
+        localStorage.removeItem('upb_affairs_session');
+      } else {
+        console.log("Active Supabase session found on mount. Checking profile...");
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('id, email, name, role, roles, is_approved, avatar_url')
+            .eq('id', sbSession.user.id)
+            .single();
 
-        const { data: profile } = await supabase
-          .from('users')
-          .select('role, roles')
-          .eq('id', sbSession.user.id)
-          .single();
-
-        const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator'];
-        if (!profile || !allowedRoles.includes(profile.role)) {
-          handleSignOut();
+          if (!profileError && profile) {
+            const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator', 'operator'];
+            if (allowedRoles.includes(profile.role) && (profile.is_approved || profile.role === 'superadmin')) {
+              const userSession: UserSession = {
+                id: profile.id,
+                username: profile.email,
+                role: profile.role as any,
+                roles: profile.roles || [profile.role],
+                isApproved: profile.is_approved,
+                name: profile.name,
+                nimOrNip: 'ADMIN-' + profile.id.slice(0, 8),
+                avatarUrl: profile.avatar_url || undefined
+              };
+              console.log("Mount session verification successful. Logging in:", userSession.username);
+              handleLoginSuccess(userSession);
+            }
+          }
+        } catch (err) {
+          console.error("Failed to verify mount session profile:", err);
         }
-      } catch (err) {
-        console.error("Session verification failed:", err);
       }
     }
-    verifySession();
+    verify();
   }, []);
+
+  useEffect(() => {
+    // Set up real-time postgres subscriptions to refresh dashboard stats and notifications on database changes
+    const channel = supabase
+      .channel('admin-dashboard-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'registration_requests' }, () => {
+        console.log('Realtime change in registration_requests');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        console.log('Realtime change in users');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'scholarship_applications' }, () => {
+        console.log('Realtime change in scholarship_applications');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ormawa_applications' }, () => {
+        console.log('Realtime change in ormawa_applications');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ormawa_proposals' }, () => {
+        console.log('Realtime change in ormawa_proposals');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ormawa_lpjs' }, () => {
+        console.log('Realtime change in ormawa_lpjs');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'member_reports' }, () => {
+        console.log('Realtime change in member_reports');
+        loadDbData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'login_logs' }, () => {
+        console.log('Realtime change in login_logs');
+        loadDbData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Monitor auth state changes dynamically
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, sbSession) => {
+      console.log("Auth state change in AdminPortal:", event, sbSession?.user?.email);
+      
+      if (event === 'SIGNED_IN' && sbSession?.user) {
+        // Fetch profile
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('users')
+            .select('id, email, name, role, roles, is_approved, avatar_url')
+            .eq('id', sbSession.user.id)
+            .single();
+
+          if (profileError || !profile) {
+            // Profile does not exist yet!
+            const email = sbSession.user.email || '';
+            
+            // Check if it's the owner/Super Admin
+            if (email === 'arfiandafirsta@gmail.com') {
+              console.log("Auto-provisioning Super Admin:", email);
+              const { error: insertError } = await supabase
+                .from('users')
+                .insert({
+                  id: sbSession.user.id,
+                  email: email,
+                  name: sbSession.user.user_metadata?.name || 'Arfianda',
+                  role: 'superadmin',
+                  roles: ['superadmin'],
+                  is_approved: true
+                });
+
+               if (insertError) {
+                 console.error("Failed to auto-provision Super Admin:", insertError);
+                 setPendingApprovalMessage("Gagal membuat profil Super Admin: " + insertError.message);
+                 return;
+               }
+
+               // Sync JWT metadata for Super Admin
+               console.log("Syncing Super Admin JWT metadata...");
+               const { error: updateError } = await supabase.auth.updateUser({
+                 data: {
+                   role: 'superadmin',
+                   roles: ['superadmin']
+                 }
+               });
+               if (!updateError) {
+                 console.log("Refreshing session for Super Admin...");
+                 await supabase.auth.refreshSession();
+               }
+
+               // Set active session
+              const userSession: UserSession = {
+                id: sbSession.user.id,
+                username: email,
+                role: 'superadmin',
+                roles: ['superadmin'],
+                isApproved: true,
+                name: sbSession.user.user_metadata?.name || 'Arfianda',
+                nimOrNip: 'ADMIN-' + sbSession.user.id.slice(0, 8),
+                avatarUrl: sbSession.user.user_metadata?.avatar_url
+              };
+              handleLoginSuccess(userSession);
+            } else {
+              // Not Super Admin, show Onboarding Form
+              setSsoUser(sbSession.user);
+              setShowOnboarding(true);
+            }
+          } else {
+            // Profile exists!
+            const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator', 'operator'];
+            
+            if (!allowedRoles.includes(profile.role)) {
+              setPendingApprovalMessage("Akses ditolak. Peran Anda (" + profile.role + ") tidak memiliki akses Admin.");
+              await supabase.auth.signOut();
+              return;
+            }
+
+            if (!profile.is_approved && profile.role !== 'superadmin') {
+              setPendingApprovalMessage("Akun Anda belum disetujui oleh Super Admin. Silakan hubungi admin utama untuk aktivasi.");
+              return;
+            }
+
+            // Synchronize JWT metadata with the database profile if they are out of sync
+            const currentMetadataRole = sbSession.user.user_metadata?.role;
+            const currentMetadataRoles = sbSession.user.user_metadata?.roles;
+            const hasCorrectRoles = currentMetadataRoles && 
+              currentMetadataRoles.length === profile.roles?.length && 
+              currentMetadataRoles.every((r: string) => profile.roles.includes(r));
+
+            if (currentMetadataRole !== profile.role || !hasCorrectRoles) {
+              console.log("Synchronizing user auth metadata with database profile...");
+              const { error: updateError } = await supabase.auth.updateUser({
+                data: {
+                  role: profile.role,
+                  roles: profile.roles
+                }
+              });
+              if (!updateError) {
+                console.log("Refreshing session to obtain new JWT token...");
+                await supabase.auth.refreshSession();
+              }
+            }
+
+            // Approved and allowed, set active session
+            const userSession: UserSession = {
+              id: profile.id,
+              username: profile.email,
+              role: profile.role === 'superadmin' ? 'superadmin' : 'admin',
+              roles: profile.roles || [profile.role],
+              isApproved: profile.is_approved,
+              name: profile.name,
+              nimOrNip: 'ADMIN-' + profile.id.slice(0, 8),
+              avatarUrl: profile.avatar_url || undefined
+            };
+            handleLoginSuccess(userSession);
+          }
+        } catch (e: any) {
+          console.error("Error processing sign in:", e);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setSession(null);
+        setSsoUser(null);
+        setShowOnboarding(false);
+        setPendingApprovalMessage(null);
+        localStorage.removeItem('upb_affairs_session');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleOnboardingSubmit = async (name: string, roles: string[]) => {
+    if (!ssoUser) return;
+    setIsOnboardingLoading(true);
+    setOnboardingError(null);
+    try {
+      const primaryRole = roles.includes('superadmin') ? 'superadmin' : roles[0] || 'staf_depan';
+      
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: ssoUser.id,
+          email: ssoUser.email,
+          name: name,
+          role: primaryRole,
+          roles: roles,
+          is_approved: false
+        });
+
+      if (insertError) {
+        throw insertError;
+      }
+
+      // Sync JWT metadata for the newly registered staff
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          role: primaryRole,
+          roles: roles
+        }
+      });
+      if (!updateError) {
+        console.log("Refreshing session for onboarded staff...");
+        await supabase.auth.refreshSession();
+      }
+
+      setShowOnboarding(false);
+      setPendingApprovalMessage("Pendaftaran akun berhasil diajukan! Silakan hubungi Super Admin untuk menyetujui akun Anda.");
+    } catch (err: any) {
+      console.error("Onboarding submission failed:", err);
+      setOnboardingError(err.message || "Gagal menyimpan data diri. Silakan coba lagi.");
+    } finally {
+      setIsOnboardingLoading(false);
+    }
+  };
+
+  const handleOnboardingSignOut = async () => {
+    await supabase.auth.signOut();
+    setShowOnboarding(false);
+    setSsoUser(null);
+    setPendingApprovalMessage(null);
+  };
 
   // Click outside handler to dismiss dropdown menus and avoid flickering during native confirm dialogs
   useEffect(() => {
@@ -233,11 +700,29 @@ export default function AdminPortal() {
     setSession(userSession);
     setActiveTab('dashboard');
     localStorage.setItem('upb_affairs_session', JSON.stringify(userSession));
+    sessionStorage.removeItem('pending_portal');
+    
+    if (!sessionStorage.getItem('login_logged')) {
+      SupabaseService.logLogin(userSession.username, userSession.role, 'success', userSession.id);
+      sessionStorage.setItem('login_logged', 'true');
+    }
+    
+    // Clean up query params from URL to prevent infinite loading/redirects
+    if (window.location.search.includes('portal=admin')) {
+      const cleanUrl = window.location.pathname + '#/admin';
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
     setSession(null);
     localStorage.removeItem('upb_affairs_session');
+    sessionStorage.removeItem('pending_portal');
+    
+    // Clear search and hash to return to public landing page
+    window.location.search = '';
+    window.location.hash = '';
   };
 
   const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -488,6 +973,36 @@ export default function AdminPortal() {
     }
   };
 
+  const handleUpdateAchievementStatus = async (id: string, status: 'Disetujui' | 'Ditolak') => {
+    try {
+      const { error } = await supabase
+        .from('achievements')
+        .update({ status })
+        .eq('id', id);
+      if (error) throw error;
+      
+      setAchievements(achievements.map(a => a.id === id ? { ...a, status } : a));
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal memperbarui status prestasi: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleDeleteAchievement = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('achievements')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      
+      setAchievements(achievements.filter(a => a.id !== id));
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menghapus prestasi: ' + (err.message || String(err)));
+    }
+  };
+
   const handleAddAdmin = async (newAdmin: Omit<AdminRecord, 'id' | 'avatarInitials' | 'lastActive'>) => {
     if (!session) return;
     try {
@@ -567,6 +1082,68 @@ export default function AdminPortal() {
     }
   };
 
+  const handleUpdateAdminApproval = async (id: string, isApproved: boolean) => {
+    if (!session) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_approved: isApproved })
+        .eq('id', id);
+      if (error) throw error;
+      setAdmins(admins.map(item => item.id === id ? { ...item, isApproved } : item));
+      setPendingAdminsCount(prev => isApproved ? Math.max(0, prev - 1) : prev + 1);
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal memperbarui status persetujuan admin: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleApproveScholarshipDirect = async (id: string) => {
+    try {
+      await SupabaseService.updateScholarshipApplicationStatus(id, 'approved');
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menyetujui beasiswa: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleRejectScholarshipDirect = async (id: string, reason: string) => {
+    try {
+      await SupabaseService.updateScholarshipApplicationStatus(id, 'rejected', reason);
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menolak beasiswa: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleApproveRegistrationDirect = async (id: string) => {
+    if (!session) return;
+    try {
+      await SupabaseService.approveRegistrationRequest(id, session.id);
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menyetujui registrasi mahasiswa: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleApproveUserDirect = async (id: string) => {
+    if (!session) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ is_approved: true })
+        .eq('id', id);
+      if (error) throw error;
+      await loadDbData();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menyetujui akun staf/admin: ' + (err.message || String(err)));
+    }
+  };
+
   // Dynamic quick creation from Sidebar Header
   const handleCreateNewClick = () => {
     if (activeTab === 'alumni') {
@@ -617,6 +1194,7 @@ export default function AdminPortal() {
     { id: 'dashboard', label: 'Dasbor', icon: LayoutDashboard },
     { id: 'news', label: 'Berita & Pengumuman', icon: Newspaper },
     { id: 'alumni', label: 'Hub Data Alumni', icon: Award },
+    { id: 'achievements', label: 'Verifikasi Prestasi', icon: Trophy },
     { id: 'ukm', label: 'UKM & Ormawa', icon: Users },
     { id: 'member-reports', label: 'Verifikasi Anggota', icon: ClipboardList },
     { id: 'scholarships', label: 'Portal Beasiswa', icon: BookOpen },
@@ -624,8 +1202,8 @@ export default function AdminPortal() {
     { id: 'ormawa-apps', label: 'Antrian Pengajuan Ormawa', icon: UserPlus },
     { id: 'ormawa-props', label: 'Proposal & LPJ Ormawa', icon: Newspaper },
     { id: 'appointments', label: 'Janji Temu Direktur', icon: Calendar },
-    { id: 'settings', label: 'Kontrol Akses', icon: Shield },
-    { id: 'registrations', label: 'Registrasi Staf/Admin', icon: UserPlus },
+    { id: 'settings', label: 'Kontrol Akses & Staf', icon: Shield },
+    { id: 'registrations', label: 'Registrasi Mahasiswa', icon: UserPlus },
   ];
 
   const visibleNavItems = NAVIGATION_ITEMS.filter(item => {
@@ -642,8 +1220,8 @@ export default function AdminPortal() {
     }
 
     if (rolesList.includes('direktur')) {
-      // Direktur sees news, alumni, ukm, scholarships, and appointments
-      return ['dashboard', 'news', 'alumni', 'ukm', 'scholarships', 'appointments'].includes(item.id);
+      // Direktur sees news, alumni, ukm, scholarships, achievements, and appointments
+      return ['dashboard', 'news', 'alumni', 'achievements', 'ukm', 'scholarships', 'appointments'].includes(item.id);
     }
 
     // Otherwise check specific staff roles
@@ -652,19 +1230,71 @@ export default function AdminPortal() {
       allowedTabs.push('scholarships', 'scholarship-apps');
     }
     if (rolesList.includes('staf_ormawa')) {
-      allowedTabs.push('ukm', 'member-reports', 'ormawa-apps', 'ormawa-props');
+      allowedTabs.push('ukm', 'member-reports', 'ormawa-apps', 'ormawa-props', 'news');
     }
     if (rolesList.includes('staf_alumni')) {
-      allowedTabs.push('alumni');
+      allowedTabs.push('alumni', 'achievements');
     }
     if (rolesList.includes('staf_depan')) {
-      allowedTabs.push('appointments', 'ukm', 'ormawa-props');
+      allowedTabs.push('appointments', 'ukm', 'ormawa-props', 'news');
     }
 
     return allowedTabs.includes(item.id);
   });
 
+  if (pendingApprovalMessage) {
+    return (
+      <div className="min-h-screen bg-[#f7f9fc] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans text-[#191c1e] w-full">
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex items-center justify-center">
+          <div className="w-[800px] h-[800px] rounded-full bg-[#001e40]/5 blur-3xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"></div>
+        </div>
+
+        <main className="w-full max-w-[440px] z-10 flex flex-col items-center animate-fade-in">
+          <div className="w-full bg-white rounded-2xl shadow-xl shadow-[#001e40]/5 border border-[#c3c6d1]/30 p-8 flex flex-col gap-6">
+            <div className="flex flex-col items-center text-center gap-2 mb-2">
+              <div className="w-16 h-16 rounded-xl bg-[#f2f4f7] flex items-center justify-center mb-1 overflow-hidden border border-[#c3c6d1]/30">
+                <img
+                  alt="UPB Logo"
+                  className="w-full h-full object-cover"
+                  src={BRAND_LOGO}
+                />
+              </div>
+              <h1 className="font-headline font-bold text-xl text-[#001e40] leading-snug">
+                Status Pengajuan Akses
+              </h1>
+              <p className="font-semibold text-xs text-[#001e40] uppercase tracking-widest bg-[#001e40]/5 px-3 py-1 rounded-full">
+                Persetujuan Staf
+              </p>
+            </div>
+
+            <div className="bg-amber-50 text-amber-800 text-sm p-4 rounded-xl border border-amber-200 text-center font-medium leading-relaxed">
+              {pendingApprovalMessage}
+            </div>
+
+            <button
+              onClick={handleOnboardingSignOut}
+              className="w-full bg-[#001e40] hover:bg-[#1f477b] text-white font-semibold text-sm rounded-xl py-3.5 transition-colors shadow-lg shadow-[#001e40]/10 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              Kembali ke Login
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   if (!session) {
+    if (showOnboarding && ssoUser) {
+      return (
+        <AdminOnboarding
+          email={ssoUser.email || ''}
+          onSubmit={handleOnboardingSubmit}
+          onSignOut={handleOnboardingSignOut}
+          isLoading={isOnboardingLoading}
+          error={onboardingError}
+        />
+      );
+    }
     return <LoginView onLoginSuccess={handleLoginSuccess} />;
   }
 
@@ -685,6 +1315,14 @@ export default function AdminPortal() {
             alumniCount={alumniCount}
             verifiedAlumniCount={verifiedAlumniCount}
             news={news}
+            userRoles={session.roles || [session.role]}
+            pendingScholarships={pendingScholarshipApps}
+            pendingRegistrations={pendingRegistrations}
+            pendingUserApprovals={pendingUserApprovals}
+            onApproveScholarship={handleApproveScholarshipDirect}
+            onRejectScholarship={handleRejectScholarshipDirect}
+            onApproveRegistration={handleApproveRegistrationDirect}
+            onApproveUser={handleApproveUserDirect}
             onNavigate={(tab) => setActiveTab(tab)}
             onQuickAction={handleQuickAction}
           />
@@ -699,9 +1337,17 @@ export default function AdminPortal() {
             readOnly={isReadOnly}
           />
         );
+      case 'achievements':
+        return (
+          <AchievementsManagement
+            achievements={achievements}
+            onUpdateStatus={handleUpdateAchievementStatus}
+            onDeleteAchievement={handleDeleteAchievement}
+          />
+        );
       case 'ukm':
         return (
-          <UkmDirectory
+          <OrmawaDirectory
             ukms={ukms}
             onAddUkm={handleAddUkm}
             onUpdateUkmStatus={handleUpdateUkmStatus}
@@ -817,6 +1463,7 @@ export default function AdminPortal() {
             onRemoveAdmin={handleRemoveAdmin}
             onUpdateAdminRole={handleUpdateAdminRole}
             onUpdateAdminRoles={handleUpdateAdminRoles}
+            onUpdateAdminApproval={handleUpdateAdminApproval}
           />
         );
       case 'appointments':
@@ -824,54 +1471,114 @@ export default function AdminPortal() {
       case 'registrations':
         return <RegistrationQueue onRefresh={loadDbData} />;
       case 'ormawa-apps':
-        return <OrmawaApplicationsQueue reviewerId={session.id} />;
+        return <OrmawaApplicationsQueue reviewerId={session.id} onRefresh={loadDbData} />;
       case 'ormawa-props':
-        return <OrmawaProposalsQueue />;
+        return <OrmawaProposalsQueue onRefresh={loadDbData} />;
       case 'scholarship-apps':
-        return <ScholarshipApplicationsQueue />;
+        return <ScholarshipApplicationsQueue onRefresh={loadDbData} />;
       case 'member-reports':
-        return <MemberReportsQueue />;
+        return <MemberReportsQueue onRefresh={loadDbData} />;
       case 'system-control':
         return (
-          <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6 shadow-sm max-w-2xl font-sans text-left">
-            <div>
-              <h2 className="font-sans font-black text-2xl text-[#001e40]">System Control Panel</h2>
-              <p className="text-xs text-[#737780] font-semibold mt-1">
-                Kelola status global website dan konfigurasi sistem kemahasiswaan Universitas Pelita Bangsa.
-              </p>
+          <div className="space-y-6 max-w-4xl font-sans text-left">
+            <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-6 shadow-sm">
+              <div>
+                <h2 className="font-sans font-black text-2xl text-[#001e40]">System Control Panel</h2>
+                <p className="text-xs text-[#737780] font-semibold mt-1">
+                  Kelola status global website dan konfigurasi sistem kemahasiswaan Universitas Pelita Bangsa.
+                </p>
+              </div>
+
+              <div className="border-t border-[#eceef1] pt-6 space-y-6">
+                {/* Under Construction Toggle */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#f2f4f7]/40 border border-slate-200/60 p-5 rounded-2xl">
+                  <div className="space-y-1">
+                    <span className="text-sm font-bold text-slate-800 block">Mode Perbaikan (Under Construction)</span>
+                    <p className="text-xs text-slate-500 max-w-md font-semibold leading-relaxed">
+                      Bila diaktifkan, pengunjung umum akan diarahkan ke halaman Under Construction. Admin tetap dapat mengakses Admin Portal untuk mengelola data.
+                    </p>
+                  </div>
+                  
+                  {/* Custom Toggle Switch */}
+                  <button
+                    onClick={async () => {
+                      const nextVal = !isUnderConstruction;
+                      try {
+                        await SupabaseService.setSystemSetting('under_construction', nextVal ? 'true' : 'false');
+                        setIsUnderConstruction(nextVal);
+                      } catch (e: any) {
+                        alert('Gagal memperbarui status: ' + (e.message || e));
+                      }
+                    }}
+                    className={`w-14 h-8 rounded-full transition-colors flex items-center p-1 cursor-pointer shrink-0 ${
+                      isUnderConstruction ? 'bg-[#feb234]' : 'bg-slate-300'
+                    }`}
+                  >
+                    <div
+                      className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${
+                        isUnderConstruction ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="border-t border-[#eceef1] pt-6 space-y-6">
-              {/* Under Construction Toggle */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-[#f2f4f7]/40 border border-slate-200/60 p-5 rounded-2xl">
-                <div className="space-y-1">
-                  <span className="text-sm font-bold text-slate-800 block">Mode Perbaikan (Under Construction)</span>
-                  <p className="text-xs text-slate-500 max-w-md font-semibold leading-relaxed">
-                    Bila diaktifkan, pengunjung umum akan diarahkan ke halaman Under Construction. Admin tetap dapat mengakses Admin Portal untuk mengelola data.
-                  </p>
-                </div>
-                
-                {/* Custom Toggle Switch */}
-                <button
-                  onClick={async () => {
-                    const nextVal = !isUnderConstruction;
-                    try {
-                      await SupabaseService.setSystemSetting('under_construction', nextVal ? 'true' : 'false');
-                      setIsUnderConstruction(nextVal);
-                    } catch (e: any) {
-                      alert('Gagal memperbarui status: ' + (e.message || e));
-                    }
-                  }}
-                  className={`w-14 h-8 rounded-full transition-colors flex items-center p-1 cursor-pointer shrink-0 ${
-                    isUnderConstruction ? 'bg-[#feb234]' : 'bg-slate-300'
-                  }`}
-                >
-                  <div
-                    className={`w-6 h-6 rounded-full bg-white shadow-md transform transition-transform ${
-                      isUnderConstruction ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
+            {/* Login Logs Panel */}
+            <div className="bg-white rounded-2xl border border-slate-200/60 p-6 space-y-4 shadow-sm">
+              <div>
+                <h3 className="font-sans font-black text-lg text-[#001e40]">Log Aktivitas Login</h3>
+                <p className="text-xs text-[#737780] font-semibold mt-1">
+                  Audit log login pengguna ke website (maksimum 100 aktivitas terbaru).
+                </p>
+              </div>
+
+              <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                <table className="w-full text-left font-sans text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 text-slate-500 font-black uppercase tracking-wider border-b border-slate-200 text-[10px]">
+                      <th className="px-4 py-3 pl-5">Email</th>
+                      <th className="px-4 py-3">Peran</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">User Agent</th>
+                      <th className="px-4 py-3 pr-5">Waktu</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {loginLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3 pl-5 font-semibold text-slate-800">{log.email}</td>
+                        <td className="px-4 py-3 font-semibold text-slate-600 uppercase text-[10px]">{log.role}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                            log.status === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                          }`}>
+                            {log.status === 'success' ? 'Berhasil' : 'Gagal'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 max-w-[250px] truncate" title={log.user_agent}>
+                          {log.user_agent || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 pr-5">
+                          {new Date(log.created_at).toLocaleString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                    {loginLogs.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400 font-medium">
+                          Belum ada log login tercatat.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -881,7 +1588,27 @@ export default function AdminPortal() {
     }
   };
 
+  const getItemBadgeCount = (itemId: string) => {
+    switch (itemId) {
+      case 'registrations':
+        return pendingRegistrationsCount;
+      case 'member-reports':
+        return pendingMemberReportsCount;
+      case 'scholarship-apps':
+        return pendingScholarshipAppsCount;
+      case 'ormawa-apps':
+        return pendingOrmawaAppsCount;
+      case 'ormawa-props':
+        return pendingOrmawaPropsCount;
+      case 'settings':
+        return pendingAdminsCount;
+      default:
+        return 0;
+    }
+  };
+
   const unreadNotificationCount = notifications.filter(n => n.unread).length;
+  const totalNotificationsCount = unreadNotificationCount;
 
   return (
     <div className="min-h-screen bg-[#f7f9fc] text-[#191c1e] font-sans flex relative overflow-x-hidden w-full">
@@ -894,7 +1621,7 @@ export default function AdminPortal() {
           <img
             alt="Universitas Pelita Bangsa Logo"
             className="w-10 h-10 rounded-full bg-white p-1"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA53r5C5uZeYiR8TGIWbzuUSXAUlfE6L70SCfAA8cV-XGHpZBTcig38onXkxohVqxK77Madf71cV0BRf9LP2QezTiwjuxJqltB1Q1WlVI9_A8-IB_tb1v4F2bmfQVfF36nplyaXmd5Msv3BJTZ3Q6NpIhgee-2Zz4NudZm12Sn6ttF_oPYa6fnG7P8bsFWTDmRQ_WV8dGGfR4DoyqKBKiAtdye8SrDpNT6mYLk18hDlt65ezFR25ZP8zmx0KmWJacqfh6sibMRea3Y"
+            src={BRAND_LOGO}
           />
           <div>
             <h1 className="font-headline font-bold text-white text-sm leading-tight leading-none truncate max-w-[140px]">
@@ -936,11 +1663,11 @@ export default function AdminPortal() {
               >
                 <Icon size={16} className={isActive ? 'text-[#291800]' : 'text-white/60'} />
                 <span className="flex-1">{item.label}</span>
-                {item.id === 'registrations' && pendingRegistrationsCount > 0 && (
+                {getItemBadgeCount(item.id) > 0 && (
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
                     isActive ? 'bg-[#291800] text-[#feb234]' : 'bg-red-500 text-white'
                   }`}>
-                    {pendingRegistrationsCount}
+                    {getItemBadgeCount(item.id)}
                   </span>
                 )}
               </button>
@@ -965,7 +1692,7 @@ export default function AdminPortal() {
             </button>
           )}
           <button
-            onClick={() => { window.location.hash = ''; }}
+            onClick={handleBackToHome}
             className="text-white/70 hover:text-white flex items-center gap-3 px-4 py-2 text-xs font-bold transition-colors cursor-pointer"
           >
             <ExternalLink size={16} />
@@ -985,7 +1712,7 @@ export default function AdminPortal() {
       <div className="flex-1 md:ml-64 flex flex-col min-h-screen w-full relative">
         
         {/* TopNavBar Header Component */}
-        <header className="bg-white text-[#001e40] border-b border-[#c3c6d1]/40 shadow-sm fixed top-0 right-0 left-0 md:left-64 h-16 px-6 flex justify-between items-center z-50">
+        <header className="bg-white text-[#001e40] border-b border-[#c3c6d1]/40 shadow-sm fixed top-0 right-0 left-0 md:left-64 h-16 px-4 md:px-6 flex justify-between items-center z-50">
           
           {/* Brand/Hamburger toggle on Mobile */}
           <div className="flex items-center gap-3">
@@ -1024,8 +1751,10 @@ export default function AdminPortal() {
                 title="Notifications"
               >
                 <Bell size={18} />
-                {unreadNotificationCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-white"></span>
+                {totalNotificationsCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1.5 bg-red-600 rounded-full border border-white flex items-center justify-center text-[8px] font-black text-white leading-none">
+                    {totalNotificationsCount}
+                  </span>
                 )}
               </button>
 
@@ -1038,18 +1767,63 @@ export default function AdminPortal() {
                   <div className="flex justify-between items-center border-b border-[#eceef1] pb-2 mb-2">
                     <span className="text-xs font-bold text-[#001e40]">Campus Alerts</span>
                     <button
-                      onClick={() => setNotifications(notifications.map(n => ({ ...n, unread: false })))}
+                      onClick={() => {
+                        let currentReadIds: string[] = [];
+                        try {
+                          currentReadIds = JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+                        } catch {}
+                        
+                        const allIds = notifications.map(n => n.id);
+                        const newReadIds = Array.from(new Set([...currentReadIds, ...allIds]));
+                        localStorage.setItem('admin_read_notifications', JSON.stringify(newReadIds));
+                        setReadNotificationIds(newReadIds);
+                        
+                        setNotifications(prev => prev.map(item => ({ ...item, unread: false })));
+                      }}
                       className="text-[10px] font-semibold text-[#737780] hover:underline cursor-pointer"
                     >
                       Clear All
                     </button>
                   </div>
                   <div className="space-y-2 max-h-[220px] overflow-y-auto">
-                    {notifications.map(n => (
-                      <div key={n.id} className={`p-2 rounded-xl text-xs font-medium leading-normal border ${n.unread ? 'bg-slate-50 border-[#feb234]/15 font-semibold' : 'text-[#737780] border-transparent'}`}>
-                        {n.text}
+                    {notifications.length === 0 ? (
+                      <div className="text-center py-6 text-xs text-[#737780] font-medium">
+                        Tidak ada notifikasi baru.
                       </div>
-                    ))}
+                    ) : (
+                      notifications.map(n => (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (n.unread) {
+                              let currentReadIds: string[] = [];
+                              try {
+                                currentReadIds = JSON.parse(localStorage.getItem('admin_read_notifications') || '[]');
+                              } catch {}
+                              
+                              if (!currentReadIds.includes(n.id)) {
+                                const newReadIds = [...currentReadIds, n.id];
+                                localStorage.setItem('admin_read_notifications', JSON.stringify(newReadIds));
+                                setReadNotificationIds(newReadIds);
+                                
+                                setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, unread: false } : item));
+                              }
+                            }
+                            if (n.tab) {
+                              setActiveTab(n.tab);
+                            }
+                            setShowNotifications(false);
+                          }}
+                          className={`p-2 rounded-xl text-xs font-medium leading-normal border transition-colors cursor-pointer hover:bg-slate-100/80 ${
+                            n.unread
+                              ? 'bg-slate-50 border-[#feb234]/15 font-semibold text-[#191c1e]'
+                              : 'text-[#737780] border-transparent'
+                          }`}
+                        >
+                          {n.text}
+                        </div>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
@@ -1058,21 +1832,21 @@ export default function AdminPortal() {
             {/* Help Support button */}
             <button
               onClick={() => alert("Student Affairs Knowledge Base: Access system guidelines in directory.")}
-              className="text-[#43474f] hover:bg-[#eceef1] rounded-full p-2 transition-all cursor-pointer"
+              className="hidden md:block text-[#43474f] hover:bg-[#eceef1] rounded-full p-2 transition-all cursor-pointer"
               title="Help center"
             >
               <HelpCircle size={18} />
             </button>
 
             {/* Profile trigger block */}
-            <div className="pl-4 border-l border-[#c3c6d1]/40 flex items-center gap-3 relative">
+            <div className="pl-3 md:pl-4 border-l border-[#c3c6d1]/40 flex items-center gap-3 relative shrink-0">
               <button 
                 id="profile-menu-button"
                 onClick={() => {
                   setShowProfileMenu(!showProfileMenu);
                   setShowNotifications(false); // Close notifications if open
                 }}
-                className="flex items-center gap-3 hover:opacity-80 transition-opacity focus:outline-none cursor-pointer text-left"
+                className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity focus:outline-none cursor-pointer text-left shrink-0"
               >
                 <div className="hidden lg:block text-right">
                   <p className="text-xs font-bold text-[#191c1e]">{session.name}</p>
@@ -1164,7 +1938,7 @@ export default function AdminPortal() {
                 <img
                   alt="UPB Logo"
                   className="w-8 h-8 rounded-full bg-white p-1"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuA53r5C5uZeYiR8TGIWbzuUSXAUlfE6L70SCfAA8cV-XGHpZBTcig38onXkxohVqxK77Madf71cV0BRf9LP2QezTiwjuxJqltB1Q1WlVI9_A8-IB_tb1v4F2bmfQVfF36nplyaXmd5Msv3BJTZ3Q6NpIhgee-2Zz4NudZm12Sn6ttF_oPYa6fnG7P8bsFWTDmRQ_WV8dGGfR4DoyqKBKiAtdye8SrDpNT6mYLk18hDlt65ezFR25ZP8zmx0KmWJacqfh6sibMRea3Y"
+                  src={BRAND_LOGO}
                 />
                 <div>
                   <h4 className="font-headline font-bold text-sm">DIRMAWA Admin Portal</h4>
@@ -1191,11 +1965,11 @@ export default function AdminPortal() {
                     >
                       <Icon size={16} />
                       <span className="flex-1">{item.label}</span>
-                      {item.id === 'registrations' && pendingRegistrationsCount > 0 && (
+                      {getItemBadgeCount(item.id) > 0 && (
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black leading-none ${
                           isActive ? 'bg-[#291800] text-[#feb234]' : 'bg-red-500 text-white'
                         }`}>
-                          {pendingRegistrationsCount}
+                          {getItemBadgeCount(item.id)}
                         </span>
                       )}
                     </button>
@@ -1219,7 +1993,7 @@ export default function AdminPortal() {
                   </button>
                 )}
                 <button
-                  onClick={() => { window.location.hash = ''; }}
+                  onClick={handleBackToHome}
                   className="text-white/70 hover:text-white flex items-center gap-3 py-2 text-xs font-bold text-left cursor-pointer"
                 >
                   <ExternalLink size={16} />

@@ -19,7 +19,7 @@ export interface Scholarship {
 export interface UKM {
   id: string;
   name: string;
-  category: 'Seni & Budaya' | 'Olahraga' | 'Akademik' | 'Sosial' | 'Kerohanian' | 'Minat Khusus';
+  category: 'Seni & Budaya' | 'Olahraga' | 'Akademik' | 'Sosial' | 'Kerohanian' | 'Minat Khusus' | 'Himpunan';
   description: string;
   shortDescription: string;
   coverImage: string;
@@ -45,6 +45,7 @@ export interface Achievement {
   year: number;
   description: string;
   image: string;
+  status?: 'Disetujui' | 'Menunggu Verifikasi' | 'Ditolak';
 }
 
 export interface AlumniRecord {

@@ -7,8 +7,11 @@ export interface AuthUser {
   name: string;
   role: 'administrator' | 'superadmin' | 'admin' | 'mahasiswa' | 'alumni' | 'admin_ormawa' | 'direktur' | 'staf_beasiswa' | 'staf_ormawa' | 'staf_alumni' | 'staf_depan';
   roles?: string[];
+  isApproved?: boolean;
   nim?: string;
   avatarUrl?: string;
+  major?: string;
+  semester?: number;
 }
 
 export const AuthService = {
@@ -17,8 +20,9 @@ export const AuthService = {
    */
   async signIn(email: string, password: string): Promise<{ user: AuthUser | null; error: string | null }> {
     try {
+      const resolvedEmail = email.includes('@') ? email : `${email.trim()}@upb.ac.id`;
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: resolvedEmail,
         password,
       });
 
@@ -33,7 +37,7 @@ export const AuthService = {
       // Fetch user profile from public.users table
       const { data: profile, error: profileError } = await supabase
         .from('users')
-        .select('id, email, name, role, roles, phone, avatar_url')
+        .select('id, email, name, role, roles, is_approved, phone, avatar_url')
         .eq('id', data.user.id)
         .single();
 
@@ -50,6 +54,7 @@ export const AuthService = {
             name: userName,
             role: userRole as AuthUser['role'],
             roles: userRoles,
+            isApproved: false,
             nim: data.user.user_metadata?.nim,
             avatarUrl: data.user.user_metadata?.avatar_url,
           },
@@ -64,6 +69,7 @@ export const AuthService = {
           name: profile.name,
           role: profile.role as AuthUser['role'],
           roles: profile.roles || [profile.role],
+          isApproved: profile.is_approved,
           nim: undefined, // Will be in mahasiswa_profiles or alumni_profiles
           avatarUrl: profile.avatar_url || undefined,
         },
@@ -84,7 +90,7 @@ export const AuthService = {
   /**
    * Get current session user
    */
-  async getSession(): Promise<AuthUser | null> {
+   async getSession(): Promise<AuthUser | null> {
     try {
       const { data: { session } } = await supabase.auth.getSession();
 
@@ -95,7 +101,7 @@ export const AuthService = {
       // Fetch user profile
       const { data: profile } = await supabase
         .from('users')
-        .select('id, email, name, role, roles, phone, avatar_url')
+        .select('id, email, name, role, roles, is_approved, phone, avatar_url')
         .eq('id', session.user.id)
         .single();
 
@@ -106,7 +112,35 @@ export const AuthService = {
           name: session.user.user_metadata?.name || 'User',
           role: session.user.user_metadata?.role || 'mahasiswa',
           roles: session.user.user_metadata?.roles || [session.user.user_metadata?.role || 'mahasiswa'],
+          isApproved: false,
+          nim: session.user.user_metadata?.nim,
         };
+      }
+
+      // Fetch NIM details
+      let nim: string | undefined = undefined;
+      let major: string | undefined = undefined;
+      let semester: number | undefined = undefined;
+      if (profile.role === 'mahasiswa') {
+        const { data: mhs } = await supabase
+          .from('mahasiswa_profiles')
+          .select('nim, major, semester')
+          .eq('user_id', profile.id)
+          .single();
+        if (mhs) {
+          nim = mhs.nim;
+          major = mhs.major;
+          semester = mhs.semester;
+        }
+      } else if (profile.role === 'alumni') {
+        const { data: alu } = await supabase
+          .from('alumni_profiles')
+          .select('nim')
+          .eq('user_id', profile.id)
+          .single();
+        if (alu) {
+          nim = alu.nim;
+        }
       }
 
       return {
@@ -115,9 +149,14 @@ export const AuthService = {
         name: profile.name,
         role: profile.role as AuthUser['role'],
         roles: profile.roles || [profile.role],
+        isApproved: profile.is_approved,
         avatarUrl: profile.avatar_url || undefined,
+        nim: nim,
+        major: major,
+        semester: semester,
       };
-    } catch {
+    } catch (e) {
+      console.error('Error fetching auth session:', e);
       return null;
     }
   },
@@ -127,22 +166,53 @@ export const AuthService = {
    */
   onAuthStateChange(callback: (user: AuthUser | null) => void) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        // Fetch profile on sign in
+      console.log('Auth state change in AuthService:', event, session?.user?.email);
+
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session?.user) {
+        // Fetch profile on sign in or token refresh
         const { data: profile } = await supabase
           .from('users')
-          .select('id, email, name, role, roles, phone, avatar_url')
+          .select('id, email, name, role, roles, is_approved, phone, avatar_url')
           .eq('id', session.user.id)
           .single();
 
+        let nim: string | undefined = undefined;
+        let major: string | undefined = undefined;
+        let semester: number | undefined = undefined;
         if (profile) {
+          if (profile.role === 'mahasiswa') {
+            const { data: mhs } = await supabase
+              .from('mahasiswa_profiles')
+              .select('nim, major, semester')
+              .eq('user_id', profile.id)
+              .single();
+            if (mhs) {
+              nim = mhs.nim;
+              major = mhs.major;
+              semester = mhs.semester;
+            }
+          } else if (profile.role === 'alumni') {
+            const { data: alu } = await supabase
+              .from('alumni_profiles')
+              .select('nim')
+              .eq('user_id', profile.id)
+              .single();
+            if (alu) {
+              nim = alu.nim;
+            }
+          }
+
           callback({
             id: profile.id,
             email: profile.email,
             name: profile.name,
             role: profile.role as AuthUser['role'],
             roles: profile.roles || [profile.role],
+            isApproved: profile.is_approved,
             avatarUrl: profile.avatar_url || undefined,
+            nim: nim,
+            major: major,
+            semester: semester,
           });
         } else {
           callback({
@@ -151,6 +221,8 @@ export const AuthService = {
             name: session.user.user_metadata?.name || 'User',
             role: session.user.user_metadata?.role || 'mahasiswa',
             roles: session.user.user_metadata?.roles || [session.user.user_metadata?.role || 'mahasiswa'],
+            isApproved: false,
+            nim: session.user.user_metadata?.nim,
           });
         }
       } else if (event === 'SIGNED_OUT') {
@@ -248,13 +320,13 @@ export const AuthService = {
     const role = await this.getUserRole(userId);
     if (!role) return false;
 
-    const roleHierarchy: Record<UserRole, number> = {
+    const roleHierarchy: Record<string, number> = {
       operator: 1,
       admin: 2,
       superadmin: 3,
     };
 
-    return roleHierarchy[role] >= roleHierarchy[requiredRole];
+    return (roleHierarchy[role] || 0) >= (roleHierarchy[requiredRole] || 0);
   },
 
   /**

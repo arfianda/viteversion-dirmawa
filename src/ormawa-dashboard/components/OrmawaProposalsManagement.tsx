@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   FileText, 
   FileCheck2, 
@@ -12,7 +13,8 @@ import {
   AlertTriangle,
   ChevronRight,
   TrendingUp,
-  FileSpreadsheet
+  FileSpreadsheet,
+  X
 } from 'lucide-react';
 import { OrmawaService, OrmawaProposal, OrmawaLpj } from '../../services/ormawaService';
 
@@ -778,10 +780,10 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
       )}
 
       {/* DETAIL MODAL PROPOSAL */}
-      {selectedProposal && (
+      {selectedProposal && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-fade-in font-sans text-xs">
-            <div className="bg-[#001e40] p-5 text-white flex justify-between items-center border-b border-[#002d61]">
+            <div className="bg-[#001e40] px-5 py-3 text-white flex justify-between items-center border-b border-[#002d61]">
               <div>
                 <h3 className="font-sans font-black text-sm uppercase tracking-wider">Detail Pengajuan Proposal</h3>
                 <span className="bg-[#feb234]/15 px-2 py-0.5 rounded text-[#feb234] font-black text-[9px] tracking-wide mt-1 inline-block">
@@ -790,15 +792,16 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               </div>
               <button 
                 onClick={() => { setSelectedProposal(null); setScanFile(null); }}
-                className="text-white hover:text-[#feb234] font-bold text-sm cursor-pointer"
+                className="w-11 h-11 -mr-2 flex items-center justify-center text-white hover:text-[#feb234] transition-colors cursor-pointer"
+                aria-label="Tutup"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-5 text-slate-700 max-h-[75vh] overflow-y-auto">
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-0.5">
                   <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Judul Proposal</span>
                   <p className="font-black text-sm text-[#001e40]">{selectedProposal.title}</p>
@@ -839,21 +842,21 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               {/* Document Download links */}
               <div className="space-y-2 border-t border-slate-100 pt-4">
                 <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Berkas Pengajuan Awal</span>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <a 
                     href={selectedProposal.proposal_doc_url} 
-                    className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all"
+                    className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
                   >
                     <span>Dokumen Proposal Utama</span>
-                    <Download className="w-4 h-4 text-[#001e40]" />
+                    <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
                   </a>
                   {selectedProposal.cover_letter_url && (
                     <a 
                       href={selectedProposal.cover_letter_url} 
-                      className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all"
+                      className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
                     >
                       <span>Surat Pengantar</span>
-                      <Download className="w-4 h-4 text-[#001e40]" />
+                      <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
                     </a>
                   )}
                 </div>
@@ -871,7 +874,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                     Proposal Anda telah disetujui instansi. Silakan unduh hardfile proposal, minta pengesahan tanda tangan rektorat (atau pembina), kemudian unggah berkas scan PDF bertanda tangan basah di bawah ini agar dana kasir dapat dicairkan.
                   </p>
                   
-                  <div className="flex gap-3 items-center">
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                     <input 
                       type="file" 
                       id="scan-upload-file" 
@@ -882,7 +885,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                     <button
                       type="button"
                       onClick={() => document.getElementById('scan-upload-file')?.click()}
-                      className={`flex-1 flex justify-between items-center px-3 py-2.5 border rounded-xl cursor-pointer text-left transition-all ${
+                      className={`flex-1 flex justify-between items-center px-3 py-2.5 min-h-[44px] border rounded-xl cursor-pointer text-left transition-all ${
                         scanFile ? 'bg-white border-blue-400 text-blue-800 font-bold' : 'bg-white border-slate-200 text-slate-400'
                       }`}
                     >
@@ -893,7 +896,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                     <button
                       onClick={() => handleUploadScanFile(selectedProposal.id)}
                       disabled={!scanFile || isUploadingScan}
-                      className="bg-blue-650 hover:bg-blue-750 text-white font-black px-4 py-2.5 rounded-xl uppercase tracking-wider transition disabled:opacity-50"
+                      className="bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] font-black px-4 py-2.5 min-h-[44px] rounded-xl uppercase tracking-wider transition disabled:opacity-50 cursor-pointer"
                     >
                       {isUploadingScan ? 'Proses...' : 'Upload'}
                     </button>
@@ -906,24 +909,23 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                   <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Scan Tanda Tangan Basah</span>
                   <a 
                     href={selectedProposal.signed_proposal_url} 
-                    className="flex justify-between items-center bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold"
+                    className="flex justify-between items-center bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold min-h-[44px]"
                   >
                     <span>Scan Proposal Disetujui Rektorat.pdf</span>
-                    <Download className="w-4 h-4 text-green-700" />
+                    <Download className="w-4 h-4 text-green-700 shrink-0 ml-2" />
                   </a>
                 </div>
               )}
 
             </div>
           </div>
-        </div>
-      )}
-
-      {/* DETAIL MODAL LPJ */}
-      {selectedLpj && (
+        </div>,
+        document.body
+      )}      {/* DETAIL MODAL LPJ */}
+      {selectedLpj && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-fade-in font-sans text-xs">
-            <div className="bg-purple-650 p-5 text-white flex justify-between items-center border-b border-purple-700">
+            <div className="bg-purple-650 px-5 py-3 text-white flex justify-between items-center border-b border-purple-700">
               <div>
                 <h3 className="font-sans font-black text-sm uppercase tracking-wider">Detail Laporan LPJ</h3>
                 <span className="bg-purple-500/20 px-2 py-0.5 rounded text-white font-black text-[9px] mt-1 inline-block">
@@ -932,15 +934,16 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               </div>
               <button 
                 onClick={() => { setSelectedLpj(null); setScanFile(null); }}
-                className="text-white hover:text-[#feb234] font-bold text-sm cursor-pointer"
+                className="w-11 h-11 -mr-2 flex items-center justify-center text-white hover:text-[#feb234] transition-colors cursor-pointer"
+                aria-label="Tutup"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-5 text-slate-700 max-h-[75vh] overflow-y-auto">
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-0.5">
                   <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Judul LPJ</span>
                   <p className="font-black text-sm text-[#001e40]">{selectedLpj.title}</p>
@@ -988,21 +991,21 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
 
               <div className="space-y-2 border-t border-slate-100 pt-4">
                 <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Berkas Laporan Awal</span>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <a 
                     href={selectedLpj.lpj_doc_url} 
-                    className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all"
+                    className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
                   >
                     <span>Dokumen LPJ Utama</span>
-                    <Download className="w-4 h-4 text-[#001e40]" />
+                    <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
                   </a>
                   {selectedLpj.receipts_zip_url && (
                     <a 
                       href={selectedLpj.receipts_zip_url} 
-                      className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all"
+                      className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
                     >
                       <span>Kwitansi Nota ZIP</span>
-                      <Download className="w-4 h-4 text-[#001e40]" />
+                      <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
                     </a>
                   )}
                 </div>
@@ -1020,7 +1023,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                     Tinjauan LPJ Anda telah selesai disetujui. Silakan unggah berkas scan LPJ akhir yang sudah ditandatangani rektorat/dekanat untuk menyelesaikan administrasi.
                   </p>
                   
-                  <div className="flex gap-3 items-center">
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
                     <input 
                       type="file" 
                       id="scan-lpj-upload-file" 
@@ -1031,7 +1034,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                     <button
                       type="button"
                       onClick={() => document.getElementById('scan-lpj-upload-file')?.click()}
-                      className={`flex-1 flex justify-between items-center px-3 py-2.5 border rounded-xl cursor-pointer text-left transition-all ${
+                      className={`flex-1 flex justify-between items-center px-3 py-2.5 min-h-[44px] border rounded-xl cursor-pointer text-left transition-all ${
                         scanFile ? 'bg-white border-blue-400 text-blue-800 font-bold' : 'bg-white border-slate-200 text-slate-400'
                       }`}
                     >
@@ -1042,7 +1045,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                     <button
                       onClick={() => handleUploadLpjScanFile(selectedLpj.id)}
                       disabled={!scanFile || isUploadingScan}
-                      className="bg-blue-650 hover:bg-blue-750 text-white font-black px-4 py-2.5 rounded-xl uppercase tracking-wider transition disabled:opacity-50"
+                      className="bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] font-black px-4 py-2.5 min-h-[44px] rounded-xl uppercase tracking-wider transition disabled:opacity-50 cursor-pointer"
                     >
                       {isUploadingScan ? 'Proses...' : 'Upload'}
                     </button>
@@ -1055,17 +1058,18 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                   <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Scan LPJ Tanda Tangan Basah</span>
                   <a 
                     href={selectedLpj.signed_lpj_url} 
-                    className="flex justify-between items-center bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold"
+                    className="flex justify-between items-center bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold min-h-[44px]"
                   >
                     <span>Scan LPJ Disetujui.pdf</span>
-                    <Download className="w-4 h-4 text-green-700" />
+                    <Download className="w-4 h-4 text-green-700 shrink-0 ml-2" />
                   </a>
                 </div>
               )}
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

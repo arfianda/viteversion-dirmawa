@@ -24,6 +24,9 @@ type TabType = 'profile' | 'security' | 'notifications';
 
 export default function MahasiswaSettings({ session, onUpdateSession }: SettingsProps) {
   const [activeTab, setActiveTab] = useState<TabType>('profile');
+  const avatarUrl = (session.avatarUrl && !session.avatarUrl.includes('unsplash.com'))
+    ? session.avatarUrl
+    : 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png';
   const [showPassword, setShowPassword] = useState<{ [key: string]: boolean }>({});
   
   // Profile state seeded from real session data
@@ -144,7 +147,7 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
                 <div className="relative group">
                   <div className="w-28 h-28 rounded-2xl overflow-hidden bg-slate-100 border-4 border-white shadow-md relative">
                     <img 
-                      src={session.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop'} 
+                      src={avatarUrl} 
                       alt="Student Avatar" 
                       className="w-full h-full object-cover"
                     />
@@ -245,7 +248,7 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
                     <button 
                       type="button"
                       onClick={() => toggleShowPassword('current')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-700 transition-colors"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-slate-450 hover:text-slate-700 transition-colors cursor-pointer"
                     >
                       {showPassword['current'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -267,7 +270,7 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
                     <button 
                       type="button"
                       onClick={() => toggleShowPassword('new')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-700 transition-colors"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-slate-450 hover:text-slate-700 transition-colors cursor-pointer"
                     >
                       {showPassword['new'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -289,7 +292,7 @@ export default function MahasiswaSettings({ session, onUpdateSession }: Settings
                     <button 
                       type="button"
                       onClick={() => toggleShowPassword('confirm')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-450 hover:text-slate-700 transition-colors"
+                      className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-slate-450 hover:text-slate-700 transition-colors cursor-pointer"
                     >
                       {showPassword['confirm'] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>

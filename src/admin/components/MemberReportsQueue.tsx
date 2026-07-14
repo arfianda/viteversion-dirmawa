@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { ClipboardList, Check, X, ShieldAlert, Sparkles } from 'lucide-react';
 import { SupabaseService } from '../../services/supabaseService';
 
-export default function MemberReportsQueue() {
+interface MemberReportsQueueProps {
+  onRefresh?: () => void;
+}
+
+export default function MemberReportsQueue({ onRefresh }: MemberReportsQueueProps) {
   const [reports, setReports] = useState<any[]>([]);
+  const [selectedUkm, setSelectedUkm] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -26,11 +31,21 @@ export default function MemberReportsQueue() {
     fetchReports();
   }, []);
 
+  useEffect(() => {
+    if (selectedUkm !== 'All') {
+      const ukmHasReports = reports.some(r => r.ukm_id === selectedUkm);
+      if (!ukmHasReports) {
+        setSelectedUkm('All');
+      }
+    }
+  }, [reports, selectedUkm]);
+
   const handleApprove = async (reportId: string, ukmId: string, count: number) => {
     setProcessingId(reportId);
     try {
       await SupabaseService.approveMemberReport(reportId, ukmId, count);
       setReports(reports.filter(r => r.id !== reportId));
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menyetujui laporan: ' + (e.message || e));
@@ -44,6 +59,7 @@ export default function MemberReportsQueue() {
     try {
       await SupabaseService.rejectMemberReport(reportId);
       setReports(reports.filter(r => r.id !== reportId));
+      if (onRefresh) onRefresh();
     } catch (e: any) {
       console.error(e);
       alert('Gagal menolak laporan: ' + (e.message || e));
@@ -78,7 +94,7 @@ export default function MemberReportsQueue() {
       )}
 
       {reports.length === 0 ? (
-        <div className="bg-white border border-slate-200/60 rounded-2xl p-12 text-center shadow-sm">
+        <div className="bg-white border border-slate-200/60 rounded-2xl p-12 text-center shadow-sm animate-fade-in">
           <div className="w-12 h-12 bg-slate-50 border border-slate-200 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
             <ClipboardList size={20} />
           </div>
@@ -88,59 +104,93 @@ export default function MemberReportsQueue() {
           </p>
         </div>
       ) : (
-        <div className="bg-white border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs text-slate-750 font-medium">
-              <thead>
-                <tr className="bg-[#f2f4f7] border-b border-[#eceef1] font-bold text-[#43474f] uppercase tracking-wider">
-                  <th className="px-6 py-4 pl-8">Nama Organisasi / UKM</th>
-                  <th className="px-6 py-4">Jumlah Dilaporkan</th>
-                  <th className="px-6 py-4">Tanggal Pengajuan</th>
-                  <th className="px-6 py-4 text-right pr-8">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#eceef1]">
-                {reports.map((report) => (
-                  <tr key={report.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-5 pl-8 font-bold text-[#001e40]">
-                      {report.ukms?.name || 'UKM Tidak Dikenal'}
-                    </td>
-                    <td className="px-6 py-5 font-bold text-[#feb234]">
-                      {report.reported_count} Mahasiswa
-                    </td>
-                    <td className="px-6 py-5 text-[#737780] font-semibold">
-                      {new Date(report.created_at).toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: 'short',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </td>
-                    <td className="px-6 py-5 text-right pr-8">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => handleApprove(report.id, report.ukm_id, report.reported_count)}
-                          disabled={processingId !== null}
-                          className="bg-green-50 hover:bg-green-100 text-green-700 font-bold px-3 py-2 rounded-xl transition border border-green-200/40 inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                        >
-                          <Check size={14} className="stroke-[3]" />
-                          <span>Setujui</span>
-                        </button>
-                        <button
-                          onClick={() => handleReject(report.id)}
-                          disabled={processingId !== null}
-                          className="bg-red-50 hover:bg-red-100 text-red-700 font-bold px-3 py-2 rounded-xl transition border border-red-200/40 inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
-                        >
-                          <X size={14} className="stroke-[3]" />
-                          <span>Tolak</span>
-                        </button>
-                      </div>
-                    </td>
+        <div className="space-y-4 animate-fade-in">
+          {/* UKM Group Selectors */}
+          <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 rounded-2xl border border-slate-200/50">
+            <button
+              onClick={() => setSelectedUkm('All')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                selectedUkm === 'All'
+                  ? 'bg-[#001e40] text-white shadow-sm'
+                  : 'text-slate-650 hover:bg-slate-200/80'
+              }`}
+            >
+              Semua UKM ({reports.length})
+            </button>
+            {Array.from(new Map(reports.map(r => [r.ukm_id, r.ukms?.name || 'UKM Tidak Dikenal'])).entries()).map(([ukmId, ukmName]) => {
+              const count = reports.filter(r => r.ukm_id === ukmId).length;
+              return (
+                <button
+                  key={ukmId}
+                  onClick={() => setSelectedUkm(ukmId)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedUkm === ukmId
+                      ? 'bg-[#feb234] text-[#291800] shadow-sm'
+                      : 'text-slate-650 hover:bg-slate-200/80'
+                  }`}
+                >
+                  {ukmName} ({count})
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="bg-white border border-slate-200/60 rounded-2xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs text-slate-750 font-medium">
+                <thead>
+                  <tr className="bg-[#f2f4f7] border-b border-[#eceef1] font-bold text-[#43474f] uppercase tracking-wider">
+                    <th className="px-6 py-4 pl-8">Nama Organisasi / UKM</th>
+                    <th className="px-6 py-4">Jumlah Dilaporkan</th>
+                    <th className="px-6 py-4">Tanggal Pengajuan</th>
+                    <th className="px-6 py-4 text-right pr-8">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#eceef1]">
+                  {reports
+                    .filter(r => selectedUkm === 'All' || r.ukm_id === selectedUkm)
+                    .map((report) => (
+                      <tr key={report.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-5 pl-8 font-bold text-[#001e40]">
+                          {report.ukms?.name || 'UKM Tidak Dikenal'}
+                        </td>
+                        <td className="px-6 py-5 font-bold text-[#feb234]">
+                          {report.reported_count} Mahasiswa
+                        </td>
+                        <td className="px-6 py-5 text-[#737780] font-semibold">
+                          {new Date(report.created_at).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="px-6 py-5 text-right pr-8">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleApprove(report.id, report.ukm_id, report.reported_count)}
+                              disabled={processingId !== null}
+                              className="bg-green-50 hover:bg-green-100 text-green-700 font-bold px-3 py-2 rounded-xl transition border border-green-200/40 inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <Check size={14} className="stroke-[3]" />
+                              <span>Setujui</span>
+                            </button>
+                            <button
+                              onClick={() => handleReject(report.id)}
+                              disabled={processingId !== null}
+                              className="bg-red-50 hover:bg-red-100 text-red-700 font-bold px-3 py-2 rounded-xl transition border border-red-200/40 inline-flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            >
+                              <X size={14} className="stroke-[3]" />
+                              <span>Tolak</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

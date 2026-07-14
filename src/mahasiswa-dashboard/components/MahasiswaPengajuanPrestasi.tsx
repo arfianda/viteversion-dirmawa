@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Award, 
   History, 
@@ -14,6 +15,8 @@ import {
   Plus,
   Download
 } from 'lucide-react';
+import { UserSession } from '../../types/mahasiswa';
+import { supabase } from '../../services/supabaseClient';
 
 interface AchievementItem {
   id: string;
@@ -27,54 +30,78 @@ interface AchievementItem {
   points: number;
 }
 
-export default function MahasiswaPengajuanPrestasi() {
-  const [achievements, setAchievements] = useState<AchievementItem[]>([
-    {
-      id: 'ach-1',
-      date: '12 Okt 2024',
-      title: 'Gemastik XVII 2024',
-      category: 'Akademik',
-      level: 'Nasional',
-      rank: 'Finalis UI/UX Design',
-      status: 'Menunggu Verifikasi',
-      points: 2,
-      file: 'sertifikat_gemastik.pdf'
-    },
-    {
-      id: 'ach-2',
-      date: '05 Sep 2024',
-      title: 'Pekan Olahraga Mahasiswa',
-      category: 'Olahraga',
-      level: 'Regional',
-      rank: 'Juara 1 Kumite',
-      status: 'Disetujui',
-      points: 5,
-      file: 'sertifikat_pomnas.jpg'
-    },
-    {
-      id: 'ach-3',
-      date: '20 Agu 2024',
-      title: 'Hackathon Internasional 24',
-      category: 'Akademik',
-      level: 'Internasional',
-      rank: 'Juara 3 Inovasi',
-      status: 'Ditolak',
-      points: 0,
-      file: 'sertifikat_hackathon.pdf'
-    }
-  ]);
+interface MahasiswaPengajuanPrestasiProps {
+  session: UserSession;
+}
 
+export default function MahasiswaPengajuanPrestasi({ session }: MahasiswaPengajuanPrestasiProps) {
+  const [achievements, setAchievements] = useState<AchievementItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('Semua Status');
   const [file, setFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [formData, setFormData] = useState({
     title: '',
     level: 'Nasional',
     category: 'Akademik',
     date: '',
-    rank: ''
+    rank: '',
+    imageUrl: ''
   });
 
   const [showDetail, setShowDetail] = useState<AchievementItem | null>(null);
+
+  const fetchAchievements = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('achievements')
+        .select('*')
+        .eq('student_name', session.name)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const mapped = (data || []).map((row: any) => {
+        const uiLevel = row.level || 'Nasional';
+        let uiCategory: any = 'Akademik';
+        if (row.category === 'Olahraga') uiCategory = 'Olahraga';
+        else if (row.category === 'Seni') uiCategory = 'Seni & Budaya';
+        else if (row.category === 'Non-Akademik') uiCategory = 'Lainnya';
+
+        const pointsMapping = {
+          'Internasional': 10,
+          'Nasional': 5,
+          'Regional': 3,
+          'Kampus': 1
+        };
+        const points = pointsMapping[uiLevel as 'Internasional' | 'Nasional' | 'Regional' | 'Kampus'] || 1;
+
+        return {
+          id: row.id,
+          date: row.created_at ? new Date(row.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Baru',
+          title: row.title,
+          category: uiCategory,
+          level: uiLevel,
+          rank: row.rank || '',
+          status: row.status || 'Menunggu Verifikasi',
+          points: points,
+          file: 'sertifikat.pdf'
+        };
+      });
+
+      setAchievements(mapped);
+    } catch (e) {
+      console.error('Failed to load achievements:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAchievements();
+  }, [session]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -90,7 +117,20 @@ export default function MahasiswaPengajuanPrestasi() {
     }
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const img = e.target.files[0];
+      setImageFile(img);
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(img);
+    }
+  };
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.title || !formData.date || !formData.rank) {
@@ -98,38 +138,60 @@ export default function MahasiswaPengajuanPrestasi() {
       return;
     }
 
-    const pointsMapping = {
-      'Internasional': 10,
-      'Nasional': 5,
-      'Regional': 3,
-      'Kampus': 1
-    };
+    try {
+      const dbLevel = ['Regional', 'Nasional', 'Internasional'].includes(formData.level) 
+        ? formData.level 
+        : 'Regional';
 
-    const newAchievement: AchievementItem = {
-      id: `ach-${Date.now()}`,
-      date: new Date(formData.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }),
-      title: formData.title,
-      category: formData.category as any,
-      level: formData.level as any,
-      rank: formData.rank,
-      status: 'Menunggu Verifikasi',
-      points: pointsMapping[formData.level as 'Internasional' | 'Nasional' | 'Regional' | 'Kampus'] || 1,
-      file: file ? file.name : undefined
-    };
+      const categoryMapping: Record<string, string> = {
+        'Akademik': 'Akademik',
+        'Olahraga': 'Olahraga',
+        'Seni & Budaya': 'Seni',
+        'Keagamaan': 'Non-Akademik',
+        'Lainnya': 'Non-Akademik'
+      };
+      const dbCategory = categoryMapping[formData.category] || 'Non-Akademik';
+      const year = formData.date ? new Date(formData.date).getFullYear() : new Date().getFullYear();
 
-    setAchievements([newAchievement, ...achievements]);
-    
-    // Reset Form
-    setFormData({
-      title: '',
-      level: 'Nasional',
-      category: 'Akademik',
-      date: '',
-      rank: ''
-    });
-    setFile(null);
+      const newId = crypto.randomUUID();
+      const payload = {
+        id: newId,
+        title: formData.title,
+        student_name: session.name,
+        major: session.major || 'Teknik Informatika',
+        level: dbLevel,
+        rank: formData.rank,
+        category: dbCategory,
+        year: year,
+        description: `Keterangan: ${formData.rank}`,
+        image_url: imagePreview || formData.imageUrl || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=600&auto=format&fit=crop',
+        status: 'Menunggu Verifikasi'
+      };
 
-    alert('Pengajuan prestasi baru berhasil dikirim dan menunggu verifikasi.');
+      const { error } = await supabase
+        .from('achievements')
+        .insert(payload);
+
+      if (error) throw error;
+
+      alert('Pengajuan prestasi baru berhasil dikirim!');
+      fetchAchievements();
+      
+      setFormData({
+        title: '',
+        level: 'Nasional',
+        category: 'Akademik',
+        date: '',
+        rank: '',
+        imageUrl: ''
+      });
+      setFile(null);
+      setImageFile(null);
+      setImagePreview('');
+    } catch (err: any) {
+      console.error('Failed to submit achievement:', err);
+      alert('Gagal mengirim pengajuan prestasi: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const filteredAchievements = achievements.filter(ach => {
@@ -145,6 +207,15 @@ export default function MahasiswaPengajuanPrestasi() {
     .reduce((sum, a) => sum + a.points, 0);
 
   const pendingCount = achievements.filter(a => a.status === 'Menunggu Verifikasi').length;
+
+  if (loading) {
+    return (
+      <div className="p-12 text-center text-slate-500 font-sans">
+        <div className="w-8 h-8 border-4 border-[#001e40]/20 border-t-[#001e40] rounded-full animate-spin mx-auto mb-4" />
+        <span>Memuat data prestasi...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in pb-10">
@@ -285,14 +356,61 @@ export default function MahasiswaPengajuanPrestasi() {
                 </div>
               </div>
 
+              {/* Achievement Thumbnail Image Upload */}
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700 block">Link Gambar / Foto Kegiatan (Alternatif)</label>
+                  <input 
+                    type="url"
+                    name="imageUrl"
+                    value={formData.imageUrl}
+                    onChange={handleInputChange}
+                    placeholder="Contoh: https://url-foto.com/gambar.jpg"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700 block">Atau Unggah Foto Dokumentasi (PNG/JPG)</label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('image-input')?.click()}
+                      className="px-4 py-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                    >
+                      Pilih Foto Kegiatan
+                    </button>
+                    <input 
+                      type="file" 
+                      id="image-input"
+                      className="hidden" 
+                      onChange={handleImageFileChange}
+                      accept="image/*"
+                    />
+                    {imagePreview ? (
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-12 h-12 rounded-lg object-cover border border-slate-200 shadow-sm"
+                      />
+                    ) : imageFile ? (
+                      <span className="text-xs text-slate-500 font-semibold truncate max-w-[150px]">{imageFile.name}</span>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-medium animate-pulse">Belum ada foto dipilih</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
             </div>
 
             <div className="pt-4 flex justify-end gap-3 border-t border-slate-100 font-sans">
               <button 
                 type="button"
                 onClick={() => {
-                  setFormData({ title: '', level: 'Nasional', category: 'Akademik', date: '', rank: '' });
+                  setFormData({ title: '', level: 'Nasional', category: 'Akademik', date: '', rank: '', imageUrl: '' });
                   setFile(null);
+                  setImageFile(null);
+                  setImagePreview('');
                 }}
                 className="px-4 py-2.5 hover:text-slate-900 text-slate-450 font-bold transition-all cursor-pointer"
               >
@@ -432,10 +550,10 @@ export default function MahasiswaPengajuanPrestasi() {
       </section>
 
       {/* Modal File Viewer / Submission Details */}
-      {showDetail && (
+      {showDetail && createPortal(
         <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowDetail(null)}>
-          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 border-t-8 border-t-[#001e40] animate-scale-up" onClick={e => e.stopPropagation()}>
-            <div className="p-6 space-y-4">
+          <div className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-slate-200 border-t-8 border-t-[#001e40] animate-scale-up max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="p-6 space-y-4 flex-1 overflow-y-auto">
               <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                 <h4 className="font-sans font-black text-lg text-[#001e40]">Detail Pengajuan Prestasi</h4>
                 <button onClick={() => setShowDetail(null)} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer">
@@ -496,7 +614,8 @@ export default function MahasiswaPengajuanPrestasi() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

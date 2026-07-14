@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Award, 
   CheckCircle2, 
@@ -10,10 +11,12 @@ import {
   TrendingUp, 
   FileText,
   Calendar,
-  DollarSign
+  DollarSign,
+  X
 } from 'lucide-react';
 import { SupabaseService } from '../../services/supabaseService';
 import { ScholarshipApplication, Scholarship } from '../../types';
+import { UserSession } from '../../types/mahasiswa';
 
 interface TaskItem {
   id: string;
@@ -24,11 +27,21 @@ interface TaskItem {
   color?: string;
 }
 
-export default function MahasiswaBeasiswaSaya() {
-  const [session, setSession] = useState<any>(null);
+interface MahasiswaBeasiswaSayaProps {
+  session: UserSession;
+}
+
+export default function MahasiswaBeasiswaSaya({ session }: MahasiswaBeasiswaSayaProps) {
   const [applications, setApplications] = useState<ScholarshipApplication[]>([]);
   const [recommendations, setRecommendations] = useState<Scholarship[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Application States
+  const [selectedScholarship, setSelectedScholarship] = useState<Scholarship | null>(null);
+  const [gpa, setGpa] = useState('');
+  const [phone, setPhone] = useState('');
+  const [documentUrl, setDocumentUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [tasks, setTasks] = useState<TaskItem[]>([
     {
@@ -45,18 +58,6 @@ export default function MahasiswaBeasiswaSaya() {
       status: 'completed'
     }
   ]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('upb_mahasiswa_session');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setSession(parsed);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  }, []);
 
   const fetchData = async (userId: string) => {
     setIsLoading(true);
@@ -81,6 +82,44 @@ export default function MahasiswaBeasiswaSaya() {
       fetchData(session.id);
     }
   }, [session]);
+
+  const handleApplySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedScholarship) return;
+    
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        user_id: session.id,
+        scholarship_id: selectedScholarship.id,
+        nim: session.nimOrNip || '',
+        name: session.name,
+        major: session.major || 'Teknik Informatika',
+        gpa: parseFloat(gpa),
+        phone: phone,
+        document_url: documentUrl
+      };
+      
+      await SupabaseService.submitScholarshipApplication(payload);
+      alert(`Pendaftaran beasiswa "${selectedScholarship.title}" berhasil dikirim! Status pengajuan Anda sekarang 'Pending' menunggu verifikasi admin.`);
+      
+      // Reset state
+      setSelectedScholarship(null);
+      setGpa('');
+      setPhone('');
+      setDocumentUrl('');
+      
+      // Reload data
+      if (session?.id) {
+        fetchData(session.id);
+      }
+    } catch (err: any) {
+      console.error('Failed to submit scholarship application:', err);
+      alert('Gagal mengirim pendaftaran: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleUpload = (taskId: string) => {
     alert(`Mengunggah berkas untuk tugas "${taskId === 'gpa-report' ? 'Laporan IPK Semester Ganjil' : 'Surat Pernyataan Keaktifan'}"...`);
@@ -193,37 +232,47 @@ export default function MahasiswaBeasiswaSaya() {
             </div>
             
             <div className="space-y-4">
-              {tasks.map(task => (
-                <div key={task.id} className={`p-4 rounded-xl border flex gap-3 ${
-                  task.status === 'completed' 
-                    ? 'bg-emerald-50/50 border-emerald-100 text-emerald-800' 
-                    : 'bg-amber-50/60 border-amber-100 text-[#815500]'
-                }`}>
-                  {task.status === 'completed' ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className={`font-bold text-xs ${task.status === 'completed' ? 'text-emerald-800' : 'text-[#291800]'}`}>
-                      {task.title}
-                    </p>
-                    {task.status === 'completed' ? (
-                      <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">Diterima: {task.submittedDate}</p>
-                    ) : (
-                      <>
-                        <p className="text-[10px] text-amber-600 font-semibold mt-0.5">Batas: {task.deadline}</p>
-                        <button 
-                          onClick={() => handleUpload(task.id)}
-                          className="mt-2 text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-3 py-1 rounded-lg hover:bg-amber-50 transition-colors shadow-sm cursor-pointer"
-                        >
-                          Upload Sekarang
-                        </button>
-                      </>
-                    )}
-                  </div>
+              {!applications.some(a => a.status === 'approved') ? (
+                <div className="text-center py-6 px-3 bg-slate-50 border border-dashed border-slate-200 rounded-2xl space-y-2">
+                  <FileText className="w-8 h-8 text-slate-350 mx-auto" />
+                  <p className="text-xs font-bold text-slate-700">Tidak Ada Tugas Aktif</p>
+                  <p className="text-[10px] text-slate-450 font-medium max-w-xs mx-auto leading-relaxed">
+                    Tugas pelaporan berkas (seperti laporan IPK atau surat aktif kuliah) akan muncul di sini setelah pengajuan beasiswa Anda disetujui.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                tasks.map(task => (
+                  <div key={task.id} className={`p-4 rounded-xl border flex gap-3 ${
+                    task.status === 'completed' 
+                      ? 'bg-emerald-50/50 border-emerald-100 text-emerald-800' 
+                      : 'bg-amber-50/60 border-amber-100 text-[#815500]'
+                  }`}>
+                    {task.status === 'completed' ? (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className={`font-bold text-xs ${task.status === 'completed' ? 'text-emerald-800' : 'text-[#291800]'}`}>
+                        {task.title}
+                      </p>
+                      {task.status === 'completed' ? (
+                        <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">Diterima: {task.submittedDate}</p>
+                      ) : (
+                        <>
+                          <p className="text-[10px] text-amber-600 font-semibold mt-0.5">Batas: {task.deadline}</p>
+                          <button 
+                            onClick={() => handleUpload(task.id)}
+                            className="mt-2 text-[10px] font-bold text-amber-700 bg-white border border-amber-200 px-3 py-1 rounded-lg hover:bg-amber-50 transition-colors shadow-sm cursor-pointer"
+                          >
+                            Upload Sekarang
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
           <div className="mt-4 pt-4 border-t border-slate-100 text-center">
@@ -339,8 +388,8 @@ export default function MahasiswaBeasiswaSaya() {
                   </div>
                   
                   <button 
-                    onClick={() => { window.location.hash = '#/scholarships'; }}
-                    className="w-full py-2.5 bg-[#feb234] hover:bg-[#feb234]/90 text-[#291800] font-bold text-xs rounded-xl shadow-sm hover:shadow transition-all cursor-pointer"
+                    onClick={() => setSelectedScholarship(rec)}
+                    className="w-full py-2.5 bg-[#feb234] hover:bg-[#feb234]/90 text-[#291800] font-bold text-xs rounded-xl shadow-sm hover:shadow transition-all cursor-pointer border-none outline-none"
                   >
                     Daftar Sekarang
                   </button>
@@ -350,6 +399,120 @@ export default function MahasiswaBeasiswaSaya() {
           </div>
         )}
       </section>
+
+      {/* Modal Pendaftaran Beasiswa */}
+      {selectedScholarship && createPortal(
+        <div className="fixed inset-0 z-50 bg-[#001e40]/40 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedScholarship(null)}>
+          <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-slate-200 animate-scale-up max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <form onSubmit={handleApplySubmit} className="p-6 space-y-4 flex-1 overflow-y-auto">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <h3 className="font-sans font-black text-lg text-[#001e40] flex items-center gap-2">
+                  <Award className="w-5 h-5 text-[#815500]" />
+                  Formulir Pendaftaran Beasiswa
+                </h3>
+                <button type="button" onClick={() => setSelectedScholarship(null)} className="text-slate-400 hover:text-slate-655 transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Program Pilihan</p>
+                <p className="font-bold text-sm text-[#001e40]">{selectedScholarship.title}</p>
+                <p className="text-[10px] text-amber-600 font-bold mt-0.5">{selectedScholarship.type}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Nama Lengkap</label>
+                  <input 
+                    type="text" 
+                    value={session.name} 
+                    disabled 
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium cursor-not-allowed" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">NIM</label>
+                  <input 
+                    type="text" 
+                    value={session.nimOrNip || ''} 
+                    disabled 
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium cursor-not-allowed" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Program Studi</label>
+                <input 
+                  type="text" 
+                  value={session.major || 'Teknik Informatika'} 
+                  disabled 
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 font-medium cursor-not-allowed" 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] text-slate-655 font-bold uppercase tracking-wider mb-1">IPK Terakhir *</label>
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    min="0.00" 
+                    max="4.00" 
+                    required 
+                    value={gpa} 
+                    onChange={e => setGpa(e.target.value)} 
+                    placeholder="Contoh: 3.75" 
+                    className="w-full p-2.5 bg-white border border-slate-200 focus:border-[#feb234] focus:ring-1 focus:ring-[#feb234] rounded-xl text-xs font-semibold outline-none" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-655 font-bold uppercase tracking-wider mb-1">No. Telepon / WA *</label>
+                  <input 
+                    type="tel" 
+                    required 
+                    value={phone} 
+                    onChange={e => setPhone(e.target.value)} 
+                    placeholder="Contoh: 08123456789" 
+                    className="w-full p-2.5 bg-white border border-slate-200 focus:border-[#feb234] focus:ring-1 focus:ring-[#feb234] rounded-xl text-xs font-semibold outline-none" 
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-655 font-bold uppercase tracking-wider mb-1">Link Dokumen Pendukung *</label>
+                <input 
+                  type="url" 
+                  required 
+                  value={documentUrl} 
+                  onChange={e => setDocumentUrl(e.target.value)} 
+                  placeholder="Link Google Drive / berkas PDF lamaran" 
+                  className="w-full p-2.5 bg-white border border-slate-200 focus:border-[#feb234] focus:ring-1 focus:ring-[#feb234] rounded-xl text-xs font-semibold outline-none" 
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button 
+                  type="button" 
+                  onClick={() => setSelectedScholarship(null)} 
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="px-4 py-2 bg-[#feb234] hover:bg-[#e09b24] disabled:bg-slate-200 text-[#291800] disabled:text-slate-400 font-bold text-xs rounded-lg shadow-sm transition-colors cursor-pointer"
+                >
+                  {isSubmitting ? 'Mengirim...' : 'Kirim Pengajuan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
 
     </div>
   );

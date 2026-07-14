@@ -23,6 +23,7 @@ import OrmawaDashboardOverview from './components/OrmawaDashboardOverview';
 import OrmawaDetailEditor from './components/OrmawaDetailEditor';
 import OrmawaMemberManagement from './components/OrmawaMemberManagement';
 import OrmawaProposalsManagement from './components/OrmawaProposalsManagement';
+import OrmawaLogin from './components/OrmawaLogin';
 
 export default function OrmawaPortal() {
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -83,22 +84,7 @@ export default function OrmawaPortal() {
   const unreadNotificationsCount = notifications.filter(n => n.unread).length;
 
   if (!session) {
-    // Redirect to public or trigger login. Since routing is handled in App.tsx, we can just render a simple notice
-    return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center font-sans">
-        <ShieldAlert className="w-16 h-16 text-amber-500 mb-4 animate-bounce" />
-        <h3 className="font-extrabold text-[#001e40] text-xl">Sesi Habis / Akses Ditolak</h3>
-        <p className="text-slate-500 mt-2 text-sm max-w-sm">
-          Silakan masuk melalui portal administrasi dengan menggunakan akun admin ormawa Anda.
-        </p>
-        <button 
-          onClick={() => { window.location.hash = '#/admin'; }}
-          className="mt-5 px-6 py-2.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] font-black rounded-xl text-xs uppercase transition shadow"
-        >
-          Masuk Halaman Login
-        </button>
-      </div>
-    );
+    return <OrmawaLogin onLoginSuccess={setSession} />;
   }
 
   const navItems = [
@@ -183,7 +169,7 @@ export default function OrmawaPortal() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                className={`w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   isActive 
                     ? 'bg-[#001e40] text-white shadow-sm' 
                     : 'text-slate-550 hover:bg-slate-50 hover:text-slate-800'
@@ -200,7 +186,7 @@ export default function OrmawaPortal() {
         <div className="pt-4 border-t border-slate-100">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4 text-red-500" />
             <span>Keluar Akun</span>
@@ -216,7 +202,8 @@ export default function OrmawaPortal() {
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setMobileMenuOpen(true)}
-              className="p-2 -ml-2 text-slate-500 hover:bg-slate-50 rounded-lg lg:hidden cursor-pointer"
+              className="w-11 h-11 flex items-center justify-center -ml-2 text-slate-500 hover:bg-slate-50 rounded-xl lg:hidden cursor-pointer shrink-0"
+              aria-label="Menu Utama"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -234,11 +221,12 @@ export default function OrmawaPortal() {
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2.5 text-slate-500 hover:bg-slate-50 rounded-xl relative cursor-pointer"
+                className="w-11 h-11 flex items-center justify-center text-slate-500 hover:bg-slate-50 rounded-xl relative cursor-pointer"
+                aria-label="Notifikasi"
               >
-                <Bell className="w-4 h-4" />
+                <Bell className="w-4.5 h-4.5" />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></span>
                 )}
               </button>
               
@@ -248,17 +236,33 @@ export default function OrmawaPortal() {
                   <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl py-3 z-50 animate-fade-in font-sans text-xs">
                     <div className="px-4 pb-2 border-b border-slate-100 flex justify-between items-center">
                       <span className="font-extrabold text-[#001e40]">Notifikasi</span>
-                      {unreadNotificationsCount > 0 && (
-                        <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold text-[9px]">
-                          {unreadNotificationsCount} Baru
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setNotifications(notifications.map(n => ({ ...n, unread: false })))}
+                          className="text-[10px] font-bold text-slate-450 hover:underline cursor-pointer"
+                        >
+                          Tandai Dibaca
+                        </button>
+                        {unreadNotificationsCount > 0 && (
+                          <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-bold text-[9px]">
+                            {unreadNotificationsCount} Baru
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="max-h-64 overflow-y-auto pt-1.5">
                       {notifications.map((notif) => (
-                        <div key={notif.id} className={`px-4 py-3 hover:bg-slate-50/80 transition-colors flex items-start gap-2.5 ${notif.unread ? 'bg-blue-50/10' : ''}`}>
+                        <div
+                          key={notif.id}
+                          onClick={() => {
+                            if (notif.unread) {
+                              setNotifications(notifications.map(item => item.id === notif.id ? { ...item, unread: false } : item));
+                            }
+                          }}
+                          className={`px-4 py-3 hover:bg-slate-50/80 transition-colors flex items-start gap-2.5 cursor-pointer ${notif.unread ? 'bg-blue-50/10' : ''}`}
+                        >
                           <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${notif.unread ? 'bg-blue-600' : 'bg-transparent'}`}></div>
-                          <p className="text-[11px] text-slate-650 leading-relaxed font-medium">{notif.text}</p>
+                          <p className={`text-[11px] leading-relaxed ${notif.unread ? 'text-slate-800 font-bold' : 'text-slate-400 font-medium'}`}>{notif.text}</p>
                         </div>
                       ))}
                     </div>
@@ -293,11 +297,11 @@ export default function OrmawaPortal() {
       {mobileMenuOpen && (
         <>
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 lg:hidden"
+            className="fixed inset-0 bg-[#001e40]/40 backdrop-blur-sm z-50 lg:hidden animate-fade-in"
             onClick={() => setMobileMenuOpen(false)}
           ></div>
           
-          <aside className="bg-white fixed left-0 top-0 h-screen w-64 p-6 z-50 flex flex-col lg:hidden animate-slide-in">
+          <aside className="bg-white fixed left-0 top-0 h-screen w-72 p-6 z-55 flex flex-col lg:hidden shadow-2xl transition-all duration-300 ease-in-out animate-slide-in">
             <div className="flex justify-between items-center mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-[#001e40] rounded-xl flex items-center justify-center text-white">
@@ -310,7 +314,8 @@ export default function OrmawaPortal() {
               </div>
               <button 
                 onClick={() => setMobileMenuOpen(false)}
-                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500"
+                className="w-11 h-11 flex items-center justify-center hover:bg-slate-100 rounded-xl text-slate-500 transition-colors"
+                aria-label="Tutup Menu"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -327,9 +332,9 @@ export default function OrmawaPortal() {
                       setActiveTab(item.id);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       isActive 
-                        ? 'bg-[#001e40] text-white' 
+                        ? 'bg-[#001e40] text-white shadow-sm' 
                         : 'text-slate-550 hover:bg-slate-50 hover:text-slate-800'
                     }`}
                   >
@@ -343,7 +348,7 @@ export default function OrmawaPortal() {
             <div className="pt-4 border-t border-slate-100">
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
+                className="w-full flex items-center gap-3 px-4 py-3 min-h-[44px] rounded-xl text-xs font-bold text-red-650 hover:bg-red-50/50 hover:text-red-750 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4 text-red-500" />
                 <span>Keluar Akun</span>

@@ -77,7 +77,7 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
               </li>
               <li>
                 <button onClick={() => handleNav('ukms')} className="hover:text-[#feb234] text-slate-400 transition-colors block text-left">
-                  Direktori UKM &amp; Organisasi
+                  Direktori Ormawa
                 </button>
               </li>
               <li>
@@ -117,24 +117,36 @@ export default function Footer({ setCurrentTab, setSelectedUkmId }: FooterProps)
             </ul>
           </div>
 
-          {/* Col 4: Peta Lokasi (Mini Maps Mock) */}
+          {/* Col 4: Peta Lokasi (Real Google Map) */}
           <div>
             <h3 className="text-white font-sans font-semibold text-base py-1 uppercase tracking-wider relative inline-block border-b-2 border-[#feb234] mb-6">
               Lokasi Kampus
             </h3>
             <div className="relative group overflow-hidden rounded-xl border border-[#002d61] h-36 bg-[#001e40]">
-              {/* Fake Map Rendering */}
-              <div className="absolute inset-0 bg-[#002d61]/90 flex flex-col items-center justify-center p-4 text-center">
-                <MapPin className="text-[#feb234] animate-bounce mb-1" size={24} />
-                <span className="text-xs text-white font-sans font-semibold">Kampus Pusat UPB</span>
-                <span className="text-[10px] text-slate-300 font-mono mt-0.5">Cikarang Pusat, Bekasi</span>
+              {/* Real Google Map Iframe */}
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3965.5390560799774!2d107.16704577522884!3d-6.324108493665365!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2e699b0c08ad8d01%3A0x2b18001d1b1371f9!2sUNIVERSITAS%20PELITA%20BANGSA!5e0!3m2!1sid!2sid!4v1783073977960!5m2!1sid!2sid"
+                className="absolute inset-0 w-full h-full border-0 filter grayscale opacity-45 group-hover:filter-none group-hover:opacity-100 transition-all duration-500"
+                allowFullScreen={false}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Google Maps Lokasi Universitas Pelita Bangsa"
+              />
+
+              {/* Overlay with info that fades on hover */}
+              <div className="absolute inset-0 bg-[#001e40]/75 group-hover:bg-[#001e40]/10 transition-all duration-500 flex flex-col items-center justify-center p-4 text-center pointer-events-none">
+                <MapPin className="text-[#feb234] animate-bounce mb-1 group-hover:scale-0 group-hover:opacity-0 transition-all duration-500" size={24} />
+                <span className="text-xs text-white font-sans font-semibold group-hover:scale-0 group-hover:opacity-0 transition-all duration-500">Kampus Pusat UPB</span>
+                <span className="text-[10px] text-slate-300 font-mono mt-0.5 group-hover:scale-0 group-hover:opacity-0 transition-all duration-500">Cikarang Pusat, Bekasi</span>
               </div>
+
+              {/* Buka Peta Button */}
               <div className="absolute bottom-2 right-2 z-10">
                 <a
                   href="https://maps.app.goo.gl/HhNnKfLmxn4g6Gin7"
                   target="_blank"
                   rel="noreferrer"
-                  className="bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] font-mono font-bold text-[9px] px-2 py-1 rounded shadow uppercase"
+                  className="bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] font-mono font-bold text-[9px] px-2 py-1 rounded shadow uppercase block transition-transform duration-300 hover:scale-105"
                 >
                   Buka Peta
                 </a>

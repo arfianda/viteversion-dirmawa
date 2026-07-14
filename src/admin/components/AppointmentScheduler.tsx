@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Calendar, Clock, User, PlusCircle, Trash2, CheckCircle, XCircle, AlertCircle, RefreshCw, HelpCircle } from 'lucide-react';
 import { Appointment } from '../../types';
 import { SupabaseService } from '../../services/supabaseService';
@@ -298,8 +299,8 @@ export default function AppointmentScheduler({ userRoles }: AppointmentScheduler
       </div>
 
       {/* Add Appointment Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showAddModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-left">
             <h3 className="font-sans font-black text-xl text-[#001e40] mb-4">Buat Jadwal Janji Temu Direktur</h3>
             
@@ -328,20 +329,8 @@ export default function AppointmentScheduler({ userRoles }: AppointmentScheduler
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Tujuan / Agenda Pertemuan *</label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="Tuliskan tujuan konsultasi atau bahasan pertemuan secara singkat..."
-                  value={purpose}
-                  onChange={(e) => setPurpose(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#001e40] resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Tanggal *</label>
+                <label className="block text-slate-700 font-bold mb-1">Waktu &amp; Tanggal Pertemuan *</label>
+                <div className="grid grid-cols-2 gap-3">
                   <input
                     type="date"
                     required
@@ -349,9 +338,6 @@ export default function AppointmentScheduler({ userRoles }: AppointmentScheduler
                     onChange={(e) => setRequestedDate(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#001e40]"
                   />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-bold mb-1">Jam Waktu *</label>
                   <input
                     type="time"
                     required
@@ -363,17 +349,18 @@ export default function AppointmentScheduler({ userRoles }: AppointmentScheduler
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Catatan Tambahan (Lokasi/Ketentuan)</label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Ruang Direktur, Lantai 2"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#001e40]"
+                <label className="block text-slate-700 font-bold mb-1">Perihal / Topik Bahasan *</label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Deskripsikan secara ringkas tujuan pertemuan..."
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 focus:outline-none focus:border-[#001e40] resize-none text-xs"
                 />
               </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+              <div className="flex gap-3 justify-end pt-3">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
@@ -392,12 +379,13 @@ export default function AppointmentScheduler({ userRoles }: AppointmentScheduler
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Action Approval / Rejection Modal */}
-      {showActionModal && selectedAppointment && (
-        <div className="fixed inset-0 bg-[#191c1e]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+      {showActionModal && selectedAppointment && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-left">
             <h3 className="font-sans font-black text-lg text-[#001e40] mb-3">
               {showActionModal === 'approve' ? 'Setujui Pertemuan' : 'Batalkan Pertemuan'}
@@ -425,7 +413,7 @@ export default function AppointmentScheduler({ userRoles }: AppointmentScheduler
                   setSelectedAppointment(null);
                   setActionNotes('');
                 }}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-350 text-slate-700 font-bold rounded-xl cursor-pointer text-xs"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-355 text-slate-700 font-bold rounded-xl cursor-pointer text-xs"
                 disabled={processing}
               >
                 Batal
@@ -450,7 +438,8 @@ export default function AppointmentScheduler({ userRoles }: AppointmentScheduler
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -3,6 +3,7 @@ export interface UserSession {
   username: string;
   role: 'mahasiswa' | 'admin' | 'superadmin';
   roles?: string[];
+  isApproved?: boolean;
   name: string;
   nimOrNip?: string;
   avatarUrl?: string;
@@ -28,6 +29,7 @@ export interface UkmRecord {
   type: string; // e.g. "Academic & Tech", "Sports & Recreation", "Arts & Culture"
   status: 'Active' | 'Inactive';
   logoUrl?: string;
+  coverUrl?: string;
   updatedAt: string;
   description: string;
   leaderName?: string;
@@ -65,6 +67,7 @@ export interface AdminRecord {
   email: string;
   role: 'Super Admin' | 'Admin' | 'Editor';
   roles?: string[];
+  isApproved?: boolean;
   lastActive: string;
   avatarInitials: string;
 }

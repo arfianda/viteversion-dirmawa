@@ -4,14 +4,16 @@
  */
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Achievement } from '../types';
 import { Search, Award, Calendar, ExternalLink, Trophy, Filter, ArrowUpRight, ShieldCheck, HelpCircle } from 'lucide-react';
 
 interface AchievementViewProps {
   achievements: Achievement[];
+  setCurrentTab: (tab: string) => void;
 }
 
-export default function AchievementView({ achievements }: AchievementViewProps) {
+export default function AchievementView({ achievements, setCurrentTab }: AchievementViewProps) {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState<string>('semua');
   const [selectedLevel, setSelectedLevel] = React.useState<string>('semua');
@@ -49,9 +51,9 @@ export default function AchievementView({ achievements }: AchievementViewProps) 
       {/* Grid of Trophies Count (Light elegant white cards) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { text: 'Medali Internasional', count: '12', color: 'text-amber-500' },
-          { text: 'Medali Nasional', count: '48', color: 'text-slate-550' },
-          { text: 'Kejuaraan Wilayah', count: '109', color: 'text-amber-700' },
+          { text: 'Medali Internasional', count: achievements.filter(a => a.level === 'Internasional').length.toString(), color: 'text-amber-500' },
+          { text: 'Medali Nasional', count: achievements.filter(a => a.level === 'Nasional').length.toString(), color: 'text-slate-550' },
+          { text: 'Kejuaraan Wilayah', count: achievements.filter(a => a.level === 'Regional').length.toString(), color: 'text-amber-700' },
           { text: 'SIMKATMAWA Cluster', count: 'Utama', color: 'text-[#001e40]' },
         ].map((item, i) => (
           <div key={i} className="bg-white border border-slate-200 p-5 rounded-2xl text-center space-y-2 shadow-sm">
@@ -229,19 +231,19 @@ export default function AchievementView({ achievements }: AchievementViewProps) 
         </div>
         <button 
           onClick={() => {
-            const el = document.getElementById('admin');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
+            sessionStorage.setItem('mahasiswa_active_tab', 'prestasi');
+            setCurrentTab('mahasiswa');
           }}
-          className="bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] text-xs font-sans font-black px-5 py-3.5 rounded-xl uppercase tracking-wider w-full lg:w-auto shadow-md transition-all active:scale-95"
+          className="bg-[#feb234] hover:bg-[#ffddb2] text-[#001e40] text-xs font-sans font-black px-5 py-3.5 rounded-xl uppercase tracking-wider w-full lg:w-auto shadow-md transition-all active:scale-95 cursor-pointer"
         >
           Laporkan Prestasi Saya
         </button>
       </div>
 
       {/* DETAIL MODAL ACHIEVEMENT popup overlay */}
-      {activeAchievement && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto">
-          <div className="bg-white border border-slate-205 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      {activeAchievement && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in overflow-y-auto" onClick={() => setActiveAchievement(null)}>
+          <div className="bg-white border border-slate-205 w-full max-w-2xl rounded-none sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col h-full sm:h-auto max-h-screen sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             
             {/* Modal Image Header */}
             <div 
@@ -257,43 +259,43 @@ export default function AchievementView({ achievements }: AchievementViewProps) 
               <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
               <div className="absolute bottom-6 left-6 space-y-1.5 z-11">
                 <div className="flex gap-1.5">
-                  <span className="bg-[#feb234] text-[#001e40] font-sans text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
+                  <span className="inline-block bg-[#feb234] text-[#001e40] font-sans text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded shadow-sm">
                     {activeAchievement.level}
                   </span>
-                  <span className="bg-blue-600 text-white font-sans text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded shadow-sm">
-                    {activeAchievement.rank}
+                  <span className="inline-block bg-[#001e40]/75 text-white font-sans text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded border border-slate-700/50 shadow-sm">
+                    {activeAchievement.category}
                   </span>
                 </div>
-                <h2 className="font-sans font-black text-xl sm:text-2.5xl text-slate-900 drop-shadow-sm leading-tight">
+                <h2 className="font-sans font-black text-2xl sm:text-3.5xl text-[#001e40] leading-none drop-shadow-sm">
                   {activeAchievement.title}
                 </h2>
               </div>
             </div>
 
-            {/* Scrollable Modal Content */}
-            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-800">
+            {/* Modal Scrollable Body */}
+            <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-slate-800 text-left">
               
-              {/* Recipient Profile Details layout */}
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl grid grid-cols-2 gap-4 text-xs font-sans">
-                <div className="space-y-1 border-r border-slate-200 pr-2">
-                  <span className="text-slate-500 font-bold uppercase font-sans text-[9px] tracking-wider block">Mahasiswa / Delegasi</span>
-                  <span className="text-slate-900 font-black block text-sm">{activeAchievement.studentName}</span>
-                  <span className="text-slate-650 block">{activeAchievement.major}</span>
+              {/* Main Information */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-sans text-xs bg-slate-50 border border-slate-200/60 p-4 rounded-xl">
+                <div>
+                  <span className="text-slate-400 font-mono text-[9px] uppercase font-bold block">Nama Lengkap</span>
+                  <span className="text-slate-800 font-bold text-sm block pt-0.5">{activeAchievement.studentName}</span>
                 </div>
-                <div className="space-y-1 pl-2 font-sans">
-                  <span className="text-slate-500 font-bold uppercase text-[9px] tracking-wider block">Kategori Lomba</span>
-                  <span className="text-[#feb234] font-black block text-sm uppercase">{activeAchievement.category}</span>
-                  <span className="text-slate-650 block text-xs">Kompetisi Tahun: {activeAchievement.year}</span>
+                <div>
+                  <span className="text-slate-400 font-mono text-[9px] uppercase font-bold block">Program Studi</span>
+                  <span className="text-slate-800 font-bold text-sm block pt-0.5">{activeAchievement.major}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 font-mono text-[9px] uppercase font-bold block">Peringkat &amp; Tahun</span>
+                  <span className="text-slate-800 font-bold text-sm block pt-0.5">Juara {activeAchievement.rank} ({activeAchievement.year})</span>
                 </div>
               </div>
 
-              {/* Story Description detail */}
-              <div className="space-y-3 font-sans leading-relaxed">
-                <span className="text-xs font-bold text-[#feb234] uppercase tracking-wider block">Kronologi & Latar Belakang Kompetisi</span>
-                <p className="text-sm text-slate-650 leading-relaxed font-sans">{activeAchievement.description}</p>
-                
-                <p className="text-xs text-slate-550 leading-relaxed italic bg-slate-50 border-l-2 border-[#feb234] pl-3 py-1 font-sans">
-                  "Prestasi ini tidak lepas dari dukungan pendanaan riset mandiri dari Direktorat Kemahasiswaan UPB serta bimbingan intensif dari dosen pembina Program Studi."
+              {/* Description summary */}
+              <div className="space-y-2.5 font-sans">
+                <span className="text-xs font-bold text-[#feb234] uppercase tracking-wider block">Deskripsi Prestasi</span>
+                <p className="text-sm text-slate-650 leading-relaxed font-medium">
+                  {activeAchievement.description || 'Tidak ada deskripsi rinci.'}
                 </p>
               </div>
 
@@ -317,7 +319,8 @@ export default function AchievementView({ achievements }: AchievementViewProps) 
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

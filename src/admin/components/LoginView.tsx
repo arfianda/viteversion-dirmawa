@@ -3,6 +3,8 @@ import { Mail, Lock, Eye, EyeOff, ShieldCheck, ArrowRight } from 'lucide-react';
 import { UserSession } from '../types';
 import { AuthService } from '../../services/authService';
 import { supabase } from '../../services/supabaseClient';
+import { SupabaseService } from '../../services/supabaseService';
+import { BRAND_LOGO } from '../../constants/brand';
 
 interface LoginViewProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -11,12 +13,50 @@ interface LoginViewProps {
 export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
   const [signupMessage, setSignupMessage] = useState<string | null>(null);
+
+  const handleRoleToggle = (role: string) => {
+    if (selectedRoles.includes(role)) {
+      setSelectedRoles(selectedRoles.filter(r => r !== role));
+    } else {
+      setSelectedRoles([...selectedRoles, role]);
+    }
+  };
+
+  const handleGoogleSSO = async () => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      sessionStorage.setItem('pending_portal', 'admin');
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          // Force it to explicitly target your local network loopback domain
+          redirectTo: 'http://127.0.0.1:3000/?portal=admin',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
+          }
+        }
+      });
+      if (error) {
+        setError('Gagal masuk dengan Google: ' + error.message);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError('Terjadi kesalahan saat otentikasi Google.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,14 +66,24 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
     try {
       if (isSignup) {
+        if (email !== 'arfiandafirsta@gmail.com' && selectedRoles.length === 0) {
+          setError('Silakan pilih minimal satu peran.');
+          setIsLoading(false);
+          return;
+        }
+
+        const primaryRole = email === 'arfiandafirsta@gmail.com' ? 'superadmin' : (selectedRoles[0] || 'staf_depan');
+        const rolesList = email === 'arfiandafirsta@gmail.com' ? ['superadmin'] : selectedRoles;
+
         // Sign up new user
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
-              name: email.split('@')[0],
-              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
+              name: name.trim() || email.split('@')[0],
+              role: primaryRole,
+              roles: rolesList,
             },
           },
         });
@@ -45,24 +95,25 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         }
 
         if (data?.user) {
-          // Create profile in public.users with superadmin role for arfiandafirsta@gmail.com
+          // Create profile in public.users
           const { error: profileError } = await supabase
             .from('users')
             .insert({
               id: data.user.id,
               email,
-              name: email.split('@')[0],
-              role: email === 'arfiandafirsta@gmail.com' ? 'superadmin' : 'operator',
+              name: name.trim() || email.split('@')[0],
+              role: primaryRole,
+              roles: rolesList,
             });
 
           if (profileError) {
             console.error('Profile creation error:', profileError);
-            setError('Failed to create user profile: ' + profileError.message);
+            setError('Gagal membuat profil pengguna: ' + profileError.message);
             setIsLoading(false);
             return;
           }
 
-          setSignupMessage('Account created! You can now sign in.');
+          setSignupMessage('Akun berhasil dibuat! Silakan masuk.');
           setIsSignup(false);
           setIsLoading(false);
           return;
@@ -75,6 +126,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
         if (authError || !user) {
           setError(authError || 'Login failed. Please check your credentials.');
+          await SupabaseService.logLogin(email, 'admin', 'failed');
           setIsLoading(false);
           return;
         }
@@ -82,6 +134,8 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         // Only allow administrators, superadmins, and ormawa admins
         console.log('Checking role:', user.role);
         if (user.role === 'admin_ormawa') {
+          await SupabaseService.logLogin(email, 'admin_ormawa', 'success', user.id);
+          sessionStorage.setItem('login_logged', 'true');
           localStorage.setItem('upb_ormawa_session', JSON.stringify({
             id: user.id,
             username: user.email,
@@ -98,15 +152,27 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
         const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator'];
         if (!allowedRoles.includes(user.role)) {
           setError('Akses ditolak. Peran admin/staf diperlukan.');
+          await SupabaseService.logLogin(email, user.role, 'failed', user.id);
           setIsLoading(false);
           return;
         }
+
+        if (user.isApproved === false && user.role !== 'superadmin') {
+          setError('Akun Anda belum disetujui oleh Super Admin. Silakan hubungi admin utama untuk aktivasi.');
+          await SupabaseService.logLogin(email, user.role, 'failed', user.id);
+          setIsLoading(false);
+          return;
+        }
+
+        await SupabaseService.logLogin(email, user.role, 'success', user.id);
+        sessionStorage.setItem('login_logged', 'true');
 
         onLoginSuccess({
           id: user.id,
           username: user.email,
           role: user.role === 'superadmin' ? 'superadmin' : 'admin',
           roles: user.roles || [user.role],
+          isApproved: user.isApproved,
           name: user.name,
           nimOrNip: 'ADMIN-' + user.id.slice(0, 8),
           avatarUrl: user.avatarUrl,
@@ -139,7 +205,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
               <img
                 alt="UPB Logo"
                 className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3jVZ0gnP1io7hv_EKmsUA0s0v7P43UjpVBwguh_r3QVt5Dm4tz2mfh0vT9aWln58W1_fZxHlbY16eWk5VKX1jgZBnaH200pA6g1VCPL8I43xCoLGsruIGqBGEGNaLkFtNy1FAH1xOAXyzcn6YIat9XO541xj6DQUzdkHICC1Jb4ngg7898WTlID-ob-hpyTWybxVzdskYbABFEGf_fwFWdIsx-NvILmzz3pxBUjLwfX7jsXe5vh9iYxsbUldDq-FskdT4Ykg80n0"
+                src={BRAND_LOGO}
               />
             </div>
             <h1 className="font-headline font-bold text-2xl text-[#001e40] leading-snug">
@@ -164,10 +230,30 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
 
           {/* Login Form */}
           <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+            {isSignup && (
+              <div className="flex flex-col gap-1.5 animate-fade-in">
+                <label className="font-semibold text-sm text-[#191c1e]" htmlFor="name">
+                  Nama Lengkap
+                </label>
+                <div className="relative">
+                  <input
+                    className="w-full bg-[#f2f4f7] border border-[#c3c6d1] text-[#191c1e] text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#001e40] focus:border-[#001e40] transition-all placeholder:text-[#737780]/60 font-medium"
+                    id="name"
+                    type="text"
+                    autoComplete="off"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Arfianda"
+                    required={isSignup}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Input Group: Email */}
             <div className="flex flex-col gap-1.5">
               <label className="font-semibold text-sm text-[#191c1e]" htmlFor="email">
-                Email Address
+                Email Address / Username
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#737780] pointer-events-none">
@@ -176,7 +262,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                 <input
                   className="w-full bg-[#f2f4f7] border border-[#c3c6d1] text-[#191c1e] text-sm rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#001e40] focus:border-[#001e40] transition-all placeholder:text-[#737780]/60 font-medium"
                   id="email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@pelitabangsa.ac.id"
@@ -213,6 +299,36 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
               </div>
             </div>
 
+            {isSignup && (
+              <div className="flex flex-col gap-2 bg-[#f8fafc] border border-slate-100 p-4 rounded-xl animate-fade-in text-left">
+                <label className="font-bold text-[10px] text-[#001e40] uppercase tracking-wider">
+                  Pilih Peran Yang Diajukan
+                </label>
+                <p className="text-[10px] text-[#737780] font-semibold leading-relaxed mb-1">
+                  Pilih satu atau beberapa peran staf Dirmawa.
+                </p>
+                <div className="space-y-2">
+                  {[
+                    { key: 'direktur', label: 'Direktur Dirmawa' },
+                    { key: 'staf_beasiswa', label: 'Staf Beasiswa' },
+                    { key: 'staf_ormawa', label: 'Staf Ormawa / Kemahasiswaan' },
+                    { key: 'staf_alumni', label: 'Staf Alumni / Karir' },
+                    { key: 'staf_depan', label: 'Staf Depan / Front Staff' },
+                  ].map((roleItem) => (
+                    <label key={roleItem.key} className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-[#43474f] hover:text-[#191c1e] transition-all py-0.5">
+                      <input
+                        type="checkbox"
+                        checked={selectedRoles.includes(roleItem.key)}
+                        onChange={() => handleRoleToggle(roleItem.key)}
+                        className="w-4 h-4 rounded border-[#c3c6d1] text-[#001e40] focus:ring-[#001e40] bg-white cursor-pointer"
+                      />
+                      <span>{roleItem.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Helper Row */}
             <div className="flex items-center justify-between mt-1">
               <label className="flex items-center gap-2 cursor-pointer group">
@@ -243,6 +359,28 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
             </button>
           </form>
 
+          {/* Divider */}
+          <div className="flex items-center my-4">
+            <div className="flex-grow border-t border-slate-200"></div>
+            <span className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">ATAU</span>
+            <div className="flex-grow border-t border-slate-200"></div>
+          </div>
+
+          {/* Google SSO Button */}
+          <button
+            onClick={handleGoogleSSO}
+            type="button"
+            className="w-full flex justify-center items-center gap-3 py-3.5 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-sm rounded-xl shadow-sm transition-colors cursor-pointer"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Masuk dengan Google
+          </button>
+
           {/* Toggle Sign Up / Sign In */}
           <div className="mt-1 pt-4 border-t border-[#c3c6d1]/20 text-center">
             <p className="text-xs text-[#737780] font-medium">
@@ -259,6 +397,23 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                 {isSignup ? 'Sign In' : 'Sign Up Here'}
               </button>
             </p>
+          </div>
+
+          {/* Back to Landing Page Link */}
+          <div className="text-center mt-1">
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem('pending_portal');
+                const url = new URL(window.location.href);
+                url.search = '';
+                url.hash = '#/home';
+                window.location.href = url.toString();
+              }}
+              className="text-slate-400 hover:text-[#001e40] text-xs font-bold transition-colors cursor-pointer"
+            >
+              Kembali ke Beranda
+            </button>
           </div>
 
           {/* Security Indicator */}

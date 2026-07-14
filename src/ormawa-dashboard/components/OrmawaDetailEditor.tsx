@@ -8,7 +8,8 @@ import {
   Phone,
   CheckCircle,
   HelpCircle,
-  Camera
+  Camera,
+  ChevronDown
 } from 'lucide-react';
 import { OrmawaService } from '../../services/ormawaService';
 
@@ -36,10 +37,30 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
   // Gallery list state
   const [gallery, setGallery] = useState<string[]>([]);
 
+  // Requirements list state
+  const [requirements, setRequirements] = useState<string[]>([]);
+
   // Images state
   const [logoImage, setLogoImage] = useState('');
   const [coverImage, setCoverImage] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
+
+  // Accordion state for mobile view collapsing
+  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({
+    visuals: true,
+    profile: true,
+    schedules: false,
+    contacts: false,
+    requirements: false,
+    gallery: false
+  });
+
+  const toggleSection = (section: string) => {
+    setSectionsOpen(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   const handleLogoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -85,6 +106,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
         setLogoImage(ukm.logo_image_url || '');
         setCoverImage(ukm.cover_image_url || '');
         setInstagramUrl(ukm.instagram_url || '');
+        setRequirements(ukm.requirements || []);
       } catch (e: any) {
         console.error('Failed to load UKM details:', e);
         setErrorMsg('Gagal memuat profil organisasi.');
@@ -131,6 +153,15 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
   };
   const removeGallery = (idx: number) => setGallery(gallery.filter((_, i) => i !== idx));
 
+  // Requirements functions
+  const addRequirement = () => setRequirements([...requirements, '']);
+  const handleRequirementChange = (idx: number, val: string) => {
+    const updated = [...requirements];
+    updated[idx] = val;
+    setRequirements(updated);
+  };
+  const removeRequirement = (idx: number) => setRequirements(requirements.filter((_, i) => i !== idx));
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -139,6 +170,7 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
 
     const activeMissions = missions.filter(m => m.trim() !== '');
     const activeGallery = gallery.filter(g => g.trim() !== '');
+    const activeRequirements = requirements.filter(r => r.trim() !== '');
 
     try {
       await OrmawaService.updateUkmDetails(ukmId, {
@@ -148,12 +180,13 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
         schedule: schedules,
         contacts,
         gallery: activeGallery,
+        requirements: activeRequirements,
         logoImage,
         coverImage,
         instagramUrl
       });
 
-      setSuccessMsg('Profil organisasi berhasil diperbarui! Perubahan Anda langsung sinkron ke Direktori UKM mahasiswa.');
+      setSuccessMsg('Profil organisasi berhasil diperbarui! Perubahan Anda langsung sinkron ke Direktori Ormawa.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
       console.error(e);
@@ -204,141 +237,398 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
       <form onSubmit={handleSave} className="space-y-6">
         
         {/* Profile Card / Header visuals */}
-        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden p-6 space-y-6">
-          <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Tampilan Logo &amp; Cover</h3>
+        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <button 
+            type="button"
+            onClick={() => toggleSection('visuals')}
+            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors text-left border-none outline-none cursor-pointer"
+          >
+            <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Tampilan Logo &amp; Sampul</h3>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${sectionsOpen.visuals ? 'rotate-180' : ''}`} />
+          </button>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-700">
-            
-            {/* Logo Image URL */}
-            <div className="space-y-2">
-              <label className="font-bold text-slate-600 block">Logo Organisasi</label>
-              <div className="flex gap-4 items-center">
-                <div className="relative group shrink-0">
-                  <img 
-                    src={logoImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'} 
-                    alt="Logo Preview" 
-                    className="w-14 h-14 rounded-full object-cover border border-slate-200 bg-slate-50"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'; }}
-                  />
-                  <label className="absolute inset-0 bg-black/40 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[8px] font-bold">
-                    Upload
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleLogoFile} 
-                      className="hidden" 
+          <div className={`${sectionsOpen.visuals ? 'block' : 'hidden'} p-6 border-t border-slate-100 space-y-6`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-700">
+              
+              {/* Logo Image URL */}
+              <div className="space-y-2">
+                <label className="font-bold text-slate-600 block">Logo Organisasi</label>
+                <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                  <div className="relative group shrink-0">
+                    <img 
+                      src={logoImage || 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'} 
+                      alt="Logo Preview" 
+                      className="w-14 h-14 rounded-full object-cover border border-slate-200 bg-slate-50"
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=200&auto=format&fit=crop'; }}
                     />
-                  </label>
-                </div>
-                <input 
-                  type="text" 
-                  value={logoImage} 
-                  onChange={(e) => setLogoImage(e.target.value)} 
-                  placeholder="Atau masukkan URL logo..."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
-                />
-              </div>
-            </div>
-
-            {/* Cover Image URL */}
-            <div className="space-y-2">
-              <label className="font-bold text-slate-600 block">Banner / Sampul Organisasi</label>
-              <div className="flex gap-4 items-center">
-                <div className="relative group shrink-0">
-                  <img 
-                    src={coverImage || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'} 
-                    alt="Cover Preview" 
-                    className="w-20 h-12 rounded-lg object-cover border border-slate-200 bg-slate-50"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'; }}
+                    <label className="absolute inset-0 bg-black/55 text-white rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-pointer text-[8px] font-bold">
+                      Upload
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleLogoFile} 
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={logoImage} 
+                    onChange={(e) => setLogoImage(e.target.value)} 
+                    placeholder="Atau masukkan URL logo..."
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
                   />
-                  <label className="absolute inset-0 bg-black/40 text-white rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[8px] font-bold">
-                    Upload
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      onChange={handleCoverFile} 
-                      className="hidden" 
-                    />
-                  </label>
                 </div>
-                <input 
-                  type="text" 
-                  value={coverImage} 
-                  onChange={(e) => setCoverImage(e.target.value)} 
-                  placeholder="Atau masukkan URL banner..."
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
-                />
+              </div>
+
+              {/* Cover Image URL */}
+              <div className="space-y-2">
+                <label className="font-bold text-slate-600 block">Banner / Sampul Organisasi</label>
+                <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                  <div className="relative group shrink-0">
+                    <img 
+                      src={coverImage || 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'} 
+                      alt="Cover Preview" 
+                      className="w-20 h-12 rounded-lg object-cover border border-slate-200 bg-slate-50"
+                      onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?q=80&w=800&auto=format&fit=crop'; }}
+                    />
+                    <label className="absolute inset-0 bg-black/55 text-white rounded-lg flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-pointer text-[8px] font-bold">
+                      Upload
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleCoverFile} 
+                        className="hidden" 
+                      />
+                    </label>
+                  </div>
+                  <input 
+                    type="text" 
+                    value={coverImage} 
+                    onChange={(e) => setCoverImage(e.target.value)} 
+                    placeholder="Atau masukkan URL banner..."
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+
+              {/* Instagram Link */}
+              <div className="md:col-span-2 space-y-2 pt-4 border-t border-slate-100">
+                <label className="font-bold text-slate-600 block">Link Profil Instagram</label>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={instagramUrl} 
+                    onChange={(e) => setInstagramUrl(e.target.value)} 
+                    placeholder="e.g. https://instagram.com/ukmseni_upb"
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
               </div>
             </div>
-
-            {/* Instagram Link */}
-            <div className="md:col-span-2 space-y-2 pt-4 border-t border-slate-100">
-              <label className="font-bold text-slate-600 block">Link Profil Instagram</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  value={instagramUrl} 
-                  onChange={(e) => setInstagramUrl(e.target.value)} 
-                  placeholder="e.g. https://instagram.com/ukmseni_upb"
-                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 outline-none transition-all placeholder:text-slate-400"
-                />
-              </div>
-            </div>
-
           </div>
         </section>
 
         {/* Text descriptions */}
-        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-6">
-          <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Profil Ringkasan</h3>
+        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <button 
+            type="button"
+            onClick={() => toggleSection('profile')}
+            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors text-left border-none outline-none cursor-pointer"
+          >
+            <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Profil Ringkasan</h3>
+            <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${sectionsOpen.profile ? 'rotate-180' : ''}`} />
+          </button>
           
-          <div className="space-y-4 text-xs text-slate-700">
-            {/* Description */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 block">Deskripsi Detail</label>
-              <textarea 
-                required
-                rows={5}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Tuliskan latar belakang, kegiatan utama, dan pencapaian organisasi..."
-                className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-slate-400 resize-y"
-              />
-            </div>
+          <div className={`${sectionsOpen.profile ? 'block' : 'hidden'} p-6 border-t border-slate-100 space-y-6`}>
+            <div className="space-y-4 text-xs text-slate-700">
+              {/* Description */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 block">Deskripsi Detail</label>
+                <textarea 
+                  required
+                  rows={5}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Tuliskan latar belakang, kegiatan utama, dan pencapaian organisasi..."
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-slate-400 resize-y"
+                />
+              </div>
 
-            {/* Vision */}
-            <div className="space-y-1.5">
-              <label className="font-bold text-slate-700 block">Visi Organisasi</label>
-              <textarea 
-                required
-                rows={2}
-                value={vision}
-                onChange={(e) => setVision(e.target.value)}
-                placeholder="Tulis visi jangka panjang organisasi..."
-                className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-slate-400 resize-y"
-              />
-            </div>
+              {/* Vision */}
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 block">Visi Organisasi</label>
+                <textarea 
+                  required
+                  rows={2}
+                  value={vision}
+                  onChange={(e) => setVision(e.target.value)}
+                  placeholder="Tulis visi jangka panjang organisasi..."
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-3 text-sm font-medium outline-none transition-all placeholder:text-slate-400 resize-y"
+                />
+              </div>
 
-            {/* Mission (Dynamic list) */}
-            <div className="space-y-2">
-              <label className="font-bold text-slate-700 block">Misi Organisasi</label>
+              {/* Mission (Dynamic list) */}
               <div className="space-y-2">
-                {missions.map((mission, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <span className="w-5 h-5 rounded-full bg-[#001e40]/5 flex items-center justify-center font-bold text-[10px] text-[#001e40] shrink-0">
-                      {index + 1}
+                <label className="font-bold text-slate-700 block">Misi Organisasi</label>
+                <div className="space-y-2">
+                  {missions.map((mission, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <span className="w-5 h-5 rounded-full bg-[#001e40]/5 flex items-center justify-center font-bold text-[10px] text-[#001e40] shrink-0">
+                        {index + 1}
+                      </span>
+                      <input 
+                        type="text"
+                        required
+                        value={mission}
+                        onChange={(e) => handleMissionChange(index, e.target.value)}
+                        placeholder="Misi organisasi..."
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all placeholder:text-slate-400"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeMission(index)}
+                        className="p-2 text-red-500 hover:text-red-750 hover:bg-red-55/10 rounded-lg cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={addMission}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-black cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah Misi</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Schedules & Routine activities */}
+        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <button 
+            type="button"
+            onClick={() => toggleSection('schedules')}
+            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors text-left border-none outline-none cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Jadwal Kegiatan Rutin</h3>
+              {schedules.length > 0 && (
+                <span className="bg-[#001e40]/5 text-[#001e40] px-2 py-0.5 rounded-full text-[10px] font-black">{schedules.length}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addSchedule();
+                  setSectionsOpen(prev => ({ ...prev, schedules: true }));
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah</span>
+              </button>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${sectionsOpen.schedules ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          <div className={`${sectionsOpen.schedules ? 'block' : 'hidden'} p-6 border-t border-slate-100 space-y-4`}>
+            {schedules.length === 0 ? (
+              <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada jadwal rutin terdaftar.</p>
+            ) : (
+              <div className="space-y-4 font-sans text-xs">
+                {schedules.map((sched, idx) => (
+                  <div key={idx} className="bg-slate-50 border border-slate-200/60 p-4 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-3 relative pr-12 items-center">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500 block">Hari</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={sched.day} 
+                        onChange={(e) => handleScheduleChange(idx, 'day', e.target.value)}
+                        placeholder="Sabtu"
+                        className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500 block">Jam</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={sched.time} 
+                        onChange={(e) => handleScheduleChange(idx, 'time', e.target.value)}
+                        placeholder="10:00 - 12:00"
+                        className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500 block">Aktivitas</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={sched.activity} 
+                        onChange={(e) => handleScheduleChange(idx, 'activity', e.target.value)}
+                        placeholder="Latihan rutin"
+                        className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeSchedule(idx)}
+                      className="absolute right-3 top-3 sm:top-[34px] w-10 h-10 flex items-center justify-center text-red-500 hover:text-red-750 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
+                      title="Hapus Jadwal"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Contact Personnel */}
+        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <button 
+            type="button"
+            onClick={() => toggleSection('contacts')}
+            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors text-left border-none outline-none cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Narahubung &amp; Pengurus</h3>
+              {contacts.length > 0 && (
+                <span className="bg-[#001e40]/5 text-[#001e40] px-2 py-0.5 rounded-full text-[10px] font-black">{contacts.length}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addContact();
+                  setSectionsOpen(prev => ({ ...prev, contacts: true }));
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah</span>
+              </button>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${sectionsOpen.contacts ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          <div className={`${sectionsOpen.contacts ? 'block' : 'hidden'} p-6 border-t border-slate-100 space-y-4`}>
+            {contacts.length === 0 ? (
+              <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada kontak terdaftar.</p>
+            ) : (
+              <div className="space-y-4 font-sans text-xs">
+                {contacts.map((cont, idx) => (
+                  <div key={idx} className="bg-slate-50 border border-slate-200/60 p-4 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-3 relative pr-12 items-center">
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500 block">Peran / Jabatan</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={cont.role} 
+                        onChange={(e) => handleContactChange(idx, 'role', e.target.value)}
+                        placeholder="Contoh: Ketua Umum"
+                        className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500 block">Nama Lengkap</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={cont.name} 
+                        onChange={(e) => handleContactChange(idx, 'name', e.target.value)}
+                        placeholder="Nama Lengkap"
+                        className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="font-bold text-slate-500 block">Nomor Kontak (WhatsApp / HP)</label>
+                      <input 
+                        type="text" 
+                        required
+                        value={cont.contact} 
+                        onChange={(e) => handleContactChange(idx, 'contact', e.target.value)}
+                        placeholder="081234567890"
+                        className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeContact(idx)}
+                      className="absolute right-3 top-3 sm:top-[34px] w-10 h-10 flex items-center justify-center text-red-500 hover:text-red-750 hover:bg-red-50 rounded-xl cursor-pointer transition-colors"
+                      title="Hapus Kontak"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Syarat Keanggotaan */}
+        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <button 
+            type="button"
+            onClick={() => toggleSection('requirements')}
+            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors text-left border-none outline-none cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Syarat Keanggotaan</h3>
+              {requirements.length > 0 && (
+                <span className="bg-[#001e40]/5 text-[#001e40] px-2 py-0.5 rounded-full text-[10px] font-black">{requirements.length}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addRequirement();
+                  setSectionsOpen(prev => ({ ...prev, requirements: true }));
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah</span>
+              </button>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${sectionsOpen.requirements ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          <div className={`${sectionsOpen.requirements ? 'block' : 'hidden'} p-6 border-t border-slate-100 space-y-4`}>
+            {requirements.length === 0 ? (
+              <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada syarat keanggotaan terdaftar.</p>
+            ) : (
+              <div className="space-y-3 font-sans text-xs">
+                {requirements.map((req, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <span className="w-5 h-5 rounded-full bg-[#feb234]/20 flex items-center justify-center font-bold text-[10px] text-[#001e40] shrink-0">
+                      {idx + 1}
                     </span>
                     <input 
                       type="text"
                       required
-                      value={mission}
-                      onChange={(e) => handleMissionChange(index, e.target.value)}
-                      placeholder="Misi organisasi..."
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all placeholder:text-slate-400"
+                      value={req}
+                      onChange={(e) => handleRequirementChange(idx, e.target.value)}
+                      placeholder="Contoh: Mahasiswa aktif semester 1 - 4"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all"
                     />
                     <button
                       type="button"
-                      onClick={() => removeMission(index)}
+                      onClick={() => removeRequirement(idx)}
                       className="p-2 text-red-500 hover:text-red-750 hover:bg-red-55/10 rounded-lg cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -346,192 +636,70 @@ export default function OrmawaDetailEditor({ ukmId }: OrmawaDetailEditorProps) {
                   </div>
                 ))}
               </div>
-              <button
-                type="button"
-                onClick={addMission}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-black cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Tambah Misi</span>
-              </button>
-            </div>
+            )}
           </div>
-        </section>
-
-        {/* Schedules & Routine activities */}
-        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Jadwal Kegiatan Rutin</h3>
-            <button
-              type="button"
-              onClick={addSchedule}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Jadwal</span>
-            </button>
-          </div>
-
-          {schedules.length === 0 ? (
-            <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada jadwal rutin terdaftar.</p>
-          ) : (
-            <div className="space-y-4 font-sans text-xs">
-              {schedules.map((sched, idx) => (
-                <div key={idx} className="bg-slate-50 border border-slate-200/60 p-4 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-3 relative pr-12 items-center">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-500 block">Hari</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={sched.day} 
-                      onChange={(e) => handleScheduleChange(idx, 'day', e.target.value)}
-                      placeholder="Sabtu"
-                      className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-500 block">Jam</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={sched.time} 
-                      onChange={(e) => handleScheduleChange(idx, 'time', e.target.value)}
-                      placeholder="10:00 - 12:00"
-                      className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-500 block">Aktivitas</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={sched.activity} 
-                      onChange={(e) => handleScheduleChange(idx, 'activity', e.target.value)}
-                      placeholder="Latihan rutin"
-                      className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeSchedule(idx)}
-                    className="absolute right-3 top-[34px] p-2 text-red-500 hover:text-red-750 hover:bg-red-50 rounded-lg cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        {/* Contact Personnel */}
-        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Narahubung &amp; Pengurus</h3>
-            <button
-              type="button"
-              onClick={addContact}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Kontak</span>
-            </button>
-          </div>
-
-          {contacts.length === 0 ? (
-            <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada kontak terdaftar.</p>
-          ) : (
-            <div className="space-y-4 font-sans text-xs">
-              {contacts.map((cont, idx) => (
-                <div key={idx} className="bg-slate-50 border border-slate-200/60 p-4 rounded-xl grid grid-cols-1 sm:grid-cols-3 gap-3 relative pr-12 items-center">
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-500 block">Peran / Jabatan</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={cont.role} 
-                      onChange={(e) => handleContactChange(idx, 'role', e.target.value)}
-                      placeholder="Ketua Umum"
-                      className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-500 block">Nama Lengkap</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={cont.name} 
-                      onChange={(e) => handleContactChange(idx, 'name', e.target.value)}
-                      placeholder="Budi Santoso"
-                      className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="font-bold text-slate-500 block">Nomor Kontak (WhatsApp / HP)</label>
-                    <input 
-                      type="text" 
-                      required
-                      value={cont.contact} 
-                      onChange={(e) => handleContactChange(idx, 'contact', e.target.value)}
-                      placeholder="081234567890"
-                      className="w-full bg-white border border-slate-200 focus:border-[#001e40] rounded-lg px-3 py-2 outline-none"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeContact(idx)}
-                    className="absolute right-3 top-[34px] p-2 text-red-500 hover:text-red-750 hover:bg-red-50 rounded-lg cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </section>
 
         {/* Photo Gallery Links */}
-        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 space-y-6">
-          <div className="flex justify-between items-center">
-            <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Galeri Foto Kegiatan</h3>
-            <button
-              type="button"
-              onClick={addGallery}
-              className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Tambah Foto</span>
-            </button>
-          </div>
-
-          {gallery.length === 0 ? (
-            <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada link foto terdaftar.</p>
-          ) : (
-            <div className="space-y-3 font-sans text-xs">
-              {gallery.map((url, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <span className="w-5 h-5 rounded-full bg-[#001e40]/5 flex items-center justify-center font-bold text-[10px] text-[#001e40] shrink-0">
-                    {idx + 1}
-                  </span>
-                  <input 
-                    type="text"
-                    required
-                    value={url}
-                    onChange={(e) => handleGalleryChange(idx, e.target.value)}
-                    placeholder="https://images.unsplash.com/photo-xxxx..."
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeGallery(idx)}
-                    className="p-2 text-red-500 hover:text-red-750 hover:bg-red-55/10 rounded-lg cursor-pointer"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+          <button 
+            type="button"
+            onClick={() => toggleSection('gallery')}
+            className="w-full flex items-center justify-between p-5 hover:bg-slate-50 transition-colors text-left border-none outline-none cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <h3 className="font-sans font-black text-sm uppercase tracking-wider text-[#001e40]">Galeri Foto Kegiatan</h3>
+              {gallery.length > 0 && (
+                <span className="bg-[#001e40]/5 text-[#001e40] px-2 py-0.5 rounded-full text-[10px] font-black">{gallery.length}</span>
+              )}
             </div>
-          )}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addGallery();
+                  setSectionsOpen(prev => ({ ...prev, gallery: true }));
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#001e40] hover:bg-[#feb234] text-white hover:text-[#001e40] rounded-lg text-[10px] font-black transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah</span>
+              </button>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${sectionsOpen.gallery ? 'rotate-180' : ''}`} />
+            </div>
+          </button>
+
+          <div className={`${sectionsOpen.gallery ? 'block' : 'hidden'} p-6 border-t border-slate-100 space-y-4`}>
+            {gallery.length === 0 ? (
+              <p className="text-xs text-slate-450 font-bold text-center py-4">Belum ada link foto terdaftar.</p>
+            ) : (
+              <div className="space-y-3 font-sans text-xs">
+                {gallery.map((url, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <span className="w-5 h-5 rounded-full bg-[#001e40]/5 flex items-center justify-center font-bold text-[10px] text-[#001e40] shrink-0">
+                      {idx + 1}
+                    </span>
+                    <input 
+                      type="text"
+                      required
+                      value={url}
+                      onChange={(e) => handleGalleryChange(idx, e.target.value)}
+                      placeholder="https://images.unsplash.com/photo-xxxx..."
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 rounded-xl px-4 py-2.5 text-xs font-medium outline-none transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeGallery(idx)}
+                      className="p-2 text-red-500 hover:text-red-750 hover:bg-red-55/10 rounded-lg cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Submit Actions */}

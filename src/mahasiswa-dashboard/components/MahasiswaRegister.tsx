@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, User, Mail, Lock, ShieldCheck, BookOpen, Calendar, Hash } from 'lucide-react';
+import { ArrowLeft, ArrowRight, User, Mail, Lock, ShieldCheck, BookOpen, Calendar, Hash, Phone } from 'lucide-react';
 import { supabase } from '../../services/supabaseClient';
+import SearchableProdiDropdown from '../../components/SearchableProdiDropdown';
 
 interface MahasiswaRegisterProps {
   onRegistered: () => void;
@@ -17,6 +18,7 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
     major: '',
     faculty: '',
     semester: '',
+    phone: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -54,6 +56,7 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
         major: form.major,
         faculty: form.faculty,
         semester: parseInt(form.semester) || null,
+        phone: form.phone,
       });
 
       if (insertError) {
@@ -109,12 +112,22 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
               <ArrowLeft className="w-4 h-4" />
               Kembali ke Login
             </button>
-            <h2 className="font-sans font-black text-3xl text-[#001e40] tracking-tight mb-1.5">
-              Daftar Akun Mahasiswa
-            </h2>
-            <p className="text-sm text-slate-500 font-medium">
-              Isi data diri Anda. Akun akan aktif setelah disetujui admin.
-            </p>
+            <div className="mb-6">
+              <h2 className="font-sans font-black text-2xl md:text-3xl text-[#001e40] tracking-tight mb-2">
+                Pendaftaran Mahasiswa
+              </h2>
+              <p className="text-sm text-slate-500 font-medium">
+                Lengkapi data di bawah ini untuk mengajukan akses portal.
+              </p>
+            </div>
+
+            {/* Security Notice */}
+            <div className="mb-6 bg-slate-50 border border-slate-200 rounded-xl p-4 flex gap-3 text-sm text-slate-600 font-medium">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+              <p>
+                Pendaftaran manual memerlukan <strong className="text-slate-800">Persetujuan Admin</strong> atau verifikasi untuk mencegah pendaftaran palsu/bot. Untuk proses yang instan, gunakan tombol Google SSO di halaman masuk.
+              </p>
+            </div>
           </div>
 
           {error && (
@@ -123,7 +136,7 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-1.5">
                 <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">NIM</label>
@@ -199,36 +212,36 @@ export default function MahasiswaRegister({ onRegistered, onBackToLogin }: Mahas
                   />
                 </div>
               </div>
+              <div className="space-y-1.5">
+                <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">No. WhatsApp</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Contoh: 08123456789"
+                    value={form.phone}
+                    onChange={(e) => handleChange('phone', e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-3 font-medium outline-none transition-all placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
 
               <div className="space-y-1.5">
                 <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">Program Studi</label>
                 <div className="relative">
-                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Teknik Informatika"
+                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 z-10" />
+                  <SearchableProdiDropdown
                     value={form.major}
-                    onChange={(e) => handleChange('major', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-3 font-medium outline-none transition-all placeholder:text-slate-400"
+                    onChange={(major, faculty) => {
+                      handleChange('major', major);
+                      handleChange('faculty', faculty);
+                    }}
+                    placeholder="Cari & Pilih Program Studi..."
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">Fakultas</label>
-                <div className="relative">
-                  <BookOpen className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Teknik"
-                    value={form.faculty}
-                    onChange={(e) => handleChange('faculty', e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 focus:border-[#001e40] focus:ring-2 focus:ring-[#001e40]/10 text-slate-800 text-sm rounded-xl pl-10 pr-4 py-3 font-medium outline-none transition-all placeholder:text-slate-400"
-                  />
-                </div>
-              </div>
 
               <div className="space-y-1.5">
                 <label className="block font-bold text-xs uppercase tracking-wider text-slate-600">Semester</label>
