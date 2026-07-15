@@ -583,7 +583,7 @@ export const SupabaseService = {
   // ==========================================
   async getAlumni(): Promise<AlumniRecord[]> {
     const { data, error } = await supabase
-      .from('alumni_records')
+      .from('alumni_public_stats')
       .select('*')
       .order('graduation_year', { ascending: false });
     if (error) throw error;

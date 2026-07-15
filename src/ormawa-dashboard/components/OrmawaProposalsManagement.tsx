@@ -17,6 +17,7 @@ import {
   X
 } from 'lucide-react';
 import { OrmawaService, OrmawaProposal, OrmawaLpj } from '../../services/ormawaService';
+import { supabase } from '../../services/supabaseClient';
 
 interface OrmawaProposalsManagementProps {
   ukmId: string;
@@ -37,8 +38,6 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
   const [pFlowType, setPFlowType] = useState<'ukm' | 'hima'>('ukm');
   const [pDoc, setPDoc] = useState<File | null>(null);
   const [pLetter, setPLetter] = useState<File | null>(null);
-  const [pFacility, setPFacility] = useState<File | null>(null);
-  const [pExpedition, setPExpedition] = useState<File | null>(null);
   const [isSubmittingP, setIsSubmittingP] = useState(false);
 
   // LPJ Form State
@@ -54,6 +53,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
   // Modal Detail State
   const [selectedProposal, setSelectedProposal] = useState<OrmawaProposal | null>(null);
   const [selectedLpj, setSelectedLpj] = useState<OrmawaLpj | null>(null);
+  const [previewPdf, setPreviewPdf] = useState<{ url: string; title: string } | null>(null);
   
   // Signed upload scan
   const [scanFile, setScanFile] = useState<File | null>(null);
@@ -95,11 +95,26 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
 
     setIsSubmittingP(true);
     try {
-      // Create mock file URLs
-      const proposalDocUrl = `/uploads/proposals/${ukmId}_${Date.now()}_doc_${pDoc.name}`;
-      const coverLetterUrl = pLetter ? `/uploads/proposals/${ukmId}_${Date.now()}_letter_${pLetter.name}` : '';
-      const facilityRentUrl = pFacility ? `/uploads/proposals/${ukmId}_${Date.now()}_facility_${pFacility.name}` : '';
-      const expeditionFormUrl = pExpedition ? `/uploads/proposals/${ukmId}_${Date.now()}_expedition_${pExpedition.name}` : '';
+      // Upload Proposal Doc
+      const pDocExt = pDoc.name.split('.').pop();
+      const pDocPath = `proposals/${ukmId}_${Date.now()}_doc.${pDocExt}`;
+      const { error: pDocError } = await supabase.storage
+        .from('ormawa')
+        .upload(pDocPath, pDoc);
+      if (pDocError) throw pDocError;
+      const proposalDocUrl = supabase.storage.from('ormawa').getPublicUrl(pDocPath).data.publicUrl;
+
+      // Upload Cover Letter (if any)
+      let coverLetterUrl = '';
+      if (pLetter) {
+        const pLetterExt = pLetter.name.split('.').pop();
+        const pLetterPath = `proposals/${ukmId}_${Date.now()}_letter.${pLetterExt}`;
+        const { error: pLetterError } = await supabase.storage
+          .from('ormawa')
+          .upload(pLetterPath, pLetter);
+        if (pLetterError) throw pLetterError;
+        coverLetterUrl = supabase.storage.from('ormawa').getPublicUrl(pLetterPath).data.publicUrl;
+      }
 
       await OrmawaService.submitProposal({
         ukm_id: ukmId,
@@ -109,8 +124,6 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
         activity_date: pDate,
         proposal_doc_url: proposalDocUrl,
         cover_letter_url: coverLetterUrl || undefined,
-        facility_rent_url: facilityRentUrl || undefined,
-        expedition_form_url: expeditionFormUrl || undefined,
         flow_type: pFlowType
       });
 
@@ -124,8 +137,6 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
       setPFlowType('ukm');
       setPDoc(null);
       setPLetter(null);
-      setPFacility(null);
-      setPExpedition(null);
       setActiveSubTab('list');
 
       await fetchLists();
@@ -149,9 +160,26 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
 
     setIsSubmittingL(true);
     try {
-      // Create mock file URLs
-      const lpjDocUrl = `/uploads/lpjs/${ukmId}_${Date.now()}_doc_${lDoc.name}`;
-      const receiptsZipUrl = lReceipts ? `/uploads/lpjs/${ukmId}_${Date.now()}_receipts_${lReceipts.name}` : '';
+      // Upload LPJ Doc
+      const lDocExt = lDoc.name.split('.').pop();
+      const lDocPath = `lpjs/${ukmId}_${Date.now()}_doc.${lDocExt}`;
+      const { error: lDocError } = await supabase.storage
+        .from('ormawa')
+        .upload(lDocPath, lDoc);
+      if (lDocError) throw lDocError;
+      const lpjDocUrl = supabase.storage.from('ormawa').getPublicUrl(lDocPath).data.publicUrl;
+
+      // Upload Receipts (if any)
+      let receiptsZipUrl = '';
+      if (lReceipts) {
+        const lReceiptExt = lReceipts.name.split('.').pop();
+        const lReceiptPath = `lpjs/${ukmId}_${Date.now()}_receipts.${lReceiptExt}`;
+        const { error: lReceiptError } = await supabase.storage
+          .from('ormawa')
+          .upload(lReceiptPath, lReceipts);
+        if (lReceiptError) throw lReceiptError;
+        receiptsZipUrl = supabase.storage.from('ormawa').getPublicUrl(lReceiptPath).data.publicUrl;
+      }
 
       await OrmawaService.submitLpj({
         ukm_id: ukmId,
@@ -189,7 +217,14 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
     if (!scanFile) return;
     setIsUploadingScan(true);
     try {
-      const scanUrl = `/uploads/scans/${ukmId}_${Date.now()}_signed_${scanFile.name}`;
+      const fileExt = scanFile.name.split('.').pop();
+      const filePath = `scans/${ukmId}_${Date.now()}_signed.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('ormawa')
+        .upload(filePath, scanFile);
+      if (uploadError) throw uploadError;
+      const scanUrl = supabase.storage.from('ormawa').getPublicUrl(filePath).data.publicUrl;
+
       await OrmawaService.uploadSignedProposalScan(proposalId, scanUrl);
       alert('File scan bertanda tangan berhasil diunggah! Status proposal berubah menjadi scan_uploaded.');
       setScanFile(null);
@@ -207,7 +242,14 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
     if (!scanFile) return;
     setIsUploadingScan(true);
     try {
-      const scanUrl = `/uploads/scans/${ukmId}_${Date.now()}_signed_lpj_${scanFile.name}`;
+      const fileExt = scanFile.name.split('.').pop();
+      const filePath = `scans/${ukmId}_${Date.now()}_signed_lpj.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('ormawa')
+        .upload(filePath, scanFile);
+      if (uploadError) throw uploadError;
+      const scanUrl = supabase.storage.from('ormawa').getPublicUrl(filePath).data.publicUrl;
+
       await OrmawaService.uploadSignedLpjScan(lpjId, scanUrl);
       alert('File scan LPJ bertanda tangan berhasil diunggah!');
       setScanFile(null);
@@ -283,7 +325,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
             </button>
             <button
               onClick={() => setActiveSubTab('add_lpj')}
-              className="bg-purple-650 hover:bg-[#feb234] text-white hover:text-[#001e40] font-black text-xs px-4 py-3 rounded-xl uppercase tracking-wider transition shadow cursor-pointer flex items-center gap-1.5"
+              className="bg-[#feb234] hover:bg-[#001e40] text-[#001e40] hover:text-white font-black text-xs px-4 py-3 rounded-xl uppercase tracking-wider transition shadow cursor-pointer flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
               <span>Laporkan LPJ</span>
@@ -344,10 +386,22 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                       <p className="text-[10px] text-slate-450 font-bold">
                         Tanggal: {new Date(prop.activity_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} | Budget: <strong className="text-slate-700 font-black">{formatRupiah(Number(prop.target_budget))}</strong>
                       </p>
-                      <div className="inline-flex gap-1.5 items-center mt-1">
+                      <div className="inline-flex gap-1.5 items-center mt-1.5 flex-wrap">
+                        <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-black bg-[#001e40]/5 text-[#001e40] uppercase tracking-wider font-mono">
+                          {prop.submission_code || 'PRP-XXXX'}
+                        </span>
                         <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black border uppercase ${getStatusColorClass(prop.status)}`}>
                           {getStatusLabel(prop.status)}
                         </span>
+                        {prop.physical_received ? (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 border border-emerald-200 text-emerald-800 uppercase tracking-wider">
+                            Berkas Fisik Diterima
+                          </span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-50 border border-amber-200 text-amber-800 uppercase tracking-wider" title="Tuliskan kode ini pada sampul berkas fisik Anda">
+                            Menunggu Berkas Fisik
+                          </span>
+                        )}
                       </div>
                     </div>
                     <button
@@ -367,7 +421,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
           <section className="lg:col-span-5 bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <FileCheck2 className="w-4 h-4 text-purple-650" />
+                <FileCheck2 className="w-4 h-4 text-amber-500" />
                 <h4 className="font-sans font-black text-xs uppercase tracking-wider text-[#001e40]">Laporan Pertanggungjawaban (LPJ)</h4>
               </div>
               <span className="bg-[#001e40]/5 text-[#001e40] px-2 py-0.5 rounded-full font-bold text-[9px]">
@@ -494,8 +548,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               {/* File Upload Grid */}
               <div className="md:col-span-2 border-t border-slate-100 pt-5 space-y-4">
                 <h4 className="font-sans font-black text-sm text-[#001e40] uppercase tracking-wider mb-2">Unggah Berkas Lampiran (Masing-masing Max 5MB, PDF/DOCX)</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   
                   {/* Proposal Doc */}
                   <div className="space-y-1.5">
@@ -541,50 +594,6 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                     </button>
                   </div>
 
-                  {/* Facility Rent */}
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-slate-600 block">3. Peminjaman Fasilitas</label>
-                    <input 
-                      type="file" 
-                      id="p-fac-file" 
-                      className="hidden" 
-                      onChange={(e) => e.target.files && setPFacility(e.target.files[0])}
-                      accept=".pdf,.docx,.doc"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('p-fac-file')?.click()}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 border rounded-xl cursor-pointer text-left transition-all ${
-                        pFacility ? 'bg-blue-50/20 border-blue-300 text-blue-800' : 'bg-slate-50 border-slate-200 text-slate-400'
-                      }`}
-                    >
-                      <span className="truncate pr-1">{pFacility ? pFacility.name : 'Pilih File'}</span>
-                      <Upload className="w-3.5 h-3.5 shrink-0" />
-                    </button>
-                  </div>
-
-                  {/* Expedition Form */}
-                  <div className="space-y-1.5">
-                    <label className="font-bold text-slate-600 block">4. Form Ekspedisi</label>
-                    <input 
-                      type="file" 
-                      id="p-exp-file" 
-                      className="hidden" 
-                      onChange={(e) => e.target.files && setPExpedition(e.target.files[0])}
-                      accept=".pdf,.docx,.doc"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('p-exp-file')?.click()}
-                      className={`w-full flex items-center justify-between px-3 py-2.5 border rounded-xl cursor-pointer text-left transition-all ${
-                        pExpedition ? 'bg-blue-50/20 border-blue-300 text-blue-800' : 'bg-slate-50 border-slate-200 text-slate-400'
-                      }`}
-                    >
-                      <span className="truncate pr-1">{pExpedition ? pExpedition.name : 'Pilih File'}</span>
-                      <Upload className="w-3.5 h-3.5 shrink-0" />
-                    </button>
-                  </div>
-
                 </div>
               </div>
 
@@ -620,7 +629,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
       {/* RENDER ADD LPJ FORM */}
       {activeSubTab === 'add_lpj' && (
         <form onSubmit={handleLpjSubmit} className="bg-white rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden font-sans">
-          <div className="p-5 bg-purple-650 text-white flex items-center gap-2 border-b border-purple-700">
+          <div className="p-5 bg-[#001e40] text-white flex items-center gap-2 border-b border-[#feb234]">
             <FileCheck2 className="w-5 h-5 text-[#feb234]" />
             <h3 className="font-sans font-black text-sm uppercase tracking-wider">Formulir Laporan Pertanggungjawaban (LPJ)</h3>
           </div>
@@ -763,7 +772,7 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               <button
                 type="submit"
                 disabled={isSubmittingL}
-                className="bg-purple-650 hover:bg-[#feb234] text-white hover:text-[#001e40] font-sans font-black px-6 py-3 rounded-xl uppercase tracking-wider shadow cursor-pointer transition active:scale-95 flex items-center gap-1.5"
+                className="bg-[#feb234] hover:bg-[#001e40] text-[#001e40] hover:text-white font-sans font-black px-6 py-3 rounded-xl uppercase tracking-wider shadow cursor-pointer transition active:scale-95 flex items-center gap-1.5"
               >
                 {isSubmittingL ? (
                   <>
@@ -807,6 +816,28 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                   <p className="font-black text-sm text-[#001e40]">{selectedProposal.title}</p>
                 </div>
                 <div className="space-y-0.5">
+                  <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Kode Unik Pengajuan</span>
+                  <div>
+                    <p className="font-black text-sm text-slate-800 bg-[#001e40]/5 px-2 py-0.5 rounded inline-block font-mono">
+                      {selectedProposal.submission_code || 'PRP-XXXX'}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Status Berkas Fisik</span>
+                  <div>
+                    {selectedProposal.physical_received ? (
+                      <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 border border-emerald-200 text-emerald-800 uppercase tracking-wider">
+                        Berkas Fisik Diterima
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-50 border border-amber-200 text-amber-800 uppercase tracking-wider">
+                        Menunggu Berkas Fisik
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-0.5">
                   <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Status Alur</span>
                   <div>
                     <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black border uppercase ${getStatusColorClass(selectedProposal.status)}`}>
@@ -823,6 +854,16 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
                   <p className="font-bold text-slate-700">{new Date(selectedProposal.activity_date).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
                 </div>
               </div>
+
+              {!selectedProposal.physical_received && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3.5 rounded-2xl flex items-start gap-2.5 text-[11px] font-medium leading-relaxed">
+                  <span className="text-[#feb234] text-lg font-black leading-none shrink-0 mt-0.5">⚠️</span>
+                  <div>
+                    <strong className="block text-slate-800 mb-0.5">Langkah Penting: Penyerahan Berkas Fisik</strong>
+                    Tuliskan kode <strong className="font-black text-[#001e40] bg-[#001e40]/5 px-1.5 py-0.5 rounded font-mono">{selectedProposal.submission_code}</strong> pada sampul map proposal fisik Anda dan segera serahkan ke bagian Front Desk Dirmawa. Staf akan memverifikasi berkas Anda di sistem menggunakan kode tersebut.
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1 bg-slate-50 p-4 border border-slate-200/60 rounded-xl">
                 <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Deskripsi Kegiatan</span>
@@ -841,23 +882,33 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
 
               {/* Document Download links */}
               <div className="space-y-2 border-t border-slate-100 pt-4">
-                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Berkas Pengajuan Awal</span>
+                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Berkas Pengajuan Awal (Klik teks untuk Preview)</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <a 
-                    href={selectedProposal.proposal_doc_url} 
-                    className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
-                  >
-                    <span>Dokumen Proposal Utama</span>
-                    <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
-                  </a>
-                  {selectedProposal.cover_letter_url && (
-                    <a 
-                      href={selectedProposal.cover_letter_url} 
-                      className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
+                  <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedProposal.proposal_doc_url, title: 'Dokumen Proposal Utama' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
                     >
-                      <span>Surat Pengantar</span>
-                      <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
+                      Dokumen Proposal Utama
+                    </button>
+                    <a href={selectedProposal.proposal_doc_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1.5 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
+                      <Download className="w-4 h-4 text-[#001e40]" />
                     </a>
+                  </div>
+                  {selectedProposal.cover_letter_url && (
+                    <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]">
+                      <button 
+                        type="button" 
+                        onClick={() => setPreviewPdf({ url: selectedProposal.cover_letter_url, title: 'Surat Pengantar' })}
+                        className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                      >
+                        Surat Pengantar
+                      </button>
+                      <a href={selectedProposal.cover_letter_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1.5 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
+                        <Download className="w-4 h-4 text-[#001e40]" />
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -907,13 +958,18 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               {selectedProposal.signed_proposal_url && (
                 <div className="space-y-2 border-t border-slate-100 pt-4">
                   <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Scan Tanda Tangan Basah</span>
-                  <a 
-                    href={selectedProposal.signed_proposal_url} 
-                    className="flex justify-between items-center bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold min-h-[44px]"
-                  >
-                    <span>Scan Proposal Disetujui Rektorat.pdf</span>
-                    <Download className="w-4 h-4 text-green-700 shrink-0 ml-2" />
-                  </a>
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold min-h-[44px]">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedProposal.signed_proposal_url, title: 'Scan Proposal Disetujui Rektorat' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                    >
+                      Scan Proposal Disetujui Rektorat.pdf
+                    </button>
+                    <a href={selectedProposal.signed_proposal_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1.5 hover:bg-green-100 rounded-md shrink-0 cursor-pointer">
+                      <Download className="w-4 h-4 text-green-700" />
+                    </a>
+                  </div>
                 </div>
               )}
 
@@ -925,10 +981,10 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
       {selectedLpj && createPortal(
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-xl overflow-hidden shadow-2xl animate-fade-in font-sans text-xs">
-            <div className="bg-purple-650 px-5 py-3 text-white flex justify-between items-center border-b border-purple-700">
+            <div className="bg-[#001e40] px-5 py-3 text-white flex justify-between items-center border-b border-[#feb234]">
               <div>
                 <h3 className="font-sans font-black text-sm uppercase tracking-wider">Detail Laporan LPJ</h3>
-                <span className="bg-purple-500/20 px-2 py-0.5 rounded text-white font-black text-[9px] mt-1 inline-block">
+                <span className="bg-[#feb234]/20 px-2 py-0.5 rounded text-[#feb234] font-black text-[9px] mt-1 inline-block">
                   ID: {selectedLpj.id.substring(0, 8)}...
                 </span>
               </div>
@@ -990,23 +1046,34 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               )}
 
               <div className="space-y-2 border-t border-slate-100 pt-4">
-                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Berkas Laporan Awal</span>
+                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Berkas Laporan Awal (Klik teks untuk Preview)</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <a 
-                    href={selectedLpj.lpj_doc_url} 
-                    className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
-                  >
-                    <span>Dokumen LPJ Utama</span>
-                    <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
-                  </a>
-                  {selectedLpj.receipts_zip_url && (
-                    <a 
-                      href={selectedLpj.receipts_zip_url} 
-                      className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]"
+                  <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedLpj.lpj_doc_url, title: 'Dokumen LPJ Utama' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
                     >
-                      <span>Kwitansi Nota ZIP</span>
-                      <Download className="w-4 h-4 text-[#001e40] shrink-0 ml-2" />
+                      Dokumen LPJ Utama
+                    </button>
+                    <a href={selectedLpj.lpj_doc_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1.5 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
+                      <Download className="w-4 h-4 text-[#001e40]" />
                     </a>
+                  </div>
+                  {selectedLpj.receipts_zip_url && (
+                    <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all min-h-[44px]">
+                      <a 
+                        href={selectedLpj.receipts_zip_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer font-bold"
+                      >
+                        Kwitansi Nota ZIP
+                      </a>
+                      <a href={selectedLpj.receipts_zip_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1.5 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
+                        <Download className="w-4 h-4 text-[#001e40]" />
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1056,16 +1123,52 @@ export default function OrmawaProposalsManagement({ ukmId, ukmName }: OrmawaProp
               {selectedLpj.signed_lpj_url && (
                 <div className="space-y-2 border-t border-slate-100 pt-4">
                   <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Scan LPJ Tanda Tangan Basah</span>
-                  <a 
-                    href={selectedLpj.signed_lpj_url} 
-                    className="flex justify-between items-center bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold min-h-[44px]"
-                  >
-                    <span>Scan LPJ Disetujui.pdf</span>
-                    <Download className="w-4 h-4 text-green-700 shrink-0 ml-2" />
-                  </a>
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 text-green-800 p-2.5 rounded-lg font-bold min-h-[44px]">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedLpj.signed_lpj_url, title: 'Scan LPJ Disetujui' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                    >
+                      Scan LPJ Disetujui.pdf
+                    </button>
+                    <a href={selectedLpj.signed_lpj_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1.5 hover:bg-green-100 rounded-md shrink-0 cursor-pointer">
+                      <Download className="w-4 h-4 text-green-700" />
+                    </a>
+                  </div>
                 </div>
               )}
 
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* PREVIEW PDF MODAL */}
+      {previewPdf && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-4xl h-[85vh] overflow-hidden shadow-2xl flex flex-col font-sans">
+            <div className="bg-[#001e40] px-5 py-3 text-white flex justify-between items-center border-b border-[#002d61]">
+              <div>
+                <h3 className="font-sans font-black text-sm uppercase tracking-wider">Pratinjau Dokumen</h3>
+                <span className="text-[#feb234] font-bold text-[10px] tracking-wide mt-1 block">
+                  {previewPdf.title}
+                </span>
+              </div>
+              <button 
+                onClick={() => setPreviewPdf(null)}
+                className="w-10 h-10 flex items-center justify-center text-white hover:text-[#feb234] transition-colors cursor-pointer rounded-full hover:bg-white/10"
+                aria-label="Tutup Pratinjau"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 bg-slate-100 p-2 relative">
+              <iframe 
+                src={previewPdf.url} 
+                className="w-full h-full border-0 rounded-2xl bg-white shadow-inner"
+                title="PDF Preview"
+              />
             </div>
           </div>
         </div>,

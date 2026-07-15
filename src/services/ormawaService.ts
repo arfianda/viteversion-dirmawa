@@ -39,6 +39,8 @@ export interface OrmawaProposal {
   rejection_reason?: string;
   flow_type: 'ukm' | 'hima';
   current_step_holder: 'ormawa' | 'dirmawa_staff' | 'dirmawa_direktur' | 'prodi' | 'dekanat' | 'dau' | 'rektorat' | 'kasir_keuangan';
+  submission_code?: string;
+  physical_received?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -477,6 +479,38 @@ export const OrmawaService = {
     if (error) throw error;
   },
 
+  async verifyPhysicalReceipt(code: string): Promise<OrmawaProposal> {
+    let cleanCode = code.trim().toUpperCase();
+    if (cleanCode && !cleanCode.startsWith('PRP-')) {
+      cleanCode = 'PRP-' + cleanCode;
+    }
+
+    const { data, error } = await supabase
+      .from('ormawa_proposals')
+      .update({
+        physical_received: true,
+        updated_at: new Date().toISOString()
+      })
+      .eq('submission_code', cleanCode)
+      .select(`
+        *,
+        ukms (
+          name
+        )
+      `);
+
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('Proposal dengan kode tersebut tidak ditemukan.');
+    }
+
+    const row = data[0];
+    return {
+      ...row,
+      ukm_name: row.ukms?.name
+    };
+  },
+
   async uploadSignedProposalScan(proposalId: string, url: string): Promise<void> {
     const { error } = await supabase
       .from('ormawa_proposals')
@@ -487,6 +521,24 @@ export const OrmawaService = {
         updated_at: new Date().toISOString()
       })
       .eq('id', proposalId);
+
+    if (error) throw error;
+  },
+
+  async deleteProposal(proposalId: string): Promise<void> {
+    const { error } = await supabase
+      .from('ormawa_proposals')
+      .delete()
+      .eq('id', proposalId);
+
+    if (error) throw error;
+  },
+
+  async deleteLpj(lpjId: string): Promise<void> {
+    const { error } = await supabase
+      .from('ormawa_lpjs')
+      .delete()
+      .eq('id', lpjId);
 
     if (error) throw error;
   },

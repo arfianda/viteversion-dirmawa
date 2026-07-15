@@ -405,47 +405,7 @@ export default function AdminPortal() {
     }
   }, [session]);
 
-  // Verify active Supabase Auth session on mount to prevent local storage desync or missed initial events
-  useEffect(() => {
-    async function verify() {
-      const { data: { session: sbSession } } = await supabase.auth.getSession();
-      if (!sbSession) {
-        console.log("No active Supabase session found. Clearing local storage session...");
-        setSession(null);
-        localStorage.removeItem('upb_affairs_session');
-      } else {
-        console.log("Active Supabase session found on mount. Checking profile...");
-        try {
-          const { data: profile, error: profileError } = await supabase
-            .from('users')
-            .select('id, email, name, role, roles, is_approved, avatar_url')
-            .eq('id', sbSession.user.id)
-            .single();
 
-          if (!profileError && profile) {
-            const allowedRoles = ['superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator', 'operator'];
-            if (allowedRoles.includes(profile.role) && (profile.is_approved || profile.role === 'superadmin')) {
-              const userSession: UserSession = {
-                id: profile.id,
-                username: profile.email,
-                role: profile.role as any,
-                roles: profile.roles || [profile.role],
-                isApproved: profile.is_approved,
-                name: profile.name,
-                nimOrNip: 'ADMIN-' + profile.id.slice(0, 8),
-                avatarUrl: profile.avatar_url || undefined
-              };
-              console.log("Mount session verification successful. Logging in:", userSession.username);
-              handleLoginSuccess(userSession);
-            }
-          }
-        } catch (err) {
-          console.error("Failed to verify mount session profile:", err);
-        }
-      }
-    }
-    verify();
-  }, []);
 
   useEffect(() => {
     // Set up real-time postgres subscriptions to refresh dashboard stats and notifications on database changes
@@ -495,7 +455,7 @@ export default function AdminPortal() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, sbSession) => {
       console.log("Auth state change in AdminPortal:", event, sbSession?.user?.email);
       
-      if (event === 'SIGNED_IN' && sbSession?.user) {
+      if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && sbSession?.user) {
         // Fetch profile
         try {
           const { data: profile, error: profileError } = await supabase
@@ -610,7 +570,7 @@ export default function AdminPortal() {
         } catch (e: any) {
           console.error("Error processing sign in:", e);
         }
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !sbSession)) {
         setSession(null);
         setSsoUser(null);
         setShowOnboarding(false);
@@ -669,7 +629,11 @@ export default function AdminPortal() {
   };
 
   const handleOnboardingSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Onboarding signOut failed, proceeding with local signout:", e);
+    }
     setShowOnboarding(false);
     setSsoUser(null);
     setPendingApprovalMessage(null);
@@ -715,7 +679,11 @@ export default function AdminPortal() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Supabase auth signOut failed, proceeding with local signout:", e);
+    }
     setSession(null);
     localStorage.removeItem('upb_affairs_session');
     sessionStorage.removeItem('pending_portal');
@@ -1473,7 +1441,7 @@ export default function AdminPortal() {
       case 'ormawa-apps':
         return <OrmawaApplicationsQueue reviewerId={session.id} onRefresh={loadDbData} />;
       case 'ormawa-props':
-        return <OrmawaProposalsQueue onRefresh={loadDbData} />;
+        return <OrmawaProposalsQueue session={session} onRefresh={loadDbData} />;
       case 'scholarship-apps':
         return <ScholarshipApplicationsQueue onRefresh={loadDbData} />;
       case 'member-reports':

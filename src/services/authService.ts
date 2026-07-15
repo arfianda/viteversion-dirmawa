@@ -84,7 +84,11 @@ export const AuthService = {
    * Sign out current user
    */
   async signOut(): Promise<void> {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("AuthService.signOut: Supabase API signout failed:", e);
+    }
   },
 
   /**

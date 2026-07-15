@@ -11,19 +11,22 @@ import {
   AlertTriangle,
   Play,
   RotateCcw,
-  DollarSign
+  DollarSign,
+  X
 } from 'lucide-react';
 import { OrmawaService, OrmawaProposal, OrmawaLpj } from '../../services/ormawaService';
+import { UserSession } from '../types';
 
 const formatRupiah = (num: number) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
 };
 
 interface OrmawaProposalsQueueProps {
+  session?: UserSession | null;
   onRefresh?: () => void;
 }
 
-export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueueProps) {
+export default function OrmawaProposalsQueue({ session, onRefresh }: OrmawaProposalsQueueProps) {
   const [activeSubTab, setActiveSubTab] = useState<'proposals' | 'lpjs'>('proposals');
   const [proposals, setProposals] = useState<OrmawaProposal[]>([]);
   const [lpjs, setLpjs] = useState<OrmawaLpj[]>([]);
@@ -37,6 +40,7 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
   const [rejectionNotes, setRejectionNotes] = useState('');
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [previewPdf, setPreviewPdf] = useState<{ url: string; title: string } | null>(null);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -203,6 +207,46 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
     } catch (e: any) {
       console.error(e);
       alert('Gagal menolak LPJ: ' + e.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteProposalSudo = async (proposalId: string) => {
+    if (!window.confirm('PERINGATAN: Apakah Anda yakin ingin menghapus proposal ini secara permanen dari database? Tindakan ini tidak dapat dibatalkan.')) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await OrmawaService.deleteProposal(proposalId);
+      alert('Proposal berhasil dihapus secara permanen (Sudo)!');
+      setSelectedProposal(null);
+      await fetchData();
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menghapus proposal: ' + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteLpjSudo = async (lpjId: string) => {
+    if (!window.confirm('PERINGATAN: Apakah Anda yakin ingin menghapus laporan LPJ ini secara permanen dari database? Tindakan ini tidak dapat dibatalkan.')) {
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      await OrmawaService.deleteLpj(lpjId);
+      alert('Laporan LPJ berhasil dihapus secara permanen (Sudo)!');
+      setSelectedLpj(null);
+      await fetchData();
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      console.error(err);
+      alert('Gagal menghapus LPJ: ' + err.message);
     } finally {
       setIsProcessing(false);
     }
@@ -396,17 +440,33 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
 
               {/* Document download grid */}
               <div className="space-y-2 border-t border-slate-100 pt-4">
-                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Unduh Berkas Lampiran Awal</span>
+                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Unduh Berkas Lampiran Awal (Klik teks untuk Preview)</span>
                 <div className="grid grid-cols-2 gap-3">
-                  <a href={selectedProposal.proposal_doc_url} className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
-                    <span>1. Dokumen Proposal Utama</span>
-                    <Download className="w-3.5 h-3.5 text-[#001e40]" />
-                  </a>
-                  {selectedProposal.cover_letter_url && (
-                    <a href={selectedProposal.cover_letter_url} className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
-                      <span>2. Surat Pengantar</span>
+                  <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedProposal.proposal_doc_url, title: 'Dokumen Proposal Utama' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                    >
+                      1. Dokumen Proposal Utama
+                    </button>
+                    <a href={selectedProposal.proposal_doc_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
                       <Download className="w-3.5 h-3.5 text-[#001e40]" />
                     </a>
+                  </div>
+                  {selectedProposal.cover_letter_url && (
+                    <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
+                      <button 
+                        type="button" 
+                        onClick={() => setPreviewPdf({ url: selectedProposal.cover_letter_url, title: 'Surat Pengantar' })}
+                        className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                      >
+                        2. Surat Pengantar
+                      </button>
+                      <a href={selectedProposal.cover_letter_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
+                        <Download className="w-3.5 h-3.5 text-[#001e40]" />
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -414,10 +474,18 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
               {selectedProposal.signed_proposal_url && (
                 <div className="bg-green-50/20 border border-green-200 p-4 rounded-xl space-y-2 mt-2">
                   <span className="text-green-800 font-black uppercase text-[9px] tracking-wide block">Scan Berkas Tanda Tangan (Selesai Disetujui Rektorat)</span>
-                  <a href={selectedProposal.signed_proposal_url} className="flex justify-between items-center bg-white hover:bg-slate-50 p-2.5 border border-green-200 rounded-lg text-green-900 font-bold">
-                    <span>Scan Proposal Disetujui Rektorat.pdf</span>
-                    <Download className="w-4 h-4 text-green-700" />
-                  </a>
+                  <div className="flex items-center justify-between bg-white hover:bg-slate-50 p-2.5 border border-green-200 rounded-lg text-green-900 font-bold">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedProposal.signed_proposal_url, title: 'Scan Proposal Disetujui Rektorat' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                    >
+                      Scan Proposal Disetujui Rektorat.pdf
+                    </button>
+                    <a href={selectedProposal.signed_proposal_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1 hover:bg-slate-100 rounded-md shrink-0 cursor-pointer">
+                      <Download className="w-4 h-4 text-green-700" />
+                    </a>
+                  </div>
                 </div>
               )}
 
@@ -491,6 +559,24 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
                 </form>
               )}
 
+              {/* SUPERADMIN SUDO DELETE */}
+              {session?.role === 'superadmin' && (
+                <div className="mt-6 pt-4 border-t border-red-100 flex justify-between items-center bg-red-50/20 p-4 rounded-xl font-sans">
+                  <div className="text-left font-sans">
+                    <span className="text-red-800 font-extrabold text-[9px] uppercase tracking-wider block">Menu Akses Super Admin (Sudo)</span>
+                    <p className="text-[11px] text-red-600 font-medium mt-0.5">Anda dapat menghapus secara paksa proposal ini dari database.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteProposalSudo(selectedProposal.id)}
+                    disabled={isProcessing}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold transition cursor-pointer text-xs uppercase tracking-wider shrink-0 font-sans"
+                  >
+                    Hapus Proposal (Sudo)
+                  </button>
+                </div>
+              )}
+
             </div>
           </div>
         </div>,
@@ -547,17 +633,34 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
 
               {/* Document download grid */}
               <div className="space-y-2 border-t border-slate-100 pt-4">
-                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Unduh Berkas LPJ Awal</span>
+                <span className="text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Unduh Berkas LPJ Awal (Klik teks untuk Preview)</span>
                 <div className="grid grid-cols-2 gap-3">
-                  <a href={selectedLpj.lpj_doc_url} className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
-                    <span>Dokumen LPJ Utama</span>
-                    <Download className="w-3.5 h-3.5 text-[#001e40]" />
-                  </a>
-                  {selectedLpj.receipts_zip_url && (
-                    <a href={selectedLpj.receipts_zip_url} className="flex justify-between items-center bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
-                      <span>Kwitansi Nota ZIP</span>
+                  <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedLpj.lpj_doc_url, title: 'Dokumen LPJ Utama' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                    >
+                      Dokumen LPJ Utama
+                    </button>
+                    <a href={selectedLpj.lpj_doc_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
                       <Download className="w-3.5 h-3.5 text-[#001e40]" />
                     </a>
+                  </div>
+                  {selectedLpj.receipts_zip_url && (
+                    <div className="flex items-center justify-between bg-slate-50 hover:bg-slate-100 p-2.5 border border-slate-200 rounded-lg text-slate-750 font-bold transition-all">
+                      <a 
+                        href={selectedLpj.receipts_zip_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer font-bold"
+                      >
+                        Kwitansi Nota ZIP
+                      </a>
+                      <a href={selectedLpj.receipts_zip_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1 hover:bg-slate-200 rounded-md shrink-0 cursor-pointer">
+                        <Download className="w-3.5 h-3.5 text-[#001e40]" />
+                      </a>
+                    </div>
                   )}
                 </div>
               </div>
@@ -565,10 +668,18 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
               {selectedLpj.signed_lpj_url && (
                 <div className="bg-green-50/20 border border-green-200 p-4 rounded-xl space-y-2 mt-2">
                   <span className="text-green-800 font-black uppercase text-[9px] tracking-wide block">Scan Berkas LPJ Bertanda Tangan Basah</span>
-                  <a href={selectedLpj.signed_lpj_url} className="flex justify-between items-center bg-white hover:bg-slate-50 p-2.5 border border-green-200 rounded-lg text-green-900 font-bold">
-                    <span>Scan LPJ Disetujui.pdf</span>
-                    <Download className="w-4 h-4 text-green-700" />
-                  </a>
+                  <div className="flex items-center justify-between bg-white hover:bg-slate-50 p-2.5 border border-green-200 rounded-lg text-green-900 font-bold">
+                    <button 
+                      type="button" 
+                      onClick={() => setPreviewPdf({ url: selectedLpj.signed_lpj_url, title: 'Scan LPJ Disetujui' })}
+                      className="flex-1 text-left hover:text-[#feb234] transition-colors outline-none cursor-pointer"
+                    >
+                      Scan LPJ Disetujui.pdf
+                    </button>
+                    <a href={selectedLpj.signed_lpj_url} target="_blank" rel="noopener noreferrer" title="Unduh Berkas" className="p-1 hover:bg-slate-100 rounded-md shrink-0 cursor-pointer">
+                      <Download className="w-4 h-4 text-green-700" />
+                    </a>
+                  </div>
                 </div>
               )}
 
@@ -642,6 +753,55 @@ export default function OrmawaProposalsQueue({ onRefresh }: OrmawaProposalsQueue
                 </form>
               )}
 
+              {/* SUPERADMIN SUDO DELETE FOR LPJ */}
+              {session?.role === 'superadmin' && (
+                <div className="mt-6 pt-4 border-t border-red-100 flex justify-between items-center bg-red-50/20 p-4 rounded-xl font-sans">
+                  <div className="text-left font-sans">
+                    <span className="text-red-800 font-extrabold text-[9px] uppercase tracking-wider block">Menu Akses Super Admin (Sudo)</span>
+                    <p className="text-[11px] text-red-600 font-medium mt-0.5">Anda dapat menghapus secara paksa LPJ ini dari database.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteLpjSudo(selectedLpj.id)}
+                    disabled={isProcessing}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold transition cursor-pointer text-xs uppercase tracking-wider shrink-0 font-sans"
+                  >
+                    Hapus LPJ (Sudo)
+                  </button>
+                </div>
+              )}
+
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* PREVIEW PDF MODAL */}
+      {previewPdf && createPortal(
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-4xl h-[85vh] overflow-hidden shadow-2xl flex flex-col font-sans">
+            <div className="bg-[#001e40] px-5 py-3 text-white flex justify-between items-center border-b border-[#002d61]">
+              <div>
+                <h3 className="font-sans font-black text-sm uppercase tracking-wider">Pratinjau Dokumen</h3>
+                <span className="text-[#feb234] font-bold text-[10px] tracking-wide mt-1 block">
+                  {previewPdf.title}
+                </span>
+              </div>
+              <button 
+                onClick={() => setPreviewPdf(null)}
+                className="w-10 h-10 flex items-center justify-center text-white hover:text-[#feb234] transition-colors cursor-pointer rounded-full hover:bg-white/10"
+                aria-label="Tutup Pratinjau"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 bg-slate-100 p-2 relative">
+              <iframe 
+                src={previewPdf.url} 
+                className="w-full h-full border-0 rounded-2xl bg-white shadow-inner"
+                title="PDF Preview"
+              />
             </div>
           </div>
         </div>,

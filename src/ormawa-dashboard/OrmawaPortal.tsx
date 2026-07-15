@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { UserSession } from '../admin/types';
 import { OrmawaService, OrmawaAdminProfile } from '../services/ormawaService';
+import { supabase } from '../services/supabaseClient';
 
 // Subcomponents
 import OrmawaDashboardOverview from './components/OrmawaDashboardOverview';
@@ -49,10 +50,70 @@ export default function OrmawaPortal() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-  const [notifications, setNotifications] = useState([
-    { id: '1', text: 'Proposal Kegiatan "Workshop IoT" telah disetujui oleh Staff Dirmawa dan diteruskan ke DAU.', unread: true },
-    { id: '2', text: 'LPJ "Latihan Gabungan Seni" berhasil diarsipkan oleh Biro Kemahasiswaan.', unread: false }
-  ]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Load dynamic notifications based on active proposals/LPJs
+  useEffect(() => {
+    if (!ormawaProfile) return;
+    
+    const loadNotifications = async () => {
+      try {
+        const [propsList, lpjsList] = await Promise.all([
+          OrmawaService.getProposals(ormawaProfile.ukm_id),
+          OrmawaService.getLpjs(ormawaProfile.ukm_id)
+        ]);
+
+        const getStatusDesc = (status: string) => {
+          switch (status) {
+            case 'submitted_dirmawa': return 'sedang dalam peninjauan Staff Dirmawa';
+            case 'approved_dirmawa_staff': return 'telah disetujui Staff dan diteruskan ke Direktur';
+            case 'approved_dirmawa_direktur': return 'telah disetujui Direktur dan diteruskan ke DAU';
+            case 'approved_prodi': return 'telah disetujui Kaprodi dan diteruskan ke Dekan';
+            case 'approved_dekanat': return 'telah disetujui Dekan dan diteruskan ke DAU';
+            case 'approved_dau': return 'telah disetujui DAU (Anggaran Disetujui)';
+            case 'approved_rektorat': return 'telah disetujui Rektorat (Silakan upload berkas scan)';
+            case 'scan_uploaded': return 'berhasil mengunggah scan tanda tangan (Menunggu Kasir Keuangan)';
+            case 'completed': return 'telah Selesai & Dana Berhasil Dicairkan';
+            case 'rejected': return 'ditolak & dikembalikan ke Ormawa';
+            default: return status;
+          }
+        };
+
+        const dynamicNotifs: any[] = [];
+        
+        propsList.forEach((p, idx) => {
+          dynamicNotifs.push({
+            id: `prop-${p.id}-${p.updated_at}`,
+            text: `Proposal "${p.title}" ${getStatusDesc(p.status)}.`,
+            unread: idx === 0 && p.status !== 'completed' // highlight the latest active proposal
+          });
+        });
+
+        lpjsList.forEach((l) => {
+          dynamicNotifs.push({
+            id: `lpj-${l.id}-${l.updated_at}`,
+            text: `LPJ "${l.proposal_title || 'Kegiatan'}" ${l.status === 'completed' ? 'berhasil diverifikasi & diarsipkan oleh Dirmawa' : 'sedang ditinjau oleh Biro Kemahasiswaan'}.`,
+            unread: l.status !== 'completed'
+          });
+        });
+
+        // If no proposals or LPJs, show a welcome notification
+        if (dynamicNotifs.length === 0) {
+          dynamicNotifs.push({
+            id: 'welcome',
+            text: `Selamat datang di Portal Ormawa ${ormawaProfile.ukm_name}. Silakan ajukan proposal kegiatan perdana Anda!`,
+            unread: true
+          });
+        }
+
+        setNotifications(dynamicNotifs);
+      } catch (err) {
+        console.error('Failed to load notifications:', err);
+      }
+    };
+
+    loadNotifications();
+  }, [ormawaProfile]);
 
   // Load Ormawa profile linked to this user
   useEffect(() => {
@@ -80,6 +141,19 @@ export default function OrmawaPortal() {
     localStorage.removeItem('upb_ormawa_session');
     window.location.hash = '';
   };
+
+  // Synchronize and validate Supabase Auth session on load/interaction
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, sbSession) => {
+      if (event === 'SIGNED_OUT' && session) {
+        handleSignOut();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [session]);
 
   const unreadNotificationsCount = notifications.filter(n => n.unread).length;
 

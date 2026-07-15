@@ -184,7 +184,11 @@ export default function MahasiswaPortal() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Student signOut failed, proceeding with local signout:", e);
+    }
     setSession(null);
     setRegistrationStatus(null);
     setRejectionReason(null);

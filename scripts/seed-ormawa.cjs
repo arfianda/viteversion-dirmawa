@@ -10,7 +10,7 @@ const client = new Client({
 function getCategory(name) {
   const upper = name.toUpperCase();
   if (upper.includes('HIMPUNAN') || upper.includes('HIMA') || upper.includes('HMPS')) {
-    return 'Himpunan';
+    return 'Akademik';
   }
   if (upper.includes('BSM') || upper.includes('SENI') || upper.includes('SUARA') || upper.includes('SENIKASELIA')) {
     return 'Seni & Budaya';
@@ -41,9 +41,17 @@ async function main() {
 
   for (const row of rows) {
     const namaOrmawa = row['Nama Ormawa']?.trim();
-    const username = row['Username']?.trim();
-    const password = row['Password Default']?.trim();
+    let username = row['Username']?.trim();
+    let password = row['Password Default']?.trim();
     const induk = row['Induk Ormawa']?.trim();
+
+    // Override UKM Seni credentials as requested by user
+    if (namaOrmawa === 'UNIT KEGIATAN MAHASISWA SENI (UKM SENI)') {
+      // Delete old user first to prevent duplicates/stale rows
+      await client.query("DELETE FROM auth.users WHERE email = 'ormawa_senikaselia2026@upb.ac.id'");
+      username = 'ormawa_seniupb2026';
+      password = 'Seniupb@2026';
+    }
 
     if (!namaOrmawa || !username || !password) {
       console.warn('Skipping row due to missing values:', row);

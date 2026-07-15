@@ -290,6 +290,26 @@ export default function MahasiswaLogin({ onLoginSuccess, onRegister }: Mahasiswa
             </p>
           </div>
 
+          {/* Link to Ormawa Portal */}
+          <div className="mt-3 text-center">
+            <p className="text-sm text-slate-500">
+              Anda pengurus Ormawa?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.setItem('pending_portal', 'ormawa');
+                  const url = new URL(window.location.href);
+                  url.search = '';
+                  url.hash = '#/ormawa';
+                  window.location.href = url.toString();
+                }}
+                className="text-[#001e40] font-bold hover:underline cursor-pointer"
+              >
+                Masuk di sini
+              </button>
+            </p>
+          </div>
+
           {/* Back to Landing Page Link */}
           <div className="mt-2 text-center">
             <button
