@@ -5,7 +5,7 @@
 -- 1. Alter public.users role check constraint to allow new roles
 ALTER TABLE public.users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE public.users ADD CONSTRAINT users_role_check CHECK (
-  role IN ('superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator', 'operator', 'mahasiswa', 'alumni')
+  role IN ('superadmin', 'direktur', 'staf_beasiswa', 'staf_ormawa', 'staf_alumni', 'staf_depan', 'admin', 'administrator', 'operator', 'mahasiswa', 'alumni', 'admin_ormawa')
 );
 
 -- 2. Add roles array column if it doesn't exist

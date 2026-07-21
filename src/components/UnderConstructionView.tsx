@@ -1,5 +1,6 @@
 import React from 'react';
 import { Hammer, Shield, RefreshCw, Key } from 'lucide-react';
+import { BRAND_LOGO } from '../constants/brand';
 
 export default function UnderConstructionView() {
   return (
@@ -7,8 +8,12 @@ export default function UnderConstructionView() {
       {/* Top Header / Logo */}
       <header className="max-w-7xl mx-auto w-full flex justify-between items-center py-4">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-[#001e40] flex items-center justify-center text-white shadow-sm font-black text-sm">
-            UPB
+          <div className="w-9 h-9 rounded-xl overflow-hidden border border-[#c3c6d1]/30 flex items-center justify-center bg-white shadow-sm">
+            <img
+              alt="UPB Logo"
+              className="w-full h-full object-cover"
+              src={BRAND_LOGO}
+            />
           </div>
           <div>
             <h1 className="font-sans font-black text-xs text-[#001e40] uppercase tracking-wider leading-none">

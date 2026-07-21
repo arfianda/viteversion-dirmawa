@@ -9,8 +9,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const getSuffix = () => {
   const hash = window.location.hash || '';
-  if (hash.includes('/admin')) return '_admin';
-  if (hash.includes('/ormawa')) return '_ormawa';
+  const search = window.location.search || '';
+  if (hash.includes('/admin') || search.includes('portal=admin')) return '_admin';
+  if (hash.includes('/ormawa') || search.includes('portal=ormawa')) return '_ormawa';
   return '_mahasiswa';
 };
 
