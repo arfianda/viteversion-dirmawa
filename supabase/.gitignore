@@ -6,3 +6,12 @@
 .env.keys
 .env.local
 .env.*.local
+
+# Credentials & Backups
+*.sql
+*_backup*
+supabase_credentials*
+
+# Scratch pad & local tool configs
+scratch/
+.claude/
