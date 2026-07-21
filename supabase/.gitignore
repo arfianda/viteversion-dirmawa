@@ -9,9 +9,11 @@
 
 # Credentials & Backups
 *.sql
+!supabase/migrations/*.sql
 *_backup*
 supabase_credentials*
 
 # Scratch pad & local tool configs
 scratch/
 .claude/
+
