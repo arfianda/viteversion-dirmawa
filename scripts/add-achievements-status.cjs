@@ -2,8 +2,8 @@ const { Client } = require('pg');
 
 const urls = [
   process.env.DATABASE_URL,
-  'postgresql://postgres:postgres@10.200.3.197:54322/postgres',
-  'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+  'postgresql://postgres:postgres@10.200.3.197:64322/postgres',
+  'postgresql://postgres:postgres@127.0.0.1:64322/postgres'
 ].filter(Boolean);
 
 async function main() {

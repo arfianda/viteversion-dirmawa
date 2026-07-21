@@ -1,7 +1,7 @@
 import { Client } from 'pg';
 import { SCHOLARSHIPS, UKMS, ACHIEVEMENTS, NEWS, INITIAL_ALUMNI } from '../src/data';
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@127.0.0.1:64322/postgres';
 
 // Helper to parse Indonesian date strings (e.g. "18 Mei 2024") into YYYY-MM-DD
 function parseIndoDate(dateStr: string): string {

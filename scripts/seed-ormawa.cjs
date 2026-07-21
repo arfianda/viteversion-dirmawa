@@ -4,7 +4,7 @@ const { Client } = require('pg');
 const crypto = require('crypto');
 
 const client = new Client({
-  connectionString: 'postgresql://postgres:postgres@localhost:54322/postgres'
+  connectionString: 'postgresql://postgres:postgres@localhost:64322/postgres'
 });
 
 function getCategory(name) {
